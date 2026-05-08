@@ -22,6 +22,7 @@
 #include "kagura/Utils.h"
 
 #include "llvm/IR/BasicBlock.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -31,10 +32,10 @@
 
 using namespace llvm;
 
-namespace kagura {
+extern cl::opt<bool>     EnableDCI;  // defined in Plugin.cpp (file scope)
+extern cl::opt<uint32_t> DCIProb;    // defined in Plugin.cpp (file scope)
 
-extern cl::opt<bool>     EnableDCI;  // declared in Plugin.cpp
-extern cl::opt<uint32_t> DCIProb;    // declared in Plugin.cpp
+namespace kagura {
 
 // Emit a sequence of junk arithmetic instructions into BB.
 // Uses a stack-allocated i32 as the operand so the instructions reference

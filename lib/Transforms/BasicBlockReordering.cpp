@@ -21,14 +21,15 @@
 #include "kagura/Utils.h"
 
 #include "llvm/IR/Function.h"
+#include "llvm/Support/CommandLine.h"
 
 #include <vector>
 
 using namespace llvm;
 
-namespace kagura {
+extern cl::opt<bool> EnableBBR; // defined in Plugin.cpp (file scope)
 
-extern cl::opt<bool> EnableBBR; // declared in Plugin.cpp
+namespace kagura {
 
 PreservedAnalyses BasicBlockReorderingPass::run(Function &F,
                                                 FunctionAnalysisManager &) {
