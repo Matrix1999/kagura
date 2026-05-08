@@ -1,5 +1,6 @@
 add_library(kagura_runtime STATIC
   anti_debug.c
+  vm_interpreter.c
 )
 
 target_include_directories(kagura_runtime PUBLIC

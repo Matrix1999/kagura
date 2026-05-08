@@ -92,6 +92,17 @@ struct ConstantObfuscationPass
   static bool isRequired() { return false; }
 };
 
+// ---- VM Obfuscation ----
+
+/// Virtualizes function bodies into a custom stack-based VM bytecode.
+/// The original IR is replaced by an XOR-encrypted bytecode blob and a
+/// trampoline that decrypts + dispatches via kagura_vm_execute().
+struct VMObfuscationPass : public llvm::PassInfoMixin<VMObfuscationPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Metrics ----
 
 /// Collects and prints obfuscation metrics per function:

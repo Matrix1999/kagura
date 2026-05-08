@@ -64,6 +64,9 @@ cl::opt<bool> EnableCO("kagura-co",
 cl::opt<bool> EnableMetrics("kagura-metrics",
                              cl::desc("[Kagura] Print obfuscation metrics"),
                              cl::init(false));
+cl::opt<bool> EnableVM("kagura-vm",
+                       cl::desc("[Kagura] VM-based function virtualization"),
+                       cl::init(false));
 
 cl::opt<uint32_t> BCFProb("kagura-bcf-prob",
                            cl::desc("[Kagura] Bogus CF probability [0-100]"),
@@ -103,6 +106,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (Name == "kagura-co") {
                     FPM.addPass(kagura::ConstantObfuscationPass());
+                    return true;
+                  }
+                  if (Name == "kagura-vm") {
+                    FPM.addPass(kagura::VMObfuscationPass());
                     return true;
                   }
                   if (Name == "kagura-anti-debug") {
@@ -171,6 +178,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (EnableCO) {
                     FPM.addPass(kagura::ConstantObfuscationPass());
+                    HasFunctionPass = true;
+                  }
+                  if (EnableVM) {
+                    FPM.addPass(kagura::VMObfuscationPass());
                     HasFunctionPass = true;
                   }
                   if (HasFunctionPass)

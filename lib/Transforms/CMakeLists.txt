@@ -17,6 +17,7 @@ add_llvm_pass_plugin(KaguraObfuscator
   AntiDebug.cpp
   ObjCObfuscation.cpp
   JNIObfuscation.cpp
+  VMObfuscation.cpp
   Utils.cpp
 
   DEPENDS
