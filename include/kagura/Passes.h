@@ -177,6 +177,28 @@ struct FunctionSplitPass : public llvm::PassInfoMixin<FunctionSplitPass> {
   static bool isRequired() { return false; }
 };
 
+// ---- CFG Layout ----
+
+/// Randomly shuffles the physical order of basic blocks within a function.
+/// CFG edges are unchanged; only the layout is permuted to confuse linear
+/// disassemblers and increase reverse-engineering cost.
+struct BasicBlockReorderingPass
+    : public llvm::PassInfoMixin<BasicBlockReorderingPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
+/// Inserts syntactically plausible but semantically dead basic blocks
+/// (terminated by `unreachable`) into functions to inflate CFG complexity
+/// and mislead static analysis tools.
+struct DeadCodeInsertionPass
+    : public llvm::PassInfoMixin<DeadCodeInsertionPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Metrics ----
 
 /// Collects and prints obfuscation metrics per function:

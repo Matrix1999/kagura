@@ -11,12 +11,15 @@
 //   -kagura-anti-debug   Enable anti-debug / anti-Frida injection
 //   -kagura-objc         Enable ObjC selector/class obfuscation (iOS)
 //   -kagura-jni          Enable JNI dynamic registration (Android)
+//   -kagura-bbr          Enable basic block reordering
+//   -kagura-dci          Enable dead code insertion
 //
 //   -kagura-fsplit        Enable function splitting / CFG fragmentation
 //
 //   -kagura-bcf-prob=<N> Bogus CF probability [0-100] (default: 30)
 //   -kagura-bcf-iter=<N> Bogus CF iterations (default: 1)
 //   -kagura-sub-iter=<N> Substitution iterations (default: 1)
+//   -kagura-dci-prob=<N> Dead code insertion probability [0-100] (default: 40)
 //   -kagura-seed=<N>     PRNG seed (0 = system entropy)
 //
 //===----------------------------------------------------------------------===//
@@ -85,6 +88,17 @@ cl::opt<uint32_t> SUBIter("kagura-sub-iter",
 
 } // namespace
 
+// Exposed for use by BasicBlockReordering.cpp and DeadCodeInsertion.cpp
+cl::opt<bool> EnableBBR("kagura-bbr",
+                         cl::desc("[Kagura] Basic block reordering"),
+                         cl::init(false));
+cl::opt<bool> EnableDCI("kagura-dci",
+                         cl::desc("[Kagura] Dead code insertion"),
+                         cl::init(false));
+cl::opt<uint32_t> DCIProb("kagura-dci-prob",
+                           cl::desc("[Kagura] Dead code insertion probability [0-100]"),
+                           cl::init(40));
+
 // Exposed for use by FunctionSplit.cpp via extern declaration
 cl::opt<bool> EnableFSplit("kagura-fsplit",
                             cl::desc("[Kagura] Function splitting / CFG fragmentation"),
@@ -98,6 +112,7 @@ extern cl::opt<bool> EnableTamper; // defined in AntiTamper.cpp
 extern cl::opt<bool> EnableCI;     // defined in CallIndirection.cpp
 extern cl::opt<bool> EnablePAC;    // defined in PointerAuth.cpp
 extern cl::opt<bool> EnableGENC;   // defined in GlobalEncryption.cpp
+// EnableBBR, EnableDCI, DCIProb are defined above (file scope)
 
 //===----------------------------------------------------------------------===//
 // Plugin entry point
@@ -137,6 +152,14 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (Name == "kagura-lt") {
                     FPM.addPass(kagura::LoopTransformPass());
+                    return true;
+                  }
+                  if (Name == "kagura-bbr") {
+                    FPM.addPass(kagura::BasicBlockReorderingPass());
+                    return true;
+                  }
+                  if (Name == "kagura-dci") {
+                    FPM.addPass(kagura::DeadCodeInsertionPass());
                     return true;
                   }
                   if (Name == "kagura-anti-debug") {
@@ -253,6 +276,14 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (EnableLT) {
                     FPM.addPass(kagura::LoopTransformPass());
+                    HasFunctionPass = true;
+                  }
+                  if (EnableBBR) {
+                    FPM.addPass(kagura::BasicBlockReorderingPass());
+                    HasFunctionPass = true;
+                  }
+                  if (EnableDCI) {
+                    FPM.addPass(kagura::DeadCodeInsertionPass());
                     HasFunctionPass = true;
                   }
                   if (HasFunctionPass)

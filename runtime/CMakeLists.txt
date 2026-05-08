@@ -4,6 +4,9 @@ add_library(kagura_runtime STATIC
   il2cpp_protection.c
   jailbreak_detection.c
   vm_interpreter.c
+  hook_detection.c
+  breakpoint_detection.c
+  emulator_detection.c
 )
 
 target_include_directories(kagura_runtime PUBLIC
