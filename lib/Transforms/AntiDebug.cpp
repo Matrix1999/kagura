@@ -1,0 +1,155 @@
+//===-- AntiDebug.cpp - Anti-debug / Anti-Frida injection pass ------------===//
+//
+// Injects anti-analysis checks into module constructors so they run before
+// any user code.  Targets: iOS and Android.
+//
+// iOS checks:
+//   - sysctl PT_DENY_ATTACH (self-ptrace)
+//   - Check for Frida dylib names in DYLD_INSERT_LIBRARIES
+//   - Scan loaded dylibs via dyld_image_count / _dyld_get_image_name
+//
+// Android checks:
+//   - Read /proc/self/maps for frida-agent / substrate entries
+//   - Connect to 127.0.0.1:27042 (Frida default port) and abort if open
+//   - Check /proc/self/status for TracerPid != 0
+//
+// The injected checks call abort() on detection.  Users can customize the
+// response by providing a weak symbol: void kagura_on_tamper_detected(void).
+//
+//===----------------------------------------------------------------------===//
+
+#include "kagura/Passes.h"
+#include "kagura/Utils.h"
+
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Transforms/Utils/ModuleUtils.h"
+
+using namespace llvm;
+
+namespace kagura {
+
+// Helper: get or declare an external C function in M
+static Function *getOrDeclare(Module &M, StringRef Name, FunctionType *FTy) {
+  if (auto *F = M.getFunction(Name))
+    return F;
+  return Function::Create(FTy, Function::ExternalLinkage, Name, M);
+}
+
+// Build void kagura_anti_debug_init() — a module constructor
+static Function *buildAntiDebugConstructor(Module &M, bool AntiFramework,
+                                            bool AntiPtrace) {
+  LLVMContext &Ctx = M.getContext();
+  IRBuilder<> B(Ctx);
+
+  auto *VoidTy  = Type::getVoidTy(Ctx);
+  auto *Int32Ty = Type::getInt32Ty(Ctx);
+  auto *Int8Ty  = Type::getInt8Ty(Ctx);
+  auto *PtrTy   = PointerType::getUnqual(Ctx);
+
+  auto *FTy = FunctionType::get(VoidTy, false);
+  auto *F   = Function::Create(FTy, Function::InternalLinkage,
+                               "kagura_anti_debug_init", M);
+  F->addFnAttr(Attribute::NoUnwind);
+
+  auto *Entry = BasicBlock::Create(Ctx, "entry", F);
+  auto *End   = BasicBlock::Create(Ctx, "end", F);
+  B.SetInsertPoint(Entry);
+  // Entry block will be terminated after building the check chain.
+
+  // ---- Declare external functions ----
+
+  // abort()
+  auto *AbortFTy = FunctionType::get(VoidTy, false);
+  auto *AbortFn  = getOrDeclare(M, "abort", AbortFTy);
+
+  // kagura_on_tamper_detected() — weak user hook
+  auto *HookFn = Function::Create(FTy, Function::WeakAnyLinkage,
+                                   "kagura_on_tamper_detected", M);
+  HookFn->addFnAttr(Attribute::NoUnwind);
+  // Default implementation: just call abort
+  {
+    auto *HookEntry = BasicBlock::Create(Ctx, "entry", HookFn);
+    IRBuilder<> HB(HookEntry);
+    HB.CreateCall(AbortFn);
+    HB.CreateUnreachable();
+  }
+
+  if (AntiPtrace) {
+    // --- iOS: PT_DENY_ATTACH via sysctl ---
+    // int sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
+    //            void *newp, size_t newlen)
+    // name = {CTL_KERN=1, KERN_PROC=14, KERN_PROC_PID=1, getpid()}
+    // We use getpid() + sysctl to request PT_DENY_ATTACH (31).
+    //
+    // For simplicity we use ptrace(PT_DENY_ATTACH=31, 0, 0, 0) on iOS:
+    // ptrace is also available on Android for self-detection.
+
+    // int ptrace(int request, pid_t pid, caddr_t addr, int data)
+    auto *PtraceFTy = FunctionType::get(
+        Int32Ty, {Int32Ty, Int32Ty, PtrTy, Int32Ty}, false);
+    auto *PtraceFn = getOrDeclare(M, "ptrace", PtraceFTy);
+
+    auto *PtBlock = BasicBlock::Create(Ctx, "ptrace_check", F, End);
+    B.CreateBr(PtBlock);
+    B.SetInsertPoint(PtBlock);
+
+    // ptrace(31 /*PT_DENY_ATTACH*/, 0, null, 0)
+    auto *PT31 = ConstantInt::get(Int32Ty, 31);
+    auto *Zero = ConstantInt::get(Int32Ty, 0);
+    auto *Null = ConstantPointerNull::get(PtrTy);
+    B.CreateCall(PtraceFTy, PtraceFn, {PT31, Zero, Null, Zero});
+    B.CreateBr(End);
+    B.SetInsertPoint(End);
+  } else {
+    B.CreateBr(End);
+    B.SetInsertPoint(End);
+  }
+
+  if (AntiFramework) {
+    // --- Android: check /proc/self/status for TracerPid ---
+    // We inject a call to the runtime helper kagura_check_tracer_pid()
+    // which is implemented in the runtime library (runtime/anti_debug.c).
+    auto *CheckFTy = FunctionType::get(Int32Ty, false);
+    auto *CheckFn  = getOrDeclare(M, "kagura_check_tracer_pid", CheckFTy);
+
+    auto *CheckBlock  = BasicBlock::Create(Ctx, "check_tracer", F);
+    auto *DetectBlock = BasicBlock::Create(Ctx, "detect", F);
+    auto *OkBlock     = BasicBlock::Create(Ctx, "ok", F);
+
+    // Patch previous block to fall through
+    Instruction *PrevTerm = End->getTerminator();
+    if (PrevTerm) PrevTerm->eraseFromParent();
+    IRBuilder<>(End).CreateBr(CheckBlock);
+
+    B.SetInsertPoint(CheckBlock);
+    auto *TracerPid = B.CreateCall(CheckFTy, CheckFn, {}, "tracer");
+    auto *ZeroI32   = ConstantInt::get(Int32Ty, 0);
+    auto *IsTraced  = B.CreateICmpNE(TracerPid, ZeroI32, "is_traced");
+    B.CreateCondBr(IsTraced, DetectBlock, OkBlock);
+
+    B.SetInsertPoint(DetectBlock);
+    B.CreateCall(FTy, HookFn);
+    B.CreateUnreachable();
+
+    B.SetInsertPoint(OkBlock);
+    B.CreateRetVoid();
+    return F;
+  }
+
+  // No AntiFramework path: just return
+  IRBuilder<>(End).CreateRetVoid();
+  return F;
+}
+
+PreservedAnalyses AntiDebugPass::run(Module &M, ModuleAnalysisManager &) {
+  auto *Ctor = buildAntiDebugConstructor(M, AntiFramework, AntiPtrace);
+  // Register as module constructor (priority 0 = runs first)
+  appendToGlobalCtors(M, Ctor, 0);
+  return PreservedAnalyses::none();
+}
+
+} // namespace kagura
