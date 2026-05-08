@@ -237,7 +237,7 @@ static FunctionCallee getOrDeclareRuntimeDecrypt(Module &M) {
   auto *Int8Ty  = Type::getInt8Ty(Ctx);
   auto *Int32Ty = Type::getInt32Ty(Ctx);
   auto *VoidTy  = Type::getVoidTy(Ctx);
-  auto *PtrTy   = PointerType::getUnqual(Int8Ty);
+  auto *PtrTy   = PointerType::getUnqual(Ctx);
 
   // void kagura_aes128_ctr_decrypt(i8*, i32, i8*, i8*, i8*)
   auto *FTy = FunctionType::get(VoidTy,
@@ -273,7 +273,7 @@ static Function *buildAESDecryptStub(Module &M,
 
   auto *Int8Ty  = Type::getInt8Ty(Ctx);
   auto *Int32Ty = Type::getInt32Ty(Ctx);
-  auto *PtrTy   = PointerType::getUnqual(Int8Ty);
+  auto *PtrTy   = PointerType::getUnqual(Ctx);
 
   // Static output buffer — avoids returning a pointer to a stack frame.
   // Initialized to all-zeros; overwritten on each call to this stub.
