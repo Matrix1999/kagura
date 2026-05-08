@@ -69,6 +69,9 @@ cl::opt<bool> EnableMetrics("kagura-metrics",
 cl::opt<bool> EnableVM("kagura-vm",
                        cl::desc("[Kagura] VM-based function virtualization"),
                        cl::init(false));
+cl::opt<bool> EnableSTRAES("kagura-str-aes",
+                            cl::desc("[Kagura] AES-128-CTR string encryption"),
+                            cl::init(false));
 
 cl::opt<uint32_t> BCFProb("kagura-bcf-prob",
                            cl::desc("[Kagura] Bogus CF probability [0-100]"),
@@ -91,6 +94,7 @@ cl::opt<bool> EnableFSplit("kagura-fsplit",
 // We declare them extern so we can reference them in the callback lambda.
 extern cl::opt<bool> EnableIBR;
 extern cl::opt<bool> EnableLT;
+extern cl::opt<bool> EnableTamper; // defined in AntiTamper.cpp
 
 //===----------------------------------------------------------------------===//
 // Plugin entry point
@@ -162,6 +166,14 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(kagura::FunctionSplitPass());
                     return true;
                   }
+                  if (Name == "kagura-str-aes") {
+                    MPM.addPass(kagura::StringEncryptionAESPass());
+                    return true;
+                  }
+                  if (Name == "kagura-tamper") {
+                    MPM.addPass(kagura::AntiTamperPass());
+                    return true;
+                  }
                   return false;
                 });
 
@@ -178,6 +190,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(kagura::ObfuscationMetricsPass(/*Before=*/true));
                   if (EnableSTR)
                     MPM.addPass(kagura::StringEncryptionPass());
+                  if (EnableSTRAES)
+                    MPM.addPass(kagura::StringEncryptionAESPass());
+                  if (EnableTamper)
+                    MPM.addPass(kagura::AntiTamperPass());
                   if (EnableObjC)
                     MPM.addPass(kagura::ObjCObfuscationPass());
                   if (EnableJNI)

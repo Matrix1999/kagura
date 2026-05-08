@@ -10,6 +10,8 @@ add_llvm_pass_plugin(KaguraObfuscator
   PARTIAL_SOURCES_INTENDED
   Plugin.cpp
   StringEncryption.cpp
+  StringEncryptionAES.cpp
+  AntiTamper.cpp
   ControlFlowFlattening.cpp
   BogusControlFlow.cpp
   Substitution.cpp

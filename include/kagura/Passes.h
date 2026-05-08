@@ -51,6 +51,15 @@ struct StringEncryptionPass
   static bool isRequired() { return false; }
 };
 
+/// Encrypts string literals with AES-128-CTR at compile time.
+/// Stronger than XOR-based StringEncryptionPass; requires kagura_runtime.
+struct StringEncryptionAESPass
+    : public llvm::PassInfoMixin<StringEncryptionAESPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Mobile Anti-Analysis ----
 
 /// Injects anti-debug / anti-Frida checks (ptrace, port 27042, maps scan).
@@ -116,6 +125,16 @@ struct ConstantObfuscationPass
 struct VMObfuscationPass : public llvm::PassInfoMixin<VMObfuscationPass> {
   llvm::PreservedAnalyses run(llvm::Function &F,
                                llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
+// ---- Anti-tamper ----
+
+/// Injects compile-time FNV-1a integrity hashes and runtime verification calls.
+/// Also inserts kagura_self_check() at main() for jailbreak/root detection.
+struct AntiTamperPass : public llvm::PassInfoMixin<AntiTamperPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
   static bool isRequired() { return false; }
 };
 

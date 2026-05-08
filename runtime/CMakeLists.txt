@@ -1,5 +1,7 @@
 add_library(kagura_runtime STATIC
   anti_debug.c
+  aes.c
+  jailbreak_detection.c
   vm_interpreter.c
 )
 

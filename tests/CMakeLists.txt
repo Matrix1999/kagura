@@ -46,3 +46,58 @@ add_test(NAME test_substitution
     -o /dev/null
     ${CMAKE_CURRENT_SOURCE_DIR}/inputs/arithmetic_test.c
 )
+
+# Runtime library (vm_interpreter, anti_debug)
+set(RUNTIME_LIB $<TARGET_FILE:kagura_runtime>)
+
+add_test(NAME test_vm
+  COMMAND ${LLVM_BIN}/clang
+    -fpass-plugin=${KAGURA_PLUGIN}
+    -mllvm -kagura-vm
+    -O1
+    -o /dev/null
+    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/vm_test.c
+    ${RUNTIME_LIB}
+)
+
+add_test(NAME test_indirect_branch
+  COMMAND ${LLVM_BIN}/clang
+    -fpass-plugin=${KAGURA_PLUGIN}
+    -mllvm -kagura-ibr
+    -O1
+    -o /dev/null
+    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/indirect_branch_test.c
+)
+
+add_test(NAME test_loop_transform
+  COMMAND ${LLVM_BIN}/clang
+    -fpass-plugin=${KAGURA_PLUGIN}
+    -mllvm -kagura-lt
+    -O1
+    -o /dev/null
+    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/loop_test.c
+)
+
+add_test(NAME test_pointer
+  COMMAND ${LLVM_BIN}/clang
+    -fpass-plugin=${KAGURA_PLUGIN}
+    -mllvm -kagura-fla
+    -mllvm -kagura-bcf
+    -mllvm -kagura-sub
+    -mllvm -kagura-ibr
+    -mllvm -kagura-lt
+    -O1
+    -o /dev/null
+    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/pointer_test.c
+)
+
+add_test(NAME test_all_passes
+  COMMAND ${LLVM_BIN}/clang
+    -fpass-plugin=${KAGURA_PLUGIN}
+    -mllvm -kagura-fla -mllvm -kagura-bcf -mllvm -kagura-sub
+    -mllvm -kagura-str -mllvm -kagura-co -mllvm -kagura-ibr
+    -mllvm -kagura-lt -mllvm -kagura-fsplit
+    -O1
+    -o /dev/null
+    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/combined_test.c
+)
