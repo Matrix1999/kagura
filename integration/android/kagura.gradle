@@ -1,0 +1,102 @@
+// kagura.gradle
+// Android Gradle plugin integration for kagura LLVM obfuscator.
+//
+// Usage — add to your app/build.gradle:
+//
+//   apply from: "${rootDir}/../kagura/integration/android/kagura.gradle"
+//
+// Or, for fine-grained control per build variant:
+//
+//   android {
+//       buildTypes {
+//           release {
+//               apply from: "${rootDir}/../kagura/integration/android/kagura.gradle"
+//           }
+//       }
+//   }
+
+// ── Configuration ─────────────────────────────────────────────────────────────
+
+ext.kagura = ext.kagura ?: [:]
+
+def kaguraCfg = [
+    // Absolute path to KaguraObfuscator.dylib/.so
+    // Override via local.properties: kagura.pluginPath=...
+    pluginPath     : kagura.pluginPath     ?: "${rootDir}/../kagura/build/lib/Transforms/KaguraObfuscator.dylib",
+
+    enableStr      : kagura.enableStr      ?: true,   // string encryption
+    enableFla      : kagura.enableFla      ?: true,   // CFG flattening
+    enableBcf      : kagura.enableBcf      ?: true,   // bogus control flow
+    enableSub      : kagura.enableSub      ?: true,   // instruction substitution
+    enableCo       : kagura.enableCo       ?: false,  // constant obfuscation
+    enableJni      : kagura.enableJni      ?: true,   // JNI dynamic registration
+    enableAntiDebug: kagura.enableAntiDebug?: true,   // anti-debug/Frida
+
+    bcfProb        : kagura.bcfProb        ?: 30,     // bogus CF probability [0-100]
+    bcfIter        : kagura.bcfIter        ?: 1,      // bogus CF iterations
+    subIter        : kagura.subIter        ?: 1,      // substitution iterations
+    seed           : kagura.seed           ?: 0,      // PRNG seed (0 = entropy)
+    metrics        : kagura.metrics        ?: false,  // print metrics to logcat
+]
+
+// ── Load overrides from local.properties ───────────────────────────────────────
+
+def localProps = new Properties()
+def localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    localPropsFile.withReader('UTF-8') { localProps.load(it) }
+    if (localProps["kagura.pluginPath"]) kaguraCfg.pluginPath = localProps["kagura.pluginPath"]
+}
+
+// ── Build the flag list ────────────────────────────────────────────────────────
+
+def buildKaguraFlags(cfg) {
+    def plugin = cfg.pluginPath as String
+    if (!new File(plugin).exists()) {
+        println "[kagura] WARNING: plugin not found at $plugin — obfuscation disabled"
+        return []
+    }
+
+    def flags = ["-fpass-plugin=$plugin"]
+
+    def addFlag = { flag -> flags += ["-mllvm", flag] }
+
+    if (cfg.enableStr)       addFlag("-kagura-str")
+    if (cfg.enableFla)       addFlag("-kagura-fla")
+    if (cfg.enableBcf)       addFlag("-kagura-bcf")
+    if (cfg.enableSub)       addFlag("-kagura-sub")
+    if (cfg.enableCo)        addFlag("-kagura-co")
+    if (cfg.enableJni)       addFlag("-kagura-jni")
+    if (cfg.enableAntiDebug) addFlag("-kagura-anti-debug")
+    if (cfg.metrics)         addFlag("-kagura-metrics")
+
+    if (cfg.bcfProb != 30)   addFlag("-kagura-bcf-prob=${cfg.bcfProb}")
+    if (cfg.bcfIter != 1)    addFlag("-kagura-bcf-iter=${cfg.bcfIter}")
+    if (cfg.subIter != 1)    addFlag("-kagura-sub-iter=${cfg.subIter}")
+    if (cfg.seed    != 0)    addFlag("-kagura-seed=${cfg.seed}")
+
+    return flags
+}
+
+// ── Inject into Android NDK CMake / ndk-build ─────────────────────────────────
+
+android {
+    defaultConfig {
+        externalNativeBuild {
+            cmake {
+                // Pass kagura flags to CMake via -DKAGURA_FLAGS
+                def flags = buildKaguraFlags(kaguraCfg)
+                if (flags) {
+                    def flagsStr = flags.join(";")
+                    arguments "-DKAGURA_C_FLAGS=${flagsStr}",
+                              "-DKAGURA_CXX_FLAGS=${flagsStr}"
+                    cFlags   flags.join(" ")
+                    cppFlags flags.join(" ")
+                }
+            }
+        }
+    }
+}
+
+println "[kagura] Obfuscation enabled for Android NDK build"
+println "[kagura] Plugin: ${kaguraCfg.pluginPath}"
