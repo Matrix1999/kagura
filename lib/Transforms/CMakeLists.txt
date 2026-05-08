@@ -28,7 +28,9 @@ add_llvm_pass_plugin(KaguraObfuscator
   GlobalEncryption.cpp
   LoopTransform.cpp
   BasicBlockReordering.cpp
+  BasicBlockSplitting.cpp
   DeadCodeInsertion.cpp
+  SymbolVisibility.cpp
   Utils.cpp
 
   DEPENDS

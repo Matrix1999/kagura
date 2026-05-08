@@ -91,12 +91,51 @@ add_test(NAME test_pointer
     ${CMAKE_CURRENT_SOURCE_DIR}/inputs/pointer_test.c
 )
 
+add_test(NAME test_basic_block_reordering
+  COMMAND ${LLVM_BIN}/clang
+    -fpass-plugin=${KAGURA_PLUGIN}
+    -mllvm -kagura-bbr
+    -O1
+    -o /dev/null
+    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/control_flow_test.c
+)
+
+add_test(NAME test_basic_block_splitting
+  COMMAND ${LLVM_BIN}/clang
+    -fpass-plugin=${KAGURA_PLUGIN}
+    -mllvm -kagura-bbs
+    -O1
+    -o /dev/null
+    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/arithmetic_test.c
+)
+
+add_test(NAME test_dead_code_insertion
+  COMMAND ${LLVM_BIN}/clang
+    -fpass-plugin=${KAGURA_PLUGIN}
+    -mllvm -kagura-dci
+    -mllvm -kagura-dci-prob=80
+    -O1
+    -o /dev/null
+    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/control_flow_test.c
+)
+
+add_test(NAME test_symbol_visibility
+  COMMAND ${LLVM_BIN}/clang
+    -fpass-plugin=${KAGURA_PLUGIN}
+    -mllvm -kagura-sv
+    -O1
+    -o /dev/null
+    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/arithmetic_test.c
+)
+
 add_test(NAME test_all_passes
   COMMAND ${LLVM_BIN}/clang
     -fpass-plugin=${KAGURA_PLUGIN}
     -mllvm -kagura-fla -mllvm -kagura-bcf -mllvm -kagura-sub
     -mllvm -kagura-str -mllvm -kagura-co -mllvm -kagura-ibr
     -mllvm -kagura-lt -mllvm -kagura-fsplit
+    -mllvm -kagura-bbr -mllvm -kagura-bbs -mllvm -kagura-dci
+    -mllvm -kagura-sv
     -O1
     -o /dev/null
     ${CMAKE_CURRENT_SOURCE_DIR}/inputs/combined_test.c

@@ -104,6 +104,10 @@ cl::opt<bool> EnableFSplit("kagura-fsplit",
                             cl::desc("[Kagura] Function splitting / CFG fragmentation"),
                             cl::init(false));
 
+// Exposed for use by BasicBlockSplitting.cpp and SymbolVisibility.cpp
+extern cl::opt<bool> EnableBBS; // defined in BasicBlockSplitting.cpp
+extern cl::opt<bool> EnableSV;  // defined in SymbolVisibility.cpp
+
 // Exposed for use by IndirectBranch.cpp and LoopTransform.cpp (defined there)
 // We declare them extern so we can reference them in the callback lambda.
 extern cl::opt<bool> EnableIBR;
@@ -162,6 +166,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     FPM.addPass(kagura::DeadCodeInsertionPass());
                     return true;
                   }
+                  if (Name == "kagura-bbs") {
+                    FPM.addPass(kagura::BasicBlockSplittingPass());
+                    return true;
+                  }
                   if (Name == "kagura-anti-debug") {
                     // Handled at module level; no-op here
                     return true;
@@ -212,6 +220,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(kagura::GlobalEncryptionPass());
                     return true;
                   }
+                  if (Name == "kagura-sv") {
+                    MPM.addPass(kagura::SymbolVisibilityPass());
+                    return true;
+                  }
                   return false;
                 });
 
@@ -246,6 +258,8 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(kagura::FunctionSplitPass());
                   if (EnableGENC)
                     MPM.addPass(kagura::GlobalEncryptionPass());
+                  if (EnableSV)
+                    MPM.addPass(kagura::SymbolVisibilityPass());
 
                   FunctionPassManager FPM;
                   bool HasFunctionPass = false;
@@ -284,6 +298,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (EnableDCI) {
                     FPM.addPass(kagura::DeadCodeInsertionPass());
+                    HasFunctionPass = true;
+                  }
+                  if (EnableBBS) {
+                    FPM.addPass(kagura::BasicBlockSplittingPass());
                     HasFunctionPass = true;
                   }
                   if (HasFunctionPass)

@@ -13,9 +13,13 @@ Built on the **New Pass Manager** (LLVM 17+). Loaded as a pass plugin via `-fpas
 | `-kagura-fla` | ControlFlowFlattening | Converts CFG into a switch-based state machine |
 | `-kagura-bcf` | BogusControlFlow | Injects dead blocks guarded by MBA opaque predicates |
 | `-kagura-ibr` | IndirectBranch | Replaces direct calls with indirect calls through function pointer globals |
+| `-kagura-ci` | CallIndirection | Routes external calls through a runtime-resolved thunk table |
 | `-kagura-lt` | LoopTransform | Adds bogus dead counters and opaque invariant branches to loops |
 | `-kagura-fsplit` | FunctionSplit | Extracts interior basic blocks into outlined helper functions |
 | `-kagura-vm` | VMObfuscation | Virtualizes function bodies into a custom stack-based VM bytecode |
+| `-kagura-bbs` | BasicBlockSplitting | Splits large basic blocks at random points to inflate CFG complexity |
+| `-kagura-bbr` | BasicBlockReordering | Shuffles basic block layout to confuse linear disassemblers |
+| `-kagura-dci` | DeadCodeInsertion | Inserts unreachable junk blocks to mislead static analysis |
 
 ### Data
 
@@ -25,13 +29,26 @@ Built on the **New Pass Manager** (LLVM 17+). Loaded as a pass plugin via `-fpas
 | `-kagura-str-aes` | StringEncryptionAES | AES-128-CTR string encryption (requires `kagura_runtime`) |
 | `-kagura-co` | ConstantObfuscation | Replaces integer constants with MBA expressions |
 | `-kagura-sub` | Substitution | Replaces arithmetic/bitwise ops with equivalent MBA expressions |
+| `-kagura-genc` | GlobalEncryption | Encrypts private integer globals; patches load sites with inline XOR |
+
+### CFI / Pointer Protection
+
+| Flag | Pass | Description |
+|------|------|-------------|
+| `-kagura-pac` | PointerAuth | Software CFI via XOR-tagged function pointer globals (simulates ARM64e PAC) |
 
 ### Anti-Analysis
 
 | Flag | Pass | Description |
 |------|------|-------------|
-| `-kagura-anti-debug` | AntiDebug | Injects ptrace, port 27042, and `/proc/maps` checks |
-| `-kagura-tamper` | AntiTamper | Injects FNV-1a function checksums and jailbreak/root detection |
+| `-kagura-anti-debug` | AntiDebug | ptrace, Frida port, `/proc/maps`, inline hook, breakpoint, and emulator checks |
+| `-kagura-tamper` | AntiTamper | FNV-1a function checksums and jailbreak/root detection at startup |
+
+### Symbol & Visibility
+
+| Flag | Pass | Description |
+|------|------|-------------|
+| `-kagura-sv` | SymbolVisibility | Sets non-public symbols to hidden visibility; strips them from the dynamic symbol table |
 
 ### Platform-Specific
 
@@ -110,6 +127,10 @@ clang your_file.opt.bc -o your_file
 | `-kagura-bcf-prob=<N>` | `30` | Bogus CF probability per basic block [0–100] |
 | `-kagura-bcf-iter=<N>` | `1` | Bogus CF iterations |
 | `-kagura-sub-iter=<N>` | `1` | Substitution iterations |
+| `-kagura-dci-prob=<N>` | `40` | Dead code insertion probability per block [0–100] |
+| `-kagura-bbs-min=<N>` | `3` | Minimum instructions before a BB split point |
+| `-kagura-bbs-max-splits=<N>` | `2` | Maximum splits per basic block |
+| `-kagura-sv-keep=<sym>` | — | Comma-separated symbols to keep visible (repeatable) |
 
 ## Integration
 
@@ -138,12 +159,14 @@ See [`integration/android/`](integration/android/) for all options.
 
 Some passes require linking `libkagura_runtime.a` into the target binary:
 
-| Pass | Requires runtime |
-|------|-----------------|
-| StringEncryptionAES | yes (`kagura_aes_decrypt`) |
-| VMObfuscation | yes (`kagura_vm_execute`) |
-| AntiDebug | yes (`kagura_anti_debug_init`) |
-| AntiTamper | yes (`kagura_self_check`) |
+| Pass / Feature | Runtime symbol |
+|----------------|----------------|
+| StringEncryptionAES | `kagura_aes_decrypt` |
+| VMObfuscation | `kagura_vm_execute` |
+| AntiDebug | `kagura_anti_debug_init`, `kagura_check_hooks`, `kagura_check_breakpoints`, `kagura_check_emulator` |
+| AntiTamper | `kagura_self_check` |
+| CallIndirection | `kagura_rtld_default_handle` |
+| PointerAuth | `kagura_pac_key` |
 
 ```bash
 clang your_file.c build/runtime/libkagura_runtime.a -o your_file
@@ -162,7 +185,21 @@ cd build && ctest --output-on-failure
 Run kagura passes **after** standard optimizations to prevent LLVM from undoing obfuscation:
 
 ```
--O1 (or -O2) → kagura-str → kagura-tamper → kagura-fla → kagura-bcf → kagura-sub → kagura-co
+-O1 (or -O2)
+  → kagura-sv          # hide symbols first
+  → kagura-str[-aes]   # encrypt strings
+  → kagura-genc        # encrypt globals
+  → kagura-tamper      # integrity hash (before CFG changes)
+  → kagura-ci          # external call indirection
+  → kagura-pac         # pointer auth
+  → kagura-fla         # CFG flattening
+  → kagura-bcf         # bogus control flow
+  → kagura-bbs         # BB splitting
+  → kagura-bbr         # BB reordering
+  → kagura-dci         # dead code insertion
+  → kagura-sub         # instruction substitution
+  → kagura-co          # constant obfuscation
+  → kagura-anti-debug  # anti-analysis checks last
 ```
 
 The plugin automatically hooks `registerOptimizerLastEPCallback` when using `-mllvm` flags, so the order above is applied automatically.

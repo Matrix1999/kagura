@@ -177,7 +177,27 @@ struct FunctionSplitPass : public llvm::PassInfoMixin<FunctionSplitPass> {
   static bool isRequired() { return false; }
 };
 
+// ---- Symbol visibility ----
+
+/// Sets non-public functions and globals to hidden visibility, removing them
+/// from the dynamic symbol table and preventing name-based dlsym() hooking.
+struct SymbolVisibilityPass
+    : public llvm::PassInfoMixin<SymbolVisibilityPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- CFG Layout ----
+
+/// Splits large basic blocks at random points by inserting unconditional
+/// branches, inflating CFG node count without changing semantics.
+struct BasicBlockSplittingPass
+    : public llvm::PassInfoMixin<BasicBlockSplittingPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
 
 /// Randomly shuffles the physical order of basic blocks within a function.
 /// CFG edges are unchanged; only the layout is permuted to confuse linear

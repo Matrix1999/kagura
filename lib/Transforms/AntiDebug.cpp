@@ -109,34 +109,44 @@ static Function *buildAntiDebugConstructor(Module &M, bool AntiFramework,
     B.SetInsertPoint(End);
   }
 
-  if (AntiFramework) {
-    // --- Android: check /proc/self/status for TracerPid ---
-    // We inject a call to the runtime helper kagura_check_tracer_pid()
-    // which is implemented in the runtime library (runtime/anti_debug.c).
-    auto *CheckFTy = FunctionType::get(Int32Ty, false);
-    auto *CheckFn  = getOrDeclare(M, "kagura_check_tracer_pid", CheckFTy);
+  // Helper: append a check-and-branch block after `Prev`, returns the "ok" BB.
+  // check_fn()  -> i32; if non-zero call HookFn, else continue.
+  auto appendIntCheck = [&](BasicBlock *Prev, StringRef CheckName,
+                             StringRef BlockName) -> BasicBlock * {
+    auto *CheckFTy    = FunctionType::get(Int32Ty, false);
+    auto *CheckFn     = getOrDeclare(M, CheckName, CheckFTy);
+    auto *CheckBlock  = BasicBlock::Create(Ctx, BlockName, F);
+    auto *DetectBlock = BasicBlock::Create(Ctx, (BlockName + ".det").str(), F);
+    auto *OkBlock     = BasicBlock::Create(Ctx, (BlockName + ".ok").str(), F);
 
-    auto *CheckBlock  = BasicBlock::Create(Ctx, "check_tracer", F);
-    auto *DetectBlock = BasicBlock::Create(Ctx, "detect", F);
-    auto *OkBlock     = BasicBlock::Create(Ctx, "ok", F);
-
-    // Patch previous block to fall through
-    Instruction *PrevTerm = End->getTerminator();
+    // Wire previous block -> check block
+    Instruction *PrevTerm = Prev->getTerminator();
     if (PrevTerm) PrevTerm->eraseFromParent();
-    IRBuilder<>(End).CreateBr(CheckBlock);
+    IRBuilder<>(Prev).CreateBr(CheckBlock);
 
-    B.SetInsertPoint(CheckBlock);
-    auto *TracerPid = B.CreateCall(CheckFTy, CheckFn, {}, "tracer");
-    auto *ZeroI32   = ConstantInt::get(Int32Ty, 0);
-    auto *IsTraced  = B.CreateICmpNE(TracerPid, ZeroI32, "is_traced");
-    B.CreateCondBr(IsTraced, DetectBlock, OkBlock);
+    IRBuilder<> CB(CheckBlock);
+    auto *Result  = CB.CreateCall(CheckFTy, CheckFn, {}, CheckName + ".r");
+    auto *IsNonZero = CB.CreateICmpNE(Result, ConstantInt::get(Int32Ty, 0));
+    CB.CreateCondBr(IsNonZero, DetectBlock, OkBlock);
 
-    B.SetInsertPoint(DetectBlock);
-    B.CreateCall(FTy, HookFn);
-    B.CreateUnreachable();
+    IRBuilder<> DB(DetectBlock);
+    DB.CreateCall(FTy, HookFn);
+    DB.CreateUnreachable();
 
-    B.SetInsertPoint(OkBlock);
-    B.CreateRetVoid();
+    return OkBlock;
+  };
+
+  if (AntiFramework) {
+    // Check chain: TracerPid -> hooks -> breakpoints -> emulator
+    BasicBlock *Cur = End;
+    Cur = appendIntCheck(Cur, "kagura_check_tracer_pid", "check_tracer");
+    Cur = appendIntCheck(Cur, "kagura_check_inline_hooks", "check_hooks");
+    Cur = appendIntCheck(Cur, "kagura_check_got_hooks",    "check_got");
+    Cur = appendIntCheck(Cur, "kagura_check_sw_breakpoints", "check_sw_bp");
+    Cur = appendIntCheck(Cur, "kagura_check_hw_breakpoints", "check_hw_bp");
+    Cur = appendIntCheck(Cur, "kagura_check_emulator",    "check_emu");
+
+    IRBuilder<>(Cur).CreateRetVoid();
     return F;
   }
 
