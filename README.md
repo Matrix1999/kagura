@@ -155,6 +155,47 @@ kagura.pluginPath=/path/to/KaguraObfuscator.so
 
 See [`integration/android/`](integration/android/) for all options.
 
+## Game Engine Integration
+
+### Unity (IL2CPP)
+
+Copy `integration/unity/Editor/KaguraPostBuildProcessor.cs` into `Assets/Editor/`.
+Configure via **Edit > Project Settings > Kagura Obfuscator**.
+
+See [`integration/unity/`](integration/unity/) for full setup and the IL2CPP
+runtime protection API (`kagura_il2cpp_*`).
+
+### Unreal Engine 5
+
+Copy `integration/unreal/KaguraToolchain.cs` into your UBT toolchain path.
+Obfuscation is applied automatically for Shipping builds.
+
+See [`integration/unreal/`](integration/unreal/) for setup and `KaguraObfuscation.Build.cs`.
+
+### Cocos2d-x / Custom CMake Engines
+
+Use the generic toolchain file:
+
+```bash
+cmake -DCMAKE_TOOLCHAIN_FILE=/path/to/kagura/integration/cmake/kagura-toolchain.cmake \
+      -DKAGURA_PLUGIN_PATH=/path/to/KaguraObfuscator.so \
+      -DKAGURA_PROFILE=BALANCED \
+      -B build -S .
+```
+
+Available profiles: `FAST`, `BALANCED` (default), `STRONG`, `OFF`.
+
+Chain with an existing toolchain (e.g. Android NDK):
+
+```bash
+cmake -DCMAKE_TOOLCHAIN_FILE=.../kagura-toolchain.cmake \
+      -DKAGURA_CHAIN_TOOLCHAIN=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+      -DANDROID_ABI=arm64-v8a \
+      ...
+```
+
+See [`integration/cmake/kagura-toolchain.cmake`](integration/cmake/kagura-toolchain.cmake).
+
 ## Runtime Library
 
 Some passes require linking `libkagura_runtime.a` into the target binary:
