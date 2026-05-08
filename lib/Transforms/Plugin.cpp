@@ -12,6 +12,8 @@
 //   -kagura-objc         Enable ObjC selector/class obfuscation (iOS)
 //   -kagura-jni          Enable JNI dynamic registration (Android)
 //
+//   -kagura-fsplit        Enable function splitting / CFG fragmentation
+//
 //   -kagura-bcf-prob=<N> Bogus CF probability [0-100] (default: 30)
 //   -kagura-bcf-iter=<N> Bogus CF iterations (default: 1)
 //   -kagura-sub-iter=<N> Substitution iterations (default: 1)
@@ -80,6 +82,16 @@ cl::opt<uint32_t> SUBIter("kagura-sub-iter",
 
 } // namespace
 
+// Exposed for use by FunctionSplit.cpp via extern declaration
+cl::opt<bool> EnableFSplit("kagura-fsplit",
+                            cl::desc("[Kagura] Function splitting / CFG fragmentation"),
+                            cl::init(false));
+
+// Exposed for use by IndirectBranch.cpp and LoopTransform.cpp (defined there)
+// We declare them extern so we can reference them in the callback lambda.
+extern cl::opt<bool> EnableIBR;
+extern cl::opt<bool> EnableLT;
+
 //===----------------------------------------------------------------------===//
 // Plugin entry point
 //===----------------------------------------------------------------------===//
@@ -112,6 +124,14 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     FPM.addPass(kagura::VMObfuscationPass());
                     return true;
                   }
+                  if (Name == "kagura-ibr") {
+                    FPM.addPass(kagura::IndirectBranchPass());
+                    return true;
+                  }
+                  if (Name == "kagura-lt") {
+                    FPM.addPass(kagura::LoopTransformPass());
+                    return true;
+                  }
                   if (Name == "kagura-anti-debug") {
                     // Handled at module level; no-op here
                     return true;
@@ -138,6 +158,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(kagura::JNIObfuscationPass());
                     return true;
                   }
+                  if (Name == "kagura-fsplit") {
+                    MPM.addPass(kagura::FunctionSplitPass());
+                    return true;
+                  }
                   return false;
                 });
 
@@ -160,6 +184,8 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(kagura::JNIObfuscationPass());
                   if (EnableAntiDebug)
                     MPM.addPass(kagura::AntiDebugPass());
+                  if (EnableFSplit)
+                    MPM.addPass(kagura::FunctionSplitPass());
 
                   FunctionPassManager FPM;
                   bool HasFunctionPass = false;
@@ -182,6 +208,14 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (EnableVM) {
                     FPM.addPass(kagura::VMObfuscationPass());
+                    HasFunctionPass = true;
+                  }
+                  if (EnableIBR) {
+                    FPM.addPass(kagura::IndirectBranchPass());
+                    HasFunctionPass = true;
+                  }
+                  if (EnableLT) {
+                    FPM.addPass(kagura::LoopTransformPass());
                     HasFunctionPass = true;
                   }
                   if (HasFunctionPass)

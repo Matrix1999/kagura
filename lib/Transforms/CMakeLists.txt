@@ -7,6 +7,7 @@ llvm_map_components_to_libnames(LLVM_LIBS
 )
 
 add_llvm_pass_plugin(KaguraObfuscator
+  PARTIAL_SOURCES_INTENDED
   Plugin.cpp
   StringEncryption.cpp
   ControlFlowFlattening.cpp
@@ -18,6 +19,9 @@ add_llvm_pass_plugin(KaguraObfuscator
   ObjCObfuscation.cpp
   JNIObfuscation.cpp
   VMObfuscation.cpp
+  FunctionSplit.cpp
+  IndirectBranch.cpp
+  LoopTransform.cpp
   Utils.cpp
 
   DEPENDS

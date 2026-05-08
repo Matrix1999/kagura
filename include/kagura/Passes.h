@@ -81,6 +81,22 @@ struct JNIObfuscationPass : public llvm::PassInfoMixin<JNIObfuscationPass> {
   static bool isRequired() { return false; }
 };
 
+/// Replaces direct function calls with indirect calls through per-callsite
+/// function pointer globals, defeating static call graph analysis.
+struct IndirectBranchPass : public llvm::PassInfoMixin<IndirectBranchPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
+/// Obfuscates loop structures: bogus dead counters, opaque invariant branches,
+/// and 64-bit induction variable splitting into i_low / i_high halves.
+struct LoopTransformPass : public llvm::PassInfoMixin<LoopTransformPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Data obfuscation ----
 
 /// Replaces integer constants with equivalent MBA expressions.
@@ -100,6 +116,19 @@ struct ConstantObfuscationPass
 struct VMObfuscationPass : public llvm::PassInfoMixin<VMObfuscationPass> {
   llvm::PreservedAnalyses run(llvm::Function &F,
                                llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
+// ---- CFG Fragmentation ----
+
+/// Splits large functions (>= 5 BBs) by extracting eligible interior basic
+/// blocks into separate outlined helper functions and replacing each extracted
+/// block with a call + unconditional branch to the original successor.
+/// Eligible blocks: no PHI nodes, no calls, unconditional branch terminator,
+/// successor has no PHI nodes, live-in count <= 8.
+struct FunctionSplitPass : public llvm::PassInfoMixin<FunctionSplitPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
   static bool isRequired() { return false; }
 };
 
