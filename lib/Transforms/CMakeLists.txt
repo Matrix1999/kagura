@@ -13,6 +13,7 @@ add_llvm_pass_plugin(KaguraObfuscator
   BogusControlFlow.cpp
   Substitution.cpp
   ConstantObfuscation.cpp
+  ObfuscationMetrics.cpp
   AntiDebug.cpp
   ObjCObfuscation.cpp
   JNIObfuscation.cpp

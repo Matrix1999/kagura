@@ -61,6 +61,9 @@ cl::opt<bool> EnableJNI("kagura-jni",
 cl::opt<bool> EnableCO("kagura-co",
                        cl::desc("[Kagura] Constant obfuscation (MBA)"),
                        cl::init(false));
+cl::opt<bool> EnableMetrics("kagura-metrics",
+                             cl::desc("[Kagura] Print obfuscation metrics"),
+                             cl::init(false));
 
 cl::opt<uint32_t> BCFProb("kagura-bcf-prob",
                            cl::desc("[Kagura] Bogus CF probability [0-100]"),
@@ -139,6 +142,9 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                    ThinOrFullLTOPhase) {
                   if (OL == OptimizationLevel::O0)
                     return;
+                  // Snapshot BEFORE obfuscation
+                  if (EnableMetrics)
+                    MPM.addPass(kagura::ObfuscationMetricsPass(/*Before=*/true));
                   if (EnableSTR)
                     MPM.addPass(kagura::StringEncryptionPass());
                   if (EnableObjC)
@@ -170,6 +176,9 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   if (HasFunctionPass)
                     MPM.addPass(createModuleToFunctionPassAdaptor(
                         std::move(FPM)));
+                  // Snapshot AFTER obfuscation → print report
+                  if (EnableMetrics)
+                    MPM.addPass(kagura::ObfuscationMetricsPass(/*Before=*/false));
                 });
           }};
 }

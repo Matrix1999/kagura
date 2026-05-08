@@ -92,4 +92,22 @@ struct ConstantObfuscationPass
   static bool isRequired() { return false; }
 };
 
+// ---- Metrics ----
+
+/// Collects and prints obfuscation metrics per function:
+///   - basic block count delta
+///   - instruction count delta
+///   - cyclomatic complexity before/after
+/// Run this pass BEFORE and AFTER obfuscation passes to compare.
+struct ObfuscationMetricsPass
+    : public llvm::PassInfoMixin<ObfuscationMetricsPass> {
+  bool IsBefore; // true = snapshot before, false = report after
+
+  explicit ObfuscationMetricsPass(bool Before = false) : IsBefore(Before) {}
+
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return true; } // always run even without opts
+};
+
 } // namespace kagura
