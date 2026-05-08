@@ -27,9 +27,10 @@
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
+#include "llvm/Config/llvm-config.h"
 #include "llvm/Pass.h"
 #include "llvm/Passes/PassBuilder.h"
-#include "llvm/Passes/PassPlugin.h"
+#include "llvm/Plugins/PassPlugin.h"
 #include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
@@ -230,6 +231,7 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
             // Inject at the END of the optimizer pipeline so that LLVM's own
             // passes (instcombine, simplifycfg, etc.) don't undo or crash on
             // our obfuscated IR.
+            //
             PB.registerOptimizerLastEPCallback(
                 [](ModulePassManager &MPM, OptimizationLevel OL,
                    ThinOrFullLTOPhase) {
