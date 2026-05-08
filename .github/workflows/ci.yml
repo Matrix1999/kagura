@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main, init]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & Test (LLVM ${{ matrix.llvm }})
+    runs-on: macos-14
+
+    strategy:
+      fail-fast: false
+      matrix:
+        llvm: ["17", "18", "19"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM ${{ matrix.llvm }}
+        run: |
+          brew install llvm@${{ matrix.llvm }}
+          echo "LLVM_PREFIX=$(brew --prefix llvm@${{ matrix.llvm }})" >> $GITHUB_ENV
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$LLVM_PREFIX" \
+            -DLLVM_DIR="$LLVM_PREFIX/lib/cmake/llvm" \
+            -DCMAKE_C_COMPILER="$LLVM_PREFIX/bin/clang" \
+            -DCMAKE_CXX_COMPILER="$LLVM_PREFIX/bin/clang++" \
+            -DKAGURA_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build -- -j$(sysctl -n hw.logicalcpu)
+
+      - name: Test
+        run: cd build && ctest --output-on-failure -j$(sysctl -n hw.logicalcpu)

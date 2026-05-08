@@ -90,6 +90,23 @@ struct JNIObfuscationPass : public llvm::PassInfoMixin<JNIObfuscationPass> {
   static bool isRequired() { return false; }
 };
 
+/// Routes calls to external functions through a runtime-resolved thunk table,
+/// defeating static import table analysis (IDA external call resolution).
+struct CallIndirectionPass : public llvm::PassInfoMixin<CallIndirectionPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
+/// Inserts software pointer authentication for function pointers stored in
+/// module-level globals, simulating ARM64e PAC on platforms without hardware
+/// support via XOR-tagging with a runtime-derived key.
+struct PointerAuthPass : public llvm::PassInfoMixin<PointerAuthPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
 /// Replaces direct function calls with indirect calls through per-callsite
 /// function pointer globals, defeating static call graph analysis.
 struct IndirectBranchPass : public llvm::PassInfoMixin<IndirectBranchPass> {
@@ -107,6 +124,15 @@ struct LoopTransformPass : public llvm::PassInfoMixin<LoopTransformPass> {
 };
 
 // ---- Data obfuscation ----
+
+/// Encrypts non-string integer globals at compile time; patches every load
+/// site with an inline XOR to decrypt. Scalar and array-of-integer globals.
+struct GlobalEncryptionPass
+    : public llvm::PassInfoMixin<GlobalEncryptionPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
 
 /// Replaces integer constants with equivalent MBA expressions.
 /// e.g. 42  =>  ((x | ~x) & 42) + (x & ~x)  (always evaluates to 42)

@@ -123,3 +123,29 @@ int kagura_check_loaded_dylibs(void) {
 }
 
 #endif // __APPLE__
+
+/* ---- RTLD_DEFAULT helper for CallIndirection pass ---- */
+
+#include <dlfcn.h>
+
+/**
+ * kagura_rtld_default_handle
+ *
+ * Returns the platform-appropriate handle for dlsym() to search the default
+ * symbol namespace.
+ *
+ *   macOS / iOS : RTLD_DEFAULT = ((void *) -2)
+ *   Linux / Android : RTLD_DEFAULT = NULL
+ *
+ * This function exists so the CallIndirectionPass can emit a call to it
+ * rather than embedding a platform-specific constant in the IR.
+ */
+void *kagura_rtld_default_handle(void) {
+#if defined(__APPLE__)
+    /* On Darwin, RTLD_DEFAULT is defined as ((void *) -2) in <dlfcn.h> */
+    return RTLD_DEFAULT;
+#else
+    /* On Linux/Android, RTLD_DEFAULT is NULL */
+    return RTLD_DEFAULT;
+#endif
+}

@@ -1,0 +1,12 @@
+import sys
+sys.path.insert(0, "@LLVM_CMAKE_DIR@/../../../lib/python3/dist-packages")
+
+import lit.llvm
+lit.llvm.initialize(lit_config, config)
+
+# Paths injected by CMake
+config.opt = "@LLVM_TOOLS_BINARY_DIR@/opt"
+config.filecheck = "@LLVM_TOOLS_BINARY_DIR@/FileCheck"
+config.kagura_plugin = "@KAGURA_PLUGIN_PATH@"
+
+lit_config.load_config(config, "@CMAKE_CURRENT_SOURCE_DIR@/lit.cfg.py")

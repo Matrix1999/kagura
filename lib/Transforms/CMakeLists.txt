@@ -23,6 +23,9 @@ add_llvm_pass_plugin(KaguraObfuscator
   VMObfuscation.cpp
   FunctionSplit.cpp
   IndirectBranch.cpp
+  CallIndirection.cpp
+  PointerAuth.cpp
+  GlobalEncryption.cpp
   LoopTransform.cpp
   Utils.cpp
 

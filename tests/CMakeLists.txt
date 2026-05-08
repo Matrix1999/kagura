@@ -101,3 +101,36 @@ add_test(NAME test_all_passes
     -o /dev/null
     ${CMAKE_CURRENT_SOURCE_DIR}/inputs/combined_test.c
 )
+
+# ── FileCheck / lit tests ──────────────────────────────────────────────────────
+
+find_program(LIT_EXECUTABLE NAMES lit llvm-lit
+  HINTS ${LLVM_TOOLS_BINARY_DIR} ${LLVM_BIN}
+  DOC "LLVM lit test runner"
+)
+
+find_program(FILECHECK_EXECUTABLE NAMES FileCheck
+  HINTS ${LLVM_TOOLS_BINARY_DIR}
+  DOC "LLVM FileCheck"
+)
+
+if(LIT_EXECUTABLE AND FILECHECK_EXECUTABLE)
+  set(KAGURA_PLUGIN_PATH $<TARGET_FILE:KaguraObfuscator>)
+
+  configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/lit/lit.site.cfg.py.in
+    ${CMAKE_CURRENT_BINARY_DIR}/lit/lit.site.cfg.py
+    @ONLY
+  )
+
+  add_test(NAME lit-filecheck
+    COMMAND ${LIT_EXECUTABLE} -v ${CMAKE_CURRENT_SOURCE_DIR}/lit/
+      --param kagura_plugin=${KAGURA_PLUGIN_PATH}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+  set_tests_properties(lit-filecheck PROPERTIES
+    DEPENDS KaguraObfuscator
+  )
+else()
+  message(STATUS "lit or FileCheck not found — skipping FileCheck tests")
+endif()

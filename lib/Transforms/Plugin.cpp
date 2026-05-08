@@ -95,6 +95,9 @@ cl::opt<bool> EnableFSplit("kagura-fsplit",
 extern cl::opt<bool> EnableIBR;
 extern cl::opt<bool> EnableLT;
 extern cl::opt<bool> EnableTamper; // defined in AntiTamper.cpp
+extern cl::opt<bool> EnableCI;     // defined in CallIndirection.cpp
+extern cl::opt<bool> EnablePAC;    // defined in PointerAuth.cpp
+extern cl::opt<bool> EnableGENC;   // defined in GlobalEncryption.cpp
 
 //===----------------------------------------------------------------------===//
 // Plugin entry point
@@ -146,6 +149,14 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
             PB.registerPipelineParsingCallback(
                 [](StringRef Name, ModulePassManager &MPM,
                    ArrayRef<PassBuilder::PipelineElement>) -> bool {
+                  if (Name == "kagura-ci") {
+                    MPM.addPass(kagura::CallIndirectionPass());
+                    return true;
+                  }
+                  if (Name == "kagura-pac") {
+                    MPM.addPass(kagura::PointerAuthPass());
+                    return true;
+                  }
                   if (Name == "kagura-str") {
                     MPM.addPass(kagura::StringEncryptionPass());
                     return true;
@@ -174,6 +185,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(kagura::AntiTamperPass());
                     return true;
                   }
+                  if (Name == "kagura-genc") {
+                    MPM.addPass(kagura::GlobalEncryptionPass());
+                    return true;
+                  }
                   return false;
                 });
 
@@ -188,6 +203,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   // Snapshot BEFORE obfuscation
                   if (EnableMetrics)
                     MPM.addPass(kagura::ObfuscationMetricsPass(/*Before=*/true));
+                  if (EnableCI)
+                    MPM.addPass(kagura::CallIndirectionPass());
+                  if (EnablePAC)
+                    MPM.addPass(kagura::PointerAuthPass());
                   if (EnableSTR)
                     MPM.addPass(kagura::StringEncryptionPass());
                   if (EnableSTRAES)
@@ -202,6 +221,8 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(kagura::AntiDebugPass());
                   if (EnableFSplit)
                     MPM.addPass(kagura::FunctionSplitPass());
+                  if (EnableGENC)
+                    MPM.addPass(kagura::GlobalEncryptionPass());
 
                   FunctionPassManager FPM;
                   bool HasFunctionPass = false;
