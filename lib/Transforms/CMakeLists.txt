@@ -15,6 +15,9 @@ add_llvm_pass_plugin(KaguraObfuscator
   Utils.cpp
   ObfuscationMetrics.cpp
 
+  # Phase 4.1 Infrastructure
+  Infrastructure/DWARFControl.cpp
+
   # CFG obfuscation
   CFG/ControlFlowFlattening.cpp
   CFG/BogusControlFlow.cpp

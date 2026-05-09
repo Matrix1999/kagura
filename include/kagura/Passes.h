@@ -219,6 +219,27 @@ struct DeadCodeInsertionPass
   static bool isRequired() { return false; }
 };
 
+// ---- Phase 4.1 Infrastructure ----
+
+/// Controls DWARF / debug-info metadata on functions touched by kagura.
+///
+/// Mode is read from -kagura-dwarf:
+///   "keep"       — no-op (default); debug info is preserved unchanged.
+///   "strip"      — remove all DILocation / debug metadata from every
+///                  function that was processed by at least one kagura pass.
+///                  Prevents decompilers from correlating obfuscated code back
+///                  to source lines.
+///   "obfuscate"  — remap all debug locations to synthetic line numbers so
+///                  that decompilers show plausible but wrong source positions.
+///
+/// This pass is automatically appended after all obfuscation passes when
+/// -kagura-dwarf=strip or -kagura-dwarf=obfuscate is specified.
+struct DWARFControlPass : public llvm::PassInfoMixin<DWARFControlPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Metrics ----
 
 /// Collects and prints obfuscation metrics per function:
