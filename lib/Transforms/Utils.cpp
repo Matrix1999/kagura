@@ -1,6 +1,7 @@
 #include "kagura/Options.h"
 #include "kagura/Utils.h"
 
+#include "llvm/Config/llvm-config.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Instructions.h"
@@ -130,9 +131,15 @@ bool isEHBlock(const BasicBlock &BB) {
 // ---- Target triple helpers ----
 
 TargetArch getTargetArch(const Module &M) {
-  // getTargetTriple() returns const Triple & in LLVM 20+, std::string in older.
-  // Use str() to normalise to std::string, then wrap in StringRef.
+  // getTargetTriple() return type changed across LLVM versions:
+  //   LLVM 17-19: const std::string &   (no .str() member)
+  //   LLVM 20+  : const Triple &        (.str() returns std::string)
+  // Use a helper lambda to produce a uniform std::string.
+#if LLVM_VERSION_MAJOR >= 20
   std::string TripleStr = M.getTargetTriple().str();
+#else
+  std::string TripleStr = M.getTargetTriple();
+#endif
   StringRef Triple(TripleStr);
   // arm64e must be checked before generic aarch64 since it is a substring match.
   if (Triple.contains("arm64e"))
