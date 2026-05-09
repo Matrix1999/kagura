@@ -17,23 +17,21 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
 #include "llvm/IR/Function.h"
-#include "llvm/Support/CommandLine.h"
 
 #include <vector>
 
 using namespace llvm;
 
-extern cl::opt<bool> EnableBBR; // defined in Plugin.cpp (file scope)
-
 namespace kagura {
 
 PreservedAnalyses BasicBlockReorderingPass::run(Function &F,
                                                 FunctionAnalysisManager &) {
-  if (!shouldObfuscate(F, "bbr", EnableBBR))
+  if (!shouldObfuscate(F, "bbr", kagura::opt::BBR))
     return PreservedAnalyses::all();
   if (F.isDeclaration() || F.size() < 3)
     return PreservedAnalyses::all();

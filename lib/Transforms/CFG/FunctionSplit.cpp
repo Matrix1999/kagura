@@ -42,6 +42,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
@@ -53,7 +54,6 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/ValueMap.h"
-#include "llvm/Support/CommandLine.h" // for extern cl::opt<bool> EnableFSplit
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
@@ -61,9 +61,6 @@
 #include <string>
 
 using namespace llvm;
-
-// Defined in Plugin.cpp alongside all other kagura CLI flags.
-extern cl::opt<bool> EnableFSplit;
 
 namespace kagura {
 
@@ -270,7 +267,7 @@ PreservedAnalyses FunctionSplitPass::run(Module &M,
       continue;
     if (F.hasFnAttribute(Attribute::Naked))
       continue;
-    if (!shouldObfuscate(F, "fsplit", EnableFSplit))
+    if (!shouldObfuscate(F, "fsplit", kagura::opt::FSplit))
       continue;
     if (F.size() < 5)
       continue;

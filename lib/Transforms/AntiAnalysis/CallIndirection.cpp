@@ -24,6 +24,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
@@ -37,7 +38,6 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
-#include "llvm/Support/CommandLine.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
 #include <map>
@@ -45,11 +45,6 @@
 #include <vector>
 
 using namespace llvm;
-
-// File-scope flag: opt-in via -kagura-ci
-cl::opt<bool> EnableCI("kagura-ci",
-                        cl::desc("[Kagura] External call indirection via thunk table"),
-                        cl::init(false));
 
 namespace kagura {
 
@@ -277,7 +272,7 @@ PreservedAnalyses CallIndirectionPass::run(Module &M,
                                             ModuleAnalysisManager &) {
   // Check if any function in the module enables this pass.
   // For module passes the flag governs the whole module.
-  if (!EnableCI)
+  if (!kagura::opt::CI)
     return PreservedAnalyses::all();
 
   // 1. Collect unique external callees across the module.

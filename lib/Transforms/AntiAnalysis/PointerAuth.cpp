@@ -30,6 +30,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
@@ -43,17 +44,11 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
-#include "llvm/Support/CommandLine.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
 #include <vector>
 
 using namespace llvm;
-
-// File-scope flag: opt-in via -kagura-pac
-cl::opt<bool> EnablePAC("kagura-pac",
-                         cl::desc("[Kagura] Software pointer authentication for function pointer globals"),
-                         cl::init(false));
 
 namespace kagura {
 
@@ -259,7 +254,7 @@ static unsigned rewriteLoadCallPairs(GlobalVariable *TaggedGV,
 // ---- Pass entry point ----
 
 PreservedAnalyses PointerAuthPass::run(Module &M, ModuleAnalysisManager &) {
-  if (!EnablePAC)
+  if (!kagura::opt::PAC)
     return PreservedAnalyses::all();
 
   // Collect taggable globals first; we'll mutate the module as we go.

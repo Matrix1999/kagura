@@ -19,6 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
@@ -26,15 +27,9 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/Support/CommandLine.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 using namespace llvm;
-
-// File-scope flag required by the pass spec (must not be in anonymous ns).
-cl::opt<bool> EnableLT("kagura-lt",
-                       cl::desc("[Kagura] Loop obfuscation transformations"),
-                       cl::init(false));
 
 namespace kagura {
 
@@ -297,7 +292,7 @@ static bool obfuscateLoop(Loop *L, Function &F,
 
 PreservedAnalyses LoopTransformPass::run(Function &F,
                                           FunctionAnalysisManager &FAM) {
-  if (!shouldObfuscate(F, "lt", EnableLT))
+  if (!shouldObfuscate(F, "lt", kagura::opt::LT))
     return PreservedAnalyses::all();
   if (F.isDeclaration())
     return PreservedAnalyses::all();

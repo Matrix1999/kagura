@@ -1,8 +1,9 @@
+#include "kagura/Options.h"
 #include "kagura/Utils.h"
 
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/Support/CommandLine.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Local.h"
 
@@ -91,16 +92,10 @@ uint64_t PRNG::nextRange(uint64_t Lo, uint64_t Hi) {
 
 static PRNG GlobalPRNG(0);
 
-// Declared in Plugin.cpp (anonymous namespace, but accessible via extern)
-// We use a plain extern at file scope, outside of namespace kagura.
-} // end namespace kagura
-extern llvm::cl::opt<uint64_t> KaguraSeedOpt;
-namespace kagura {
-
 PRNG &getModulePRNG() {
   static bool Seeded = false;
   if (!Seeded) {
-    GlobalPRNG = PRNG(KaguraSeedOpt);
+    GlobalPRNG = PRNG(opt::Seed);
     Seeded = true;
   }
   return GlobalPRNG;
@@ -123,6 +118,76 @@ std::vector<BasicBlock *> getBlocks(Function &F) {
   for (auto &BB : F)
     Blocks.push_back(&BB);
   return Blocks;
+}
+
+Function *getOrDeclare(Module &M, StringRef Name, FunctionType *FTy) {
+  if (auto *F = M.getFunction(Name))
+    return F;
+  return Function::Create(FTy, Function::ExternalLinkage, Name, M);
+}
+
+// ---- String global collection ----
+
+std::vector<GlobalVariable *> collectStringGlobals(Module &M,
+                                                    bool StrictLinkage) {
+  std::vector<GlobalVariable *> Result;
+  for (auto &GV : M.globals()) {
+    if (!GV.isConstant() || !GV.hasInitializer())
+      continue;
+    if (StrictLinkage &&
+        GV.getLinkage() != GlobalValue::PrivateLinkage &&
+        GV.getLinkage() != GlobalValue::InternalLinkage)
+      continue;
+    auto *CDA = dyn_cast<ConstantDataArray>(GV.getInitializer());
+    if (!CDA || !CDA->isString())
+      continue;
+    StringRef S = CDA->getAsString();
+    if (S.size() < 4)
+      continue;
+    if (S.contains('%') || S.trim().empty())
+      continue;
+    bool UsedInFunction = false;
+    for (auto *U : GV.users()) {
+      if (isa<Instruction>(U) ||
+          (isa<ConstantExpr>(U) && !cast<ConstantExpr>(U)->user_empty())) {
+        UsedInFunction = true;
+        break;
+      }
+    }
+    if (UsedInFunction)
+      Result.push_back(&GV);
+  }
+  return Result;
+}
+
+// ---- Constant builders ----
+
+Constant *buildByteArrayConstant(LLVMContext &Ctx, ArrayRef<uint8_t> Data) {
+  auto *Int8Ty = Type::getInt8Ty(Ctx);
+  auto *ArrTy  = ArrayType::get(Int8Ty, Data.size());
+  std::vector<Constant *> Bytes;
+  Bytes.reserve(Data.size());
+  for (uint8_t B : Data)
+    Bytes.push_back(ConstantInt::get(Int8Ty, B));
+  return ConstantArray::get(ArrTy, Bytes);
+}
+
+GlobalVariable *createPrivateByteGlobal(Module &M, ArrayRef<uint8_t> Data,
+                                         StringRef Name, bool IsConstant) {
+  LLVMContext &Ctx = M.getContext();
+  auto *Init = buildByteArrayConstant(Ctx, Data);
+  return new GlobalVariable(M, Init->getType(), IsConstant,
+                            GlobalValue::PrivateLinkage, Init, Name);
+}
+
+void fillRandomBytes(uint8_t *Out, size_t Len) {
+  PRNG &RNG = getModulePRNG();
+  for (size_t I = 0; I < Len; I += 8) {
+    uint64_t V = RNG.next();
+    size_t N = std::min(static_cast<size_t>(8), Len - I);
+    for (size_t J = 0; J < N; ++J)
+      Out[I + J] = static_cast<uint8_t>((V >> (J * 8)) & 0xFF);
+  }
 }
 
 } // namespace kagura

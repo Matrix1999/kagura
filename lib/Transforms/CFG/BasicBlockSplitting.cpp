@@ -25,6 +25,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
@@ -38,11 +39,6 @@
 #include <vector>
 
 using namespace llvm;
-
-// Defined here, referenced in Plugin.cpp via extern
-cl::opt<bool> EnableBBS("kagura-bbs",
-                         cl::desc("[Kagura] Basic block splitting"),
-                         cl::init(false));
 
 static cl::opt<uint32_t> BBSMin(
     "kagura-bbs-min",
@@ -58,7 +54,7 @@ namespace kagura {
 
 PreservedAnalyses BasicBlockSplittingPass::run(Function &F,
                                                FunctionAnalysisManager &AM) {
-  if (!shouldObfuscate(F, "bbs", EnableBBS))
+  if (!shouldObfuscate(F, "bbs", kagura::opt::BBS))
     return PreservedAnalyses::all();
   if (F.isDeclaration())
     return PreservedAnalyses::all();

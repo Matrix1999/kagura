@@ -8,30 +8,41 @@ llvm_map_components_to_libnames(LLVM_LIBS
 
 add_llvm_pass_plugin(KaguraObfuscator
   PARTIAL_SOURCES_INTENDED
+
+  # Core / Infrastructure
+  Options.cpp
   Plugin.cpp
-  StringEncryption.cpp
-  StringEncryptionAES.cpp
-  AntiTamper.cpp
-  ControlFlowFlattening.cpp
-  BogusControlFlow.cpp
-  Substitution.cpp
-  ConstantObfuscation.cpp
-  ObfuscationMetrics.cpp
-  AntiDebug.cpp
-  ObjCObfuscation.cpp
-  JNIObfuscation.cpp
-  VMObfuscation.cpp
-  FunctionSplit.cpp
-  IndirectBranch.cpp
-  CallIndirection.cpp
-  PointerAuth.cpp
-  GlobalEncryption.cpp
-  LoopTransform.cpp
-  BasicBlockReordering.cpp
-  BasicBlockSplitting.cpp
-  DeadCodeInsertion.cpp
-  SymbolVisibility.cpp
   Utils.cpp
+  ObfuscationMetrics.cpp
+
+  # CFG obfuscation
+  CFG/ControlFlowFlattening.cpp
+  CFG/BogusControlFlow.cpp
+  CFG/BasicBlockReordering.cpp
+  CFG/BasicBlockSplitting.cpp
+  CFG/DeadCodeInsertion.cpp
+  CFG/FunctionSplit.cpp
+  CFG/IndirectBranch.cpp
+  CFG/LoopTransform.cpp
+
+  # Data obfuscation
+  Data/StringEncryption.cpp
+  Data/StringEncryptionAES.cpp
+  Data/ConstantObfuscation.cpp
+  Data/GlobalEncryption.cpp
+  Data/Substitution.cpp
+
+  # Anti-analysis
+  AntiAnalysis/AntiDebug.cpp
+  AntiAnalysis/AntiTamper.cpp
+  AntiAnalysis/CallIndirection.cpp
+  AntiAnalysis/PointerAuth.cpp
+  AntiAnalysis/SymbolVisibility.cpp
+
+  # Platform-specific
+  Platform/ObjCObfuscation.cpp
+  Platform/JNIObfuscation.cpp
+  Platform/VMObfuscation.cpp
 
   DEPENDS
   intrinsics_gen
@@ -39,4 +50,5 @@ add_llvm_pass_plugin(KaguraObfuscator
 
 target_include_directories(KaguraObfuscator PRIVATE
   ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}
 )

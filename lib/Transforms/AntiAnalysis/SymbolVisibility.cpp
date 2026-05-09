@@ -26,6 +26,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
@@ -39,11 +40,6 @@
 #include <string>
 
 using namespace llvm;
-
-// Defined here, referenced in Plugin.cpp via extern
-cl::opt<bool> EnableSV("kagura-sv",
-                        cl::desc("[Kagura] Symbol visibility hardening"),
-                        cl::init(false));
 
 static cl::list<std::string> SVKeepSymbols(
     "kagura-sv-keep",
@@ -74,7 +70,7 @@ static bool shouldHide(const GlobalValue &GV,
 
 PreservedAnalyses SymbolVisibilityPass::run(Module &M,
                                             ModuleAnalysisManager &) {
-  if (!EnableSV)
+  if (!kagura::opt::SV)
     return PreservedAnalyses::all();
 
   // Build the allowlist from the CLI option

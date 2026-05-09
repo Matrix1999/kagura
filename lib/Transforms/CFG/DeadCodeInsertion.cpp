@@ -18,11 +18,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
 #include "llvm/IR/BasicBlock.h"
-#include "llvm/Support/CommandLine.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -31,9 +31,6 @@
 #include <vector>
 
 using namespace llvm;
-
-extern cl::opt<bool>     EnableDCI;  // defined in Plugin.cpp (file scope)
-extern cl::opt<uint32_t> DCIProb;    // defined in Plugin.cpp (file scope)
 
 namespace kagura {
 
@@ -65,13 +62,13 @@ static void fillJunkBody(IRBuilder<> &B, PRNG &RNG, unsigned NumOps) {
 
 PreservedAnalyses DeadCodeInsertionPass::run(Function &F,
                                              FunctionAnalysisManager &) {
-  if (!shouldObfuscate(F, "dci", EnableDCI))
+  if (!shouldObfuscate(F, "dci", kagura::opt::DCI))
     return PreservedAnalyses::all();
   if (F.isDeclaration() || F.size() < 2)
     return PreservedAnalyses::all();
 
   PRNG &RNG = getModulePRNG();
-  uint32_t Prob = DCIProb;
+  uint32_t Prob = kagura::opt::DCIProb;
   if (Prob == 0) Prob = 40;
   if (Prob > 100) Prob = 100;
 
