@@ -50,21 +50,21 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 
 > Goal: Full data-type encryption coverage with hardened runtime decryption.
 
-| ID | Feature | Priority | Effort |
-|:---|:--------|:---------|:-------|
-| 4.2.1 | Wide string / UTF-16 / CFString encryption | High | M |
-| 4.2.2 | ObjC selector string protection (metadata level) | High | M |
-| 4.2.3 | ObjC class/method name obfuscation | Med | L |
-| 4.2.4 | Lazy decryption (decrypt on first access only) | High | M |
-| 4.2.5 | Short-lived decrypted buffer (zero after use) | High | S |
-| 4.2.6 | Device-bound key derivation (UDID / Android ID) | Med | M |
-| 4.2.7 | Build-time key rotation (unique keys per build) | Med | S |
-| 4.2.8 | Per-customer / per-app variant generation | Low | L |
-| 4.2.9 | Native constant encryption (float/double included) | Med | M |
-| 4.2.10 | Encrypted lookup table (table encoding) | Low | L |
-| 4.2.11 | White-box cryptography | Low | XL |
-| 4.2.12 | Network endpoint / API key / config blob protection | High | M |
-| 4.2.13 | Checksum-guarded decryption (fail on tamper) | Med | M |
+| ID | Feature | Priority | Effort | Status |
+|:---|:--------|:---------|:-------|:-------|
+| 4.2.1 | Wide string / UTF-16 / CFString encryption | High | M | ✅ Done |
+| 4.2.2 | ObjC selector string protection (metadata level) | High | M | — |
+| 4.2.3 | ObjC class/method name obfuscation | Med | L | — |
+| 4.2.4 | Lazy decryption (decrypt on first access only) | High | M | ✅ Done |
+| 4.2.5 | Short-lived decrypted buffer (zero after use) | High | S | ✅ Done |
+| 4.2.6 | Device-bound key derivation (UDID / Android ID) | Med | M | — |
+| 4.2.7 | Build-time key rotation (unique keys per build) | Med | S | — |
+| 4.2.8 | Per-customer / per-app variant generation | Low | L | — |
+| 4.2.9 | Native constant encryption (float/double included) | Med | M | — |
+| 4.2.10 | Encrypted lookup table (table encoding) | Low | L | — |
+| 4.2.11 | White-box cryptography | Low | XL | — |
+| 4.2.12 | Network endpoint / API key / config blob protection | High | M | ✅ Done |
+| 4.2.13 | Checksum-guarded decryption (fail on tamper) | Med | M | — |
 
 ---
 
@@ -72,24 +72,24 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 
 > Goal: Multi-layer detection of binary modification and dynamic attacks.
 
-| ID | Feature | Priority | Effort |
-|:---|:--------|:---------|:-------|
-| 4.3.1 | Mach-O structure tampering detection (LC_LOAD_DYLIB, code signature blob) | High | M |
-| 4.3.2 | ELF structure tampering detection (section hash, PHT verification) | High | M |
-| 4.3.3 | iOS code signing status verification (embedded.mobileprovision) | High | M |
-| 4.3.4 | Android APK signature verification (v2/v3/v4) | High | M |
-| 4.3.5 | Dynamic library injection detection (DYLD_INSERT) | High | S |
-| 4.3.6 | Loaded module inspection (suspicious dylib/so) | High | M |
-| 4.3.7 | GOT/PLT hook detection | High | M |
-| 4.3.8 | Symbol interposition detection | Med | M |
-| 4.3.9 | ObjC method swizzling detection | High | M |
-| 4.3.10 | JNI table hook detection | Med | M |
-| 4.3.11 | Direct syscall invocation (hook bypass) | Med | M |
-| 4.3.12 | Hardware breakpoint detection | Med | S |
-| 4.3.13 | Memory page permission check (W+X detection) | Med | S |
-| 4.3.14 | App repackaging detection | High | M |
-| 4.3.15 | Anti-dump / anti-memory-scan | Low | L |
-| 4.3.16 | Basic block level checksum (fine-grained integrity) | Low | L |
+| ID | Feature | Priority | Effort | Status |
+|:---|:--------|:---------|:-------|:-------|
+| 4.3.1 | Mach-O structure tampering detection (LC_LOAD_DYLIB, code signature blob) | High | M | ✅ Done |
+| 4.3.2 | ELF structure tampering detection (section hash, PHT verification) | High | M | — |
+| 4.3.3 | iOS code signing status verification (embedded.mobileprovision) | High | M | — |
+| 4.3.4 | Android APK signature verification (v2/v3/v4) | High | M | ✅ Done |
+| 4.3.5 | Dynamic library injection detection (DYLD_INSERT) | High | S | ✅ Done |
+| 4.3.6 | Loaded module inspection (suspicious dylib/so) | High | M | — |
+| 4.3.7 | GOT/PLT hook detection | High | M | ✅ Done |
+| 4.3.8 | Symbol interposition detection | Med | M | — |
+| 4.3.9 | ObjC method swizzling detection | High | M | — |
+| 4.3.10 | JNI table hook detection | Med | M | — |
+| 4.3.11 | Direct syscall invocation (hook bypass) | Med | M | — |
+| 4.3.12 | Hardware breakpoint detection | Med | S | — |
+| 4.3.13 | Memory page permission check (W+X detection) | Med | S | — |
+| 4.3.14 | App repackaging detection | High | M | — |
+| 4.3.15 | Anti-dump / anti-memory-scan | Low | L | — |
+| 4.3.16 | Basic block level checksum (fine-grained integrity) | Low | L | — |
 
 ---
 
