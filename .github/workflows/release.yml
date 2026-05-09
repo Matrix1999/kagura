@@ -135,14 +135,12 @@ jobs:
 
       # ── Upload to GitHub Release ───────────────────────────────────────────
       - name: Upload release asset
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.stage.outputs.bundle }}
-          asset_name: ${{ steps.stage.outputs.bundle_name }}
-          asset_content_type: application/gzip
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            "${{ steps.stage.outputs.bundle }}" \
+            --clobber
 
   # ── Source tarball (once, not per-matrix) ─────────────────────────────────
   source-tarball:
@@ -162,11 +160,9 @@ jobs:
           echo "name=${NAME}" >> $GITHUB_OUTPUT
 
       - name: Upload source archive
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.src.outputs.name }}
-          asset_name: ${{ steps.src.outputs.name }}
-          asset_content_type: application/gzip
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            "${{ steps.src.outputs.name }}" \
+            --clobber
