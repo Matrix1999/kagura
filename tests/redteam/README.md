@@ -18,8 +18,9 @@ A red-team evaluation consists of:
 ```bash
 # Build test subject with STRONG protection
 clang -O2 \
-  -fpass-plugin=../../build/lib/libKaguraObfuscator.dylib \
-  -kagura-fla -kagura-bcf -kagura-sub -kagura-str -kagura-co -kagura-ibr \
+  -fpass-plugin=../../build/lib/Transforms/KaguraObfuscator.dylib \
+  -mllvm -kagura-fla -mllvm -kagura-bcf -mllvm -kagura-sub \
+  -mllvm -kagura-str -mllvm -kagura-co -mllvm -kagura-ibr \
   -o /tmp/kagura_rt_subject \
   subjects/redteam_subject.c
 

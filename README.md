@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="kagura_icon.png" width="512" alt="Kagura">
+  <img src="assets/kagura_icon.png" width="512" alt="Kagura">
 </p>
 
 <p align="center">
@@ -32,8 +32,8 @@ kagura/
 │   ├── Plugin.cpp          # Pass registration & pipeline wiring
 │   └── Utils.cpp           # Shared IR helpers & PRNG
 ├── runtime/                # C runtime library (linked into target binary)
-├── integration/            # Xcode, Gradle, Unity, Unreal, CMake toolchains
-├── scripts/                # verify-reproducible.sh, differential-test.sh, review-risk-assessment.sh
+├── integration/            # Xcode, Gradle, Unity, Unreal, CMake, Bazel, CocoaPods, SPM
+├── scripts/                # CLI tools, verification, differential testing, review risk assessment
 └── tests/                  # CTest + FileCheck lit-based regression tests
 ```
 
@@ -54,6 +54,8 @@ kagura/
 | `-kagura-bbs` | BasicBlockSplitting | Splits large BBs at random points to inflate CFG complexity |
 | `-kagura-bbr` | BasicBlockReordering | Shuffles BB layout to confuse linear disassemblers |
 | `-kagura-dci` | DeadCodeInsertion | Inserts unreachable junk blocks to mislead static analysis |
+| `-kagura-elt` | EncryptedLookupTable | Transforms switch statements into XOR-encrypted dispatch tables |
+| `-kagura-vtp` | VTableProtection | Obfuscates C++ RTTI typeinfo names (`_ZTS*`); records vtable metadata |
 
 ### Data Obfuscation (`Data/`)
 
@@ -66,6 +68,7 @@ kagura/
 | `-kagura-sub` | Substitution | Replaces arithmetic/bitwise ops with equivalent MBA |
 | `-kagura-genc` | GlobalEncryption | Encrypts private integer globals; inline XOR at load sites |
 | `-kagura-mvo` | MemoryValueObfuscation | XOR-encrypts alloca'd integer locals at every store/load site |
+| `-kagura-pe` | PointerEncryption | XOR-encrypts alloca'd pointer variables to defeat memory-dump analysis |
 
 ### Anti-Analysis (`AntiAnalysis/`)
 
@@ -76,6 +79,8 @@ kagura/
 | `-kagura-pac` | PointerAuth | Software CFI via XOR-tagged function pointer globals |
 | `-kagura-sv` | SymbolVisibility | Sets non-public symbols to hidden; strips from dynamic symtab |
 | `-kagura-honey` | HoneyValue | Injects decoy secret globals and fake security-stub functions |
+| `-kagura-bbcheck` | BasicBlockChecksum | Injects per-BB opcode checksums; aborts on binary patch detection |
+| `-kagura-telemetry` | Telemetry | Inserts behavioral event probes at function entry for cheat detection |
 
 ### Platform-Specific (`Platform/`)
 
@@ -92,6 +97,7 @@ kagura/
 | `-kagura-dwarf=strip\|obfuscate` | DWARFControl | Strip or remap DWARF debug info after obfuscation |
 | `-kagura-config=<file>` | ConfigLoader | Load JSON policy file; apply profile preset and per-pass overrides |
 | `-kagura-symmap` | SymbolMap | Emit JSON symbol map (original → obfuscated name) for crash symbolication |
+| `-kagura-audit` | AuditLog | Emit JSON audit log of every protected symbol and applied passes |
 
 ### Utilities
 
@@ -110,25 +116,33 @@ kagura/
 | `-kagura-bcf-iter=<N>` | `1` | Bogus CF iterations |
 | `-kagura-sub-iter=<N>` | `1` | Substitution iterations |
 | `-kagura-dci-prob=<N>` | `40` | Dead code insertion probability [0-100] |
-| `-kagura-bbs-min=<N>` | `3` | Min instructions before a BB split point |
-| `-kagura-bbs-max-splits=<N>` | `2` | Max splits per basic block |
-| `-kagura-sv-keep=<sym>` | — | Comma-separated symbols to keep visible |
 
-### Phase 4.1 Infrastructure Options
+### Infrastructure Options
 
 | Option | Default | Description |
 |:-------|:--------|:------------|
 | `-kagura-lto-safe` | `false` | Enable passes during LTO/ThinLTO pipeline phases |
 | `-kagura-o0-protect` | `false` | Enable lightweight protection (STR, AntiDebug) at `-O0` |
 | `-kagura-dwarf=<mode>` | `keep` | DWARF handling: `keep` / `strip` / `obfuscate` |
+| `-kagura-build-id=<id>` | — | Build identifier mixed into PRNG seed for per-build key rotation |
 
-### Phase 4.6 Build System Options
+### Build System Options
 
 | Option | Default | Description |
 |:-------|:--------|:------------|
 | `-kagura-config=<path>` | — | Path to JSON policy file |
 | `-kagura-symmap` | `false` | Emit symbol map after obfuscation |
-| `-kagura-symmap-out=<path>` | `kagura_symmap.json` | Output file for symbol map |
+| `-kagura-symmap-out=<path>` | `kagura_symbols.json` | Output file for symbol map |
+| `-kagura-audit` | `false` | Emit audit log of all protected symbols |
+| `-kagura-audit-out=<path>` | `kagura_audit.json` | Output file for audit log |
+
+### Symbol Filter Options
+
+| Option | Default | Description |
+|:-------|:--------|:------------|
+| `-kagura-protect=<pattern>` | — | Force-protect matching symbols (comma-separated, `*` glob) |
+| `-kagura-deny=<pattern>` | — | Exclude matching symbols from all obfuscation |
+| `-kagura-allow=<pattern>` | — | Allowlist mode: only obfuscate matching symbols |
 
 ---
 
@@ -208,6 +222,7 @@ kagura-<version>-macos-arm64-llvm21.tar.gz
 kagura-<version>-macos-arm64-llvm22.tar.gz
 kagura-<version>-linux-x86_64-llvm19.tar.gz
 kagura-<version>-linux-x86_64-llvm21.tar.gz
+kagura-<version>-linux-x86_64-llvm22.tar.gz
 ```
 
 Each archive contains:
@@ -303,14 +318,20 @@ The plugin auto-applies this order via `registerOptimizerLastEPCallback`:
  13. kagura-sv               → hide symbols
  14. kagura-fla              → CFG flattening        ┐
  15. kagura-bcf              → bogus control flow    │
- 16. kagura-bbs              → BB splitting          │ function passes
+ 16. kagura-bbs              → BB splitting          │
  17. kagura-bbr              → BB reordering         │
  18. kagura-dci              → dead code insertion   │
- 19. kagura-sub              → instruction subst.    │
+ 19. kagura-sub              → instruction subst.    │ function passes
  20. kagura-co               → constant obfuscation  │
- 21. kagura-mvo              → memory value XOR      ┘
- 22. kagura-dwarf-control    → DWARF strip/obfuscate (if -kagura-dwarf != keep)
- 23. kagura-symmap           → emit JSON symbol map  (if -kagura-symmap)
+ 21. kagura-mvo              → memory value XOR      │
+ 22. kagura-pe               → pointer encryption    │
+ 23. kagura-telemetry        → telemetry probes      │
+ 24. kagura-bbcheck          → BB checksum guards    │
+ 25. kagura-elt              → encrypted lookup tbl  ┘
+ 26. kagura-dwarf-control    → DWARF strip/obfuscate (if -kagura-dwarf != keep)
+ 27. kagura-vtp              → RTTI/vtable protection
+ 28. kagura-symmap           → emit JSON symbol map  (if -kagura-symmap)
+ 29. kagura-audit            → emit audit log        (if -kagura-audit)
 ```
 
 ---
@@ -354,6 +375,9 @@ kagura_run_review_risk_check();        // App Store / Play Store pre-submission 
 | **Unity (IL2CPP)** | Copy `Editor/KaguraPostBuildProcessor.cs` to `Assets/Editor/` | [Unity Integration Guide](integration/unity/README.md) |
 | **Unreal Engine 5** | Copy `KaguraToolchain.cs` to UBT toolchain path | [Unreal Engine Integration Guide](integration/unreal/README.md) |
 | **CMake (Cocos2d-x, etc.)** | `-DCMAKE_TOOLCHAIN_FILE=kagura-toolchain.cmake` | [Android NDK Integration Guide](integration/android/README.md) |
+| **Bazel** | `load("@kagura//integration/bazel:kagura.bzl", "kagura_cc_binary")` | [Bazel Integration Guide](integration/bazel/README.md) |
+| **CocoaPods** | `pod 'KaguraRuntime'` + xcconfig for plugin flag | [CocoaPods Integration Guide](integration/cocoapods/README.md) |
+| **Swift Package Manager** | `.product(name: "KaguraRuntime", package: "kagura")` | [SPM Integration Guide](integration/swiftpm/README.md) |
 
 ---
 
@@ -392,6 +416,32 @@ Scan a compiled binary for patterns that may trigger store review rejection:
 # [HIGH    ] [SEC-PIE] ...
 # [INFO    ] [ENC-DECL] No obvious encryption keyword references found.
 # RESULT: No critical or high review risks detected.
+```
+
+### Additional tools
+
+| Script | Purpose |
+|:-------|:--------|
+| `scripts/kagura-cli.py` | Config generator, audit log viewer, symbol map analyzer |
+| `scripts/variant_generator.py` | Per-customer / per-app variant generation with custom keys |
+| `scripts/attacker_cost_model.py` | Estimate attacker reverse-engineering cost (analyst-hours) |
+| `scripts/battery_impact.py` | Model battery / CPU impact of runtime passes |
+| `scripts/license_manager.py` | Generate, validate, and revoke time-limited license tokens |
+
+### Security evaluation
+
+```bash
+# Symbolic execution resistance (angr)
+cd tests/symbolic_exec && python3 run_angr_eval.py --binary /tmp/my_binary --timeout 30
+
+# Decompiler resistance (Ghidra)
+cd tests/decompiler_eval && python3 run_ghidra_eval.py --binary /tmp/my_binary --ghidra /path/to/ghidra
+
+# Frida instrumentation resistance (probes F1-F8)
+cd tests/frida_resistance && for s in probes/F*.js; do frida -l "$s" -f /tmp/my_binary; done
+
+# Full red-team report
+cd tests/redteam && python3 run_redteam.py --binary /tmp/my_binary --report report.json
 ```
 
 ---

@@ -41,7 +41,7 @@ If your pass needs runtime support, add a `.c` file under `runtime/` and registe
 - **Pass-level IR tests** (`tests/pass-inputs/` + `tests/CMakeLists.txt`): each file is compiled to bitcode and run through `opt` to verify the pass executes without crashing
 - **FileCheck lit tests** (`tests/lit/`): verify specific IR transformations using `.ll` inputs with `; CHECK:` directives
 
-All tests must pass across LLVM 17, 19, 21, and 22.
+All tests must pass across LLVM 17, 18, 19, 21, and 22.
 
 To run only the FileCheck tests:
 
