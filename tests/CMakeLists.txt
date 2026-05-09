@@ -22,7 +22,7 @@ macro(kagura_add_pass_test TEST_NAME PASS_PIPELINE SOURCE_FILE)
       -DOPT=${LLVM_BIN}/opt
       -DPLUGIN=${KAGURA_PLUGIN}
       -DPASSES=${PASS_PIPELINE}
-      -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/inputs/${SOURCE_FILE}
+      -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/pass-inputs/${SOURCE_FILE}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/run_pass_test.cmake
   )
 endmacro()
@@ -77,6 +77,15 @@ find_program(FILECHECK_EXECUTABLE NAMES FileCheck
   HINTS ${LLVM_TOOLS_BINARY_DIR}
   DOC "LLVM FileCheck"
 )
+
+# ---- 4.7.2 Integration tests ------------------------------------------------
+add_subdirectory(integration)
+
+# ---- 4.7.5 Fuzz targets (only when KAGURA_BUILD_FUZZ=ON) -------------------
+add_subdirectory(fuzz)
+
+# ---- 4.8.7 Regression corpus -----------------------------------------------
+add_subdirectory(regression)
 
 if(LIT_EXECUTABLE AND FILECHECK_EXECUTABLE)
   set(KAGURA_PLUGIN_PATH $<TARGET_FILE:KaguraObfuscator>)

@@ -221,6 +221,14 @@ struct DeadCodeInsertionPass
 
 // ---- Phase 4.5 Game / Anti-Cheat ----
 
+/// 4.5.2: XOR-encrypts alloca'd pointer variables to defeat memory dump
+/// analysis by obscuring raw pointer addresses in game object fields.
+struct PointerEncryptionPass : public llvm::PassInfoMixin<PointerEncryptionPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
 /// 4.5.1: XOR-encrypts local (alloca'd) integer variables at every store site
 /// and decrypts at every load site, protecting in-memory values from memory
 /// dump and debugger inspection.
@@ -239,7 +247,36 @@ struct HoneyValuePass : public llvm::PassInfoMixin<HoneyValuePass> {
   static bool isRequired() { return false; }
 };
 
+// ---- Phase 4.3 Anti-Tamper (additional) ----
+
+/// 4.3.16: Injects compile-time opcode checksums and runtime verification
+/// calls into a random subset of basic blocks to detect binary patching.
+struct BasicBlockChecksumPass
+    : public llvm::PassInfoMixin<BasicBlockChecksumPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
+// ---- Phase 4.5 Game / Anti-Cheat (additional) ----
+
+/// 4.5.6: Injects a call to kagura_telemetry_event(uint32_t id) at the entry
+/// of instrumented functions to collect behavioral signals for cheat detection.
+struct TelemetryPass : public llvm::PassInfoMixin<TelemetryPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Phase 4.6 Build System / DX ----
+
+/// 4.6.10: Emits a JSON audit log recording all obfuscated functions and
+/// which passes were applied.  Run AFTER all obfuscation passes.
+struct AuditLogPass : public llvm::PassInfoMixin<AuditLogPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
 
 /// 4.6.1 + 4.6.2: Reads a JSON policy file and applies per-module protection
 /// settings, including profile presets (FAST / BALANCED / STRONG) and
@@ -266,6 +303,30 @@ struct SymbolMapPass : public llvm::PassInfoMixin<SymbolMapPass> {
 /// CFString buffers are decrypted once in a module constructor (priority 0).
 struct WideStringEncryptionPass
     : public llvm::PassInfoMixin<WideStringEncryptionPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
+// ---- Phase 4.2 Encrypted lookup table ----
+
+/// 4.2.10: Transforms eligible switch statements into XOR-encrypted lookup
+/// tables.  Contiguous constant-return switches with N <= 64 cases and 8-bit
+/// output values are replaced with a bounds-checked table load + XOR decrypt.
+struct EncryptedLookupTablePass
+    : public llvm::PassInfoMixin<EncryptedLookupTablePass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
+// ---- Phase 4.1 RTTI / vtable protection ----
+
+/// 4.1.11: Obfuscates C++ RTTI typeinfo name strings (_ZTS) using XOR
+/// encryption with a per-string key, and records vtable metadata for
+/// runtime integrity checking via kagura_vtable_check().
+struct VTableProtectionPass
+    : public llvm::PassInfoMixin<VTableProtectionPass> {
   llvm::PreservedAnalyses run(llvm::Module &M,
                                llvm::ModuleAnalysisManager &MAM);
   static bool isRequired() { return false; }

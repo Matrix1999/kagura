@@ -59,6 +59,30 @@ static FunctionCallee getOrDeclareZeroBuf(Module &M) {
   return M.getOrInsertFunction("kagura_zero_buf", FTy);
 }
 
+// ---- 4.2.13: Blob integrity check runtime declaration -------------------
+
+/// Declare kagura_check_blob_integrity(const uint8_t *blob, uint32_t len,
+///                                      uint32_t expected)
+/// provided by runtime/blob_integrity.c.
+static FunctionCallee getOrDeclareBlobIntegrity(Module &M) {
+  LLVMContext &Ctx = M.getContext();
+  auto *VoidTy  = Type::getVoidTy(Ctx);
+  auto *PtrTy   = PointerType::getUnqual(Ctx);
+  auto *Int32Ty = Type::getInt32Ty(Ctx);
+  auto *FTy     = FunctionType::get(VoidTy, {PtrTy, Int32Ty, Int32Ty}, false);
+  return M.getOrInsertFunction("kagura_check_blob_integrity", FTy);
+}
+
+/// Compute FNV-1a-32 over a byte range at compile time.
+static uint32_t fnv1a32(const uint8_t *data, size_t len) {
+  uint32_t h = 0x811c9dc5u;
+  for (size_t i = 0; i < len; ++i) {
+    h ^= data[i];
+    h *= 0x01000193u;
+  }
+  return h;
+}
+
 // ---- AES decrypt runtime declaration -------------------------------------
 
 static FunctionCallee getOrDeclareRuntimeDecrypt(Module &M) {
@@ -83,12 +107,13 @@ static Function *buildAESDecryptStub(Module &M,
                                       GlobalVariable *NonceGV,
                                       GlobalVariable *OutBuf,
                                       uint64_t Len,
+                                      uint32_t BlobChecksum,
                                       StringRef Suffix,
-                                      FunctionCallee RuntimeDecrypt) {
+                                      FunctionCallee RuntimeDecrypt,
+                                      FunctionCallee BlobIntegrityCheck) {
   LLVMContext &Ctx = M.getContext();
   IRBuilder<> B(Ctx);
 
-  auto *Int8Ty  = Type::getInt8Ty(Ctx);
   auto *Int32Ty = Type::getInt32Ty(Ctx);
   auto *PtrTy   = PointerType::getUnqual(Ctx);
 
@@ -106,6 +131,12 @@ static Function *buildAESDecryptStub(Module &M,
   auto *KeyPtr   = B.CreateBitCast(KeyGV,  PtrTy, "key");
   auto *NoncePtr = B.CreateBitCast(NonceGV, PtrTy, "nonce");
   auto *OutPtr   = B.CreateBitCast(OutBuf,  PtrTy, "out");
+
+  // 4.2.13: Verify blob integrity before decrypting.
+  B.CreateCall(BlobIntegrityCheck,
+               {EncPtr,
+                ConstantInt::get(Int32Ty, static_cast<uint32_t>(Len)),
+                ConstantInt::get(Int32Ty, BlobChecksum)});
 
   B.CreateCall(RuntimeDecrypt,
                {EncPtr,
@@ -132,7 +163,8 @@ PreservedAnalyses StringEncryptionAESPass::run(Module &M,
   auto &RNG        = getModulePRNG();
   bool Changed     = false;
 
-  FunctionCallee RuntimeDecrypt = getOrDeclareRuntimeDecrypt(M);
+  FunctionCallee RuntimeDecrypt   = getOrDeclareRuntimeDecrypt(M);
+  FunctionCallee BlobIntegrity    = getOrDeclareBlobIntegrity(M);
 
   auto *Int8Ty = Type::getInt8Ty(Ctx);
 
@@ -151,6 +183,9 @@ PreservedAnalyses StringEncryptionAESPass::run(Module &M,
     const auto *DataPtr = reinterpret_cast<const uint8_t *>(Raw.data());
     std::vector<uint8_t> Encrypted =
         aes::ctrCrypt(DataPtr, static_cast<size_t>(Len), Key, Nonce);
+
+    // 4.2.13: Compute FNV-1a-32 checksum over the encrypted blob.
+    uint32_t BlobChecksum = fnv1a32(Encrypted.data(), Encrypted.size());
 
     std::string Suffix = std::to_string(RNG.next32());
 
@@ -182,7 +217,8 @@ PreservedAnalyses StringEncryptionAESPass::run(Module &M,
 
       // Build per-string decryption stub
       Function *Stub = buildAESDecryptStub(M, EncGV, KeyGV, NonceGV, OutBuf,
-                                           Len, Suffix, RuntimeDecrypt);
+                                           Len, BlobChecksum, Suffix,
+                                           RuntimeDecrypt, BlobIntegrity);
 
       // 4.2.5: Declare zero helper once per module.
       FunctionCallee ZeroBuf = getOrDeclareZeroBuf(M);

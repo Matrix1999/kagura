@@ -69,6 +69,21 @@ cl::opt<bool> PAC("kagura-pac",
 cl::opt<bool> GENC("kagura-genc",
                    cl::desc("[Kagura] Global variable encryption"),
                    cl::init(false));
+cl::opt<bool> PE("kagura-pe",
+                 cl::desc("[Kagura] Pointer encryption (address obfuscation)"),
+                 cl::init(false));
+cl::opt<bool> Telemetry("kagura-telemetry",
+                        cl::desc("[Kagura] Inject telemetry event probes"),
+                        cl::init(false));
+cl::opt<bool> BBCheck("kagura-bbcheck",
+                      cl::desc("[Kagura] Basic block opcode checksum guards"),
+                      cl::init(false));
+cl::opt<bool> VTP("kagura-vtp",
+                  cl::desc("[Kagura] RTTI / vtable protection (C++ ABI)"),
+                  cl::init(false));
+cl::opt<bool> ELT("kagura-elt",
+                  cl::desc("[Kagura] Encrypted lookup table (switch encoding)"),
+                  cl::init(false));
 
 // ---- Pass tuning parameters ----
 
@@ -135,6 +150,42 @@ cl::opt<bool> SymMap("kagura-symmap",
 cl::opt<std::string> SymMapOut(
     "kagura-symmap-out",
     cl::desc("[Kagura] Output path for symbol map (default: kagura_symbols.json)"),
+    cl::init(""));
+
+// ---- Phase 4.6.3 / 4.6.4 allowlist / denylist / protect flags ----
+
+cl::opt<std::string> ProtectList(
+    "kagura-protect",
+    cl::desc("[Kagura] Comma-separated symbol patterns to force-protect"),
+    cl::init(""));
+
+cl::opt<std::string> DenyList(
+    "kagura-deny",
+    cl::desc("[Kagura] Comma-separated symbol/file patterns to exclude from obfuscation"),
+    cl::init(""));
+
+cl::opt<std::string> AllowList(
+    "kagura-allow",
+    cl::desc("[Kagura] Comma-separated allowlist; when set only matching symbols are obfuscated"),
+    cl::init(""));
+
+// ---- Phase 4.6.10 audit log ----
+
+cl::opt<bool> AuditLog(
+    "kagura-audit",
+    cl::desc("[Kagura] Emit an audit log of all protected symbols"),
+    cl::init(false));
+
+cl::opt<std::string> AuditLogOut(
+    "kagura-audit-out",
+    cl::desc("[Kagura] Output path for audit log (default: kagura_audit.json)"),
+    cl::init(""));
+
+// ---- Phase 4.2.7 build-time key rotation ----
+
+cl::opt<std::string> BuildID(
+    "kagura-build-id",
+    cl::desc("[Kagura] Build identifier mixed into PRNG seed for per-build key rotation"),
     cl::init(""));
 
 } // namespace opt

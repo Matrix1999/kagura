@@ -49,6 +49,8 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <cstdlib>
+
 using namespace llvm;
 
 namespace kagura {
@@ -139,6 +141,8 @@ static void applyPassesObject(const json::Object &Passes) {
   getBool("anti_debug", opt::AntiDebug);
   getBool("objc",   opt::ObjC);
   getBool("jni",    opt::JNI);
+  getBool("pe",     opt::PE);
+  getBool("telemetry", opt::Telemetry);
 
   if (auto DwarfVal = Passes.getString("dwarf"))
     opt::DWARFMode = DwarfVal->str();
@@ -187,17 +191,74 @@ PreservedAnalyses ConfigLoaderPass::run(Module &M, ModuleAnalysisManager &) {
     return PreservedAnalyses::all();
   }
 
-  // 4.6.2: Apply profile preset first (individual overrides below can override)
+  // 4.6.9: Multi-flavor support — select a flavor-specific config block if
+  // the KAGURA_FLAVOR environment variable is set and the config file has a
+  // "flavors" object whose key matches the env var value.
+  //
+  // Example config:
+  //   {
+  //     "profile": "BALANCED",
+  //     "flavors": {
+  //       "staging":    { "profile": "FAST" },
+  //       "production": { "profile": "STRONG", "passes": { "vm": true } }
+  //     }
+  //   }
+  //
+  // When KAGURA_FLAVOR=production, the production flavor overrides the base
+  // config values.
+  const char *FlavorEnv = std::getenv("KAGURA_FLAVOR");
+  const json::Object *FlavorRoot = nullptr;
+  if (FlavorEnv && *FlavorEnv) {
+    if (auto *FlavorsObj = Root->getObject("flavors"))
+      FlavorRoot = FlavorsObj->getObject(FlavorEnv);
+  }
+
+  // 4.6.2: Apply base profile preset
   if (auto Profile = Root->getString("profile"))
     applyProfile(*Profile);
 
-  // 4.6.1: Apply pass enables / disables
+  // 4.6.1: Apply base pass enables / disables
   if (auto *PassesObj = Root->getObject("passes"))
     applyPassesObject(*PassesObj);
 
-  // 4.6.1: Apply tuning parameters
+  // 4.6.1: Apply base tuning parameters
   if (auto *TuningObj = Root->getObject("tuning"))
     applyTuningObject(*TuningObj);
+
+  // 4.6.3/4.6.4: Load allowlist / denylist / protect from JSON
+  auto concatArray = [&](const json::Object *Obj, StringRef Key,
+                         cl::opt<std::string> &Flag) {
+    auto *Arr = Obj ? Obj->getArray(Key) : nullptr;
+    if (!Arr) return;
+    std::string Combined;
+    for (const auto &V : *Arr) {
+      if (auto S = V.getAsString()) {
+        if (!Combined.empty()) Combined += ',';
+        Combined += S->str();
+      }
+    }
+    if (!Combined.empty()) Flag = Combined;
+  };
+  concatArray(Root, "allowlist", opt::AllowList);
+  concatArray(Root, "denylist",  opt::DenyList);
+  concatArray(Root, "protect",   opt::ProtectList);
+
+  // 4.6.10: Audit log path from JSON
+  if (auto AuditOut = Root->getString("audit_out"))
+    opt::AuditLogOut = AuditOut->str();
+
+  // 4.6.9: Apply flavor-specific overrides (after base config)
+  if (FlavorRoot) {
+    if (auto Profile = FlavorRoot->getString("profile"))
+      applyProfile(*Profile);
+    if (auto *PassesObj = FlavorRoot->getObject("passes"))
+      applyPassesObject(*PassesObj);
+    if (auto *TuningObj = FlavorRoot->getObject("tuning"))
+      applyTuningObject(*TuningObj);
+    concatArray(FlavorRoot, "allowlist", opt::AllowList);
+    concatArray(FlavorRoot, "denylist",  opt::DenyList);
+    concatArray(FlavorRoot, "protect",   opt::ProtectList);
+  }
 
   return PreservedAnalyses::all(); // flags only, no IR modification
 }

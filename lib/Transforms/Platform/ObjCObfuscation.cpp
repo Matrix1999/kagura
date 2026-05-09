@@ -1,31 +1,47 @@
 //===-- ObjCObfuscation.cpp - Objective-C metadata obfuscation ------------===//
 //
-// Obfuscates Objective-C selector names and class names that appear as
-// GlobalVariable string literals in the following Mach-O sections:
+// 4.2.2 + 4.2.3: Obfuscates Objective-C selector, class, and method names
+// that appear as GlobalVariable string literals in the following Mach-O
+// sections:
 //
 //   __TEXT,__objc_methnames   (selector strings, e.g. "initWithFoo:bar:")
 //   __TEXT,__objc_classnames  (class name strings, e.g. "MyViewController")
 //   __TEXT,__objc_methname    (variant section name)
+//   __TEXT,__objc_propnames   (property names, e.g. "title", "delegate")
+//   __TEXT,__objc_ivar        (ivar name strings, e.g. "_myVar")
+//
+// 4.2.3 additions over 4.2.2:
+//   - Property name obfuscation (__objc_prop_names / __objc_propnames):
+//     property names are exposed by KVC/KVO and decompilers; obfuscating them
+//     prevents automated class-hierarchy reconstruction.
+//   - Ivar name obfuscation: instance variable names in the ivar list
+//     section reveal internal implementation details.
+//   - NSClassFromString / NSProtocolFromString redirect: a module constructor
+//     (kagura_objc_remap_ctor) registers all obfuscated name mappings with
+//     kagura_objc_register_remap() so that callers using string-based class
+//     lookup still work correctly.
 //
 // Strategy:
-//   1. Collect all GlobalVariables in these sections.
-//   2. For each selector/class name, generate a scrambled replacement.
-//   3. Update the GlobalVariable's name and section annotation to match.
-//   4. Record the mapping in a side table (kagura_objc_map) for runtime lookup.
-//
-// Note: This pass operates at the IR level.  Mach-O section attributes
-// (the __attribute__((section(...))) annotations) are preserved.
-// The runtime library (runtime/objc_runtime.m) performs the actual selector
-// registration fixup at load time using the mapping table.
+//   1. Collect all GlobalVariables in the above sections.
+//   2. For each name, generate a scrambled replacement (preserving ':'
+//      for selector arity).
+//   3. Update the GlobalVariable's initializer in-place.
+//   4. Emit a null-terminated mapping table (kagura_objc_name_map).
+//   5. Emit a module constructor that calls kagura_objc_register_remap() for
+//      each original→obfuscated pair so runtime lookups are redirected.
 //
 //===----------------------------------------------------------------------===//
 
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
+#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Transforms/Utils/ModuleUtils.h"
 
 #include <map>
 #include <string>
@@ -34,14 +50,17 @@ using namespace llvm;
 
 namespace kagura {
 
-// Returns true if GV is in an ObjC method/class name section
+// Returns true if GV is in an ObjC method/class/property/ivar name section
 static bool isObjCNameSection(const GlobalVariable &GV) {
   if (!GV.hasSection())
     return false;
   StringRef Section = GV.getSection();
-  return Section.contains("__objc_methname") ||
+  return Section.contains("__objc_methname")  ||
          Section.contains("__objc_classname") ||
-         Section.contains("__objc_methnames");
+         Section.contains("__objc_methnames") ||
+         Section.contains("__objc_prop_name") ||  // 4.2.3: property names
+         Section.contains("__objc_propnames") ||  // 4.2.3: variant section
+         Section.contains("__objc_ivar");          // 4.2.3: ivar names
 }
 
 // Generate a short alphanumeric obfuscated name
@@ -153,6 +172,39 @@ PreservedAnalyses ObjCObfuscationPass::run(Module &M,
     new GlobalVariable(M, MapConst->getType(), true,
                        GlobalValue::PrivateLinkage, MapConst,
                        "kagura_objc_name_map");
+
+    // 4.2.3: Emit a module constructor that registers all name remappings
+    // with the runtime so NSClassFromString / NSProtocolFromString and KVO
+    // key-path lookups continue to work with obfuscated names.
+    //
+    // The constructor calls:
+    //   void kagura_objc_register_remap(const char *original,
+    //                                    const char *obfuscated);
+    // for each pair in the mapping table.
+    auto *VoidTy = Type::getVoidTy(Ctx);
+    auto *I8PtrTy = PointerType::getUnqual(Ctx);
+    auto *RemapFTy = FunctionType::get(VoidTy, {I8PtrTy, I8PtrTy}, false);
+    FunctionCallee RemapFn =
+        M.getOrInsertFunction("kagura_objc_register_remap", RemapFTy);
+
+    auto *CtorFTy = FunctionType::get(VoidTy, false);
+    auto *Ctor = Function::Create(CtorFTy, Function::InternalLinkage,
+                                  "kagura_objc_remap_ctor", M);
+    Ctor->addFnAttr(Attribute::NoInline);
+    Ctor->addFnAttr(Attribute::NoUnwind);
+
+    auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+    IRBuilder<> B(Entry);
+
+    for (auto &[Orig, Obf] : NameMap) {
+      // Create private string globals for original and obfuscated names
+      auto *OrigStr = B.CreateGlobalString(Orig, "kagura.remap.orig");
+      auto *ObfStr  = B.CreateGlobalString(Obf,  "kagura.remap.obf");
+      B.CreateCall(RemapFTy, RemapFn.getCallee(), {OrigStr, ObfStr});
+    }
+    B.CreateRetVoid();
+
+    appendToGlobalCtors(M, Ctor, 200); // after RTTI ctors (100), before app ctors
   }
 
   return PreservedAnalyses::none();

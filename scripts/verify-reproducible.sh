@@ -33,7 +33,7 @@ if [[ "${OS}" == "Darwin" ]]; then
 else
     PLUGIN="${1:-${REPO_ROOT}/build/lib/Transforms/KaguraObfuscator.so}"
 fi
-INPUT="${2:-${REPO_ROOT}/tests/inputs/combined_test.c}"
+INPUT="${2:-${REPO_ROOT}/tests/pass-inputs/combined_test.c}"
 SEED="${3:-12345}"
 
 # --------------------------------------------------------------------------

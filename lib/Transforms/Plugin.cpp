@@ -76,6 +76,22 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     FPM.addPass(MemoryValueObfuscationPass());
                     return true;
                   }
+                  if (Name == "kagura-pe") {
+                    FPM.addPass(PointerEncryptionPass());
+                    return true;
+                  }
+                  if (Name == "kagura-telemetry") {
+                    FPM.addPass(TelemetryPass());
+                    return true;
+                  }
+                  if (Name == "kagura-bbcheck") {
+                    FPM.addPass(BasicBlockChecksumPass());
+                    return true;
+                  }
+                  if (Name == "kagura-elt") {
+                    FPM.addPass(EncryptedLookupTablePass());
+                    return true;
+                  }
                   if (Name == "kagura-anti-debug") {
                     // Handled at module level; no-op here
                     return true;
@@ -148,6 +164,14 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (Name == "kagura-sv") {
                     MPM.addPass(SymbolVisibilityPass());
+                    return true;
+                  }
+                  if (Name == "kagura-audit") {
+                    MPM.addPass(AuditLogPass());
+                    return true;
+                  }
+                  if (Name == "kagura-vtp") {
+                    MPM.addPass(VTableProtectionPass());
                     return true;
                   }
                   return false;
@@ -282,6 +306,22 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     FPM.addPass(MemoryValueObfuscationPass());
                     HasFunctionPass = true;
                   }
+                  if (opt::PE) {
+                    FPM.addPass(PointerEncryptionPass());
+                    HasFunctionPass = true;
+                  }
+                  if (opt::Telemetry) {
+                    FPM.addPass(TelemetryPass());
+                    HasFunctionPass = true;
+                  }
+                  if (opt::BBCheck) {
+                    FPM.addPass(BasicBlockChecksumPass());
+                    HasFunctionPass = true;
+                  }
+                  if (opt::ELT) {
+                    FPM.addPass(EncryptedLookupTablePass());
+                    HasFunctionPass = true;
+                  }
                   if (HasFunctionPass)
                     MPM.addPass(createModuleToFunctionPassAdaptor(
                         std::move(FPM)));
@@ -299,6 +339,16 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   // Run last so all obfuscated names are already in place.
                   if (opt::SymMap)
                     MPM.addPass(SymbolMapPass());
+
+                  // --- 4.1.11: RTTI / vtable protection ---
+                  if (opt::VTP)
+                    MPM.addPass(VTableProtectionPass());
+
+                  // --- 4.6.10: Audit log ---
+                  // Run after everything else so all markObfuscated() calls
+                  // are already recorded.
+                  if (opt::AuditLog)
+                    MPM.addPass(AuditLogPass());
                 });
           }};
 }

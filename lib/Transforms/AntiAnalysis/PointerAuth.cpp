@@ -1,29 +1,37 @@
-//===-- PointerAuth.cpp - Software pointer authentication for fn ptrs -----===//
+//===-- PointerAuth.cpp - Pointer authentication for function pointers ----===//
 //
-// Simulates hardware pointer authentication (ARM64e PAC) in software for
-// function pointers stored in module-level globals.  Provides software-level
-// CFI that raises the bar for attackers who want to forge or overwrite function
-// pointer tables at runtime.
+// Implements pointer authentication for function pointers stored in
+// module-level globals.  Provides two backends:
 //
-// For each GlobalVariable whose value type is a pointer-to-function:
-//   1. The compile-time initializer (if any) is replaced with a tagged version:
+// --- Software PAC (all targets) ---
+//
+// Simulates hardware PAC in software using XOR-tagging:
+//   1. The compile-time initializer is replaced with a tagged i64:
 //        tagged_val = ptr_to_int(original_fn) ^ kagura_pac_key
-//      stored as i64 instead of ptr.  (The global's type is changed to i64.)
-//   2. Every LoadInst that loads from such a global and whose result feeds
-//      directly into a CallInst is rewritten:
+//   2. Every LoadInst that feeds into a CallInst is rewritten:
 //        raw_i64  = load i64, @global
 //        untagged = raw_i64 ^ kagura_pac_key
 //        fn_ptr   = int_to_ptr(untagged)
 //        call fn_ptr(...)
+// The key is a runtime-initialised i64 global (kagura_pac_key).
 //
-// The key itself is a single module-level i64 global (kagura_pac_key) whose
-// value is set to 0 at compile time.  A module constructor
-// (kagura_init_pac_key, priority 65534) initialises it at startup from a
-// runtime entropy source (kagura_random_u64 — provided by the runtime library).
+// --- Hardware PAC (arm64e targets only, 4.1.8) ---
+//
+// On arm64e targets, LLVM provides the `llvm.ptrauth.sign` and
+// `llvm.ptrauth.auth` intrinsics that lower to the native `pacia`/`autia`
+// instructions.  When the module triple is arm64e:
+//   1. At each initialiser site, replace the function pointer with:
+//        signed = call @llvm.ptrauth.sign(ptr fn, i32 0, i64 disc)
+//      where disc is a 48-bit discriminator derived from the global's name.
+//   2. At each load+call site, insert:
+//        auth_ptr = call @llvm.ptrauth.auth(ptr loaded_ptr, i32 0, i64 disc)
+//        call auth_ptr(...)
+//
+// The ptrauth key 0 (IA) is used because we are authenticating instruction
+// (code) pointers.  Key 1 (IB) is the alternative for data pointers.
 //
 // Globals that are skipped:
-//   - Non-constant function-pointer globals (might be mutated by user code in
-//     non-trivial ways; tagging requires tracking every store)
+//   - Non-constant function-pointer globals (mutation tracking too complex)
 //   - Globals whose initializer is not a Function constant or null
 //   - Globals whose name starts with "kagura_" or "llvm."
 //   - Globals with no uses (dead)
@@ -44,6 +52,8 @@
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
@@ -253,21 +263,156 @@ static unsigned rewriteLoadCallPairs(GlobalVariable *TaggedGV,
   return Count;
 }
 
+// ---- Hardware PAC helpers (arm64e, 4.1.8) --------------------------------
+
+/// Compute a 16-bit discriminator from a global's name via FNV-1a-32.
+/// Only the low 16 bits are used (hardware PAC discriminator width).
+static uint64_t computeDiscriminator(StringRef Name) {
+  uint32_t h = 0x811c9dc5u;
+  for (char C : Name) {
+    h ^= static_cast<uint8_t>(C);
+    h *= 0x01000193u;
+  }
+  return static_cast<uint64_t>(h & 0xFFFFu);
+}
+
+/// Return the @llvm.ptrauth.sign intrinsic (LLVM 17+ with ptrauth support).
+/// Returns nullptr if the intrinsic is not available in this build.
+static Function *getPtrauthSignIntrinsic(Module &M) {
+  LLVMContext &Ctx = M.getContext();
+  // llvm.ptrauth.sign: (ptr, i32 key, i64 discriminator) -> ptr
+  PointerType *PtrTy = PointerType::getUnqual(Ctx);
+  Type *I32Ty = Type::getInt32Ty(Ctx);
+  Type *I64Ty = Type::getInt64Ty(Ctx);
+  FunctionType *FTy = FunctionType::get(PtrTy, {PtrTy, I32Ty, I64Ty}, false);
+  FunctionCallee Callee = M.getOrInsertFunction("llvm.ptrauth.sign", FTy);
+  return dyn_cast<Function>(Callee.getCallee());
+}
+
+/// Return the @llvm.ptrauth.auth intrinsic.
+static Function *getPtrauthAuthIntrinsic(Module &M) {
+  LLVMContext &Ctx = M.getContext();
+  PointerType *PtrTy = PointerType::getUnqual(Ctx);
+  Type *I32Ty = Type::getInt32Ty(Ctx);
+  Type *I64Ty = Type::getInt64Ty(Ctx);
+  FunctionType *FTy = FunctionType::get(PtrTy, {PtrTy, I32Ty, I64Ty}, false);
+  FunctionCallee Callee = M.getOrInsertFunction("llvm.ptrauth.auth", FTy);
+  return dyn_cast<Function>(Callee.getCallee());
+}
+
+/// Hardware PAC: sign the function pointer initializer in GV using pacia (key 0).
+/// Changes the global to hold a signed ptr (still ptr type; no type change needed).
+/// Returns the replacement global, or nullptr on failure.
+static GlobalVariable *hwPACTagGlobal(GlobalVariable *GV, Module &M,
+                                       Function *SignIntrinsic) {
+  if (!SignIntrinsic) return nullptr;
+  LLVMContext &Ctx = M.getContext();
+  auto *PtrTy = PointerType::getUnqual(Ctx);
+  auto *I32Ty = Type::getInt32Ty(Ctx);
+  auto *I64Ty = Type::getInt64Ty(Ctx);
+
+  // For hardware PAC, we keep the global as a ptr type but sign it.
+  // Create a new global initialised to null; the actual signing happens
+  // in a module constructor (we cannot call intrinsics in constant initializers).
+  auto *Tagged = new GlobalVariable(M, PtrTy,
+                                    /*isConstant=*/false,
+                                    GV->getLinkage(),
+                                    ConstantPointerNull::get(PtrTy),
+                                    GV->getName() + ".hwpac");
+  Tagged->setAlignment(GV->getAlign());
+  Tagged->setVisibility(GV->getVisibility());
+  Tagged->setSection(GV->getSection());
+
+  // Build a constructor that signs the pointer and stores it.
+  auto *CtorFTy = FunctionType::get(Type::getVoidTy(Ctx), false);
+  auto *Ctor = Function::Create(CtorFTy, Function::InternalLinkage,
+                                GV->getName() + ".hwpac.init", M);
+  Ctor->addFnAttr(Attribute::NoInline);
+  Ctor->addFnAttr(Attribute::NoUnwind);
+
+  auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+  IRBuilder<> B(Entry);
+
+  Constant *OrigFn = GV->getInitializer();
+  uint64_t  Disc   = computeDiscriminator(GV->getName());
+
+  Value *Key0    = ConstantInt::get(I32Ty, 0); // IA key
+  Value *DiscVal = ConstantInt::get(I64Ty, Disc);
+  Value *Signed  = B.CreateCall(SignIntrinsic->getFunctionType(),
+                                SignIntrinsic,
+                                {OrigFn, Key0, DiscVal}, "hwpac.signed");
+  B.CreateStore(Signed, Tagged);
+  B.CreateRetVoid();
+
+  appendToGlobalCtors(M, Ctor, 65533); // before software PAC (65534)
+  return Tagged;
+}
+
+/// Hardware PAC: rewrite load+call pairs to authenticate the pointer.
+static unsigned hwPACRewriteLoadCallPairs(GlobalVariable *TaggedGV,
+                                          FunctionType *CalleeFTy, Module &M,
+                                          Function *AuthIntrinsic,
+                                          uint64_t Disc) {
+  if (!AuthIntrinsic) return 0;
+  LLVMContext &Ctx = M.getContext();
+  auto *I32Ty  = Type::getInt32Ty(Ctx);
+  auto *I64Ty  = Type::getInt64Ty(Ctx);
+  auto *PtrTy  = PointerType::getUnqual(Ctx);
+
+  SmallVector<LoadInst *, 16> Loads;
+  for (auto &U : TaggedGV->uses()) {
+    auto *LI = dyn_cast<LoadInst>(U.getUser());
+    if (LI) Loads.push_back(LI);
+  }
+
+  unsigned Count = 0;
+  for (auto *LI : Loads) {
+    SmallVector<CallInst *, 8> CallUses;
+    for (auto &U : LI->uses()) {
+      auto *CI = dyn_cast<CallInst>(U.getUser());
+      if (CI && CI->getCalledOperand() == LI)
+        CallUses.push_back(CI);
+    }
+    if (CallUses.empty()) continue;
+
+    IRBuilder<> B(LI->getNextNode());
+    Value *Key0    = ConstantInt::get(I32Ty, 0);
+    Value *DiscVal = ConstantInt::get(I64Ty, Disc);
+    // The loaded value is already a ptr (hw PAC keeps ptr type).
+    Value *AuthPtr = B.CreateCall(AuthIntrinsic->getFunctionType(),
+                                  AuthIntrinsic,
+                                  {LI, Key0, DiscVal}, "hwpac.auth");
+
+    for (auto *CI : CallUses) {
+      IRBuilder<> CB(CI);
+      SmallVector<Value *, 8> Args(CI->args());
+      SmallVector<OperandBundleDef, 2> Bundles;
+      for (unsigned I = 0, E = CI->getNumOperandBundles(); I != E; ++I)
+        Bundles.emplace_back(CI->getOperandBundleAt(I));
+      CallInst *NewCI = CB.CreateCall(CalleeFTy, AuthPtr, Args, Bundles, "");
+      NewCI->setCallingConv(CI->getCallingConv());
+      NewCI->setAttributes(CI->getAttributes());
+      NewCI->setTailCallKind(CI->getTailCallKind());
+      NewCI->setDebugLoc(CI->getDebugLoc());
+      if (!CI->getType()->isVoidTy())
+        CI->replaceAllUsesWith(NewCI);
+      CI->eraseFromParent();
+      ++Count;
+    }
+  }
+  return Count;
+}
+
 // ---- Pass entry point ----
 
 PreservedAnalyses PointerAuthPass::run(Module &M, ModuleAnalysisManager &) {
   if (!kagura::opt::PAC)
     return PreservedAnalyses::all();
 
-  // 4.1.7 / 4.1.8: Target triple dispatch.
-  // On arm64e targets the hardware PAC instructions (pacia / autia) are
-  // available.  The software-XOR simulation we implement here is still useful
-  // on plain arm64 and x86_64, but on arm64e a future hardware PAC pass
-  // (4.1.8) will supersede it.  For now we emit a diagnostic so developers
-  // know they are on hardware-PAC capable hardware.
-  if (kagura::isArm64eTarget(M)) {
-    LLVM_DEBUG(dbgs() << "[kagura-pac] arm64e target detected: "
-                         "software PAC active (hardware PAC via 4.1.8 pending)\n");
+  // 4.1.8: On arm64e, prefer hardware PAC (pacia/autia intrinsics).
+  const bool UseHardwarePAC = kagura::isArm64eTarget(M);
+  if (UseHardwarePAC) {
+    LLVM_DEBUG(dbgs() << "[kagura-pac] arm64e: using hardware PAC (pacia/autia)\n");
   }
 
   // Collect taggable globals first; we'll mutate the module as we go.
@@ -279,12 +424,14 @@ PreservedAnalyses PointerAuthPass::run(Module &M, ModuleAnalysisManager &) {
   if (Targets.empty())
     return PreservedAnalyses::all();
 
-  GlobalVariable *PacKey = getOrCreatePacKey(M);
+  // Fetch hardware PAC intrinsics (only non-null on arm64e targets).
+  Function *SignIntrinsic = UseHardwarePAC ? getPtrauthSignIntrinsic(M) : nullptr;
+  Function *AuthIntrinsic = UseHardwarePAC ? getPtrauthAuthIntrinsic(M) : nullptr;
+
+  GlobalVariable *PacKey = UseHardwarePAC ? nullptr : getOrCreatePacKey(M);
   bool Changed = false;
 
   for (auto *GV : Targets) {
-    // Remember the original function type from the initializer so we can
-    // reconstruct the right FunctionType for call-site rewrites.
     Constant *Init = GV->getInitializer();
     FunctionType *CalleeFTy = nullptr;
     if (auto *Fn = dyn_cast<Function>(Init))
@@ -292,35 +439,55 @@ PreservedAnalyses PointerAuthPass::run(Module &M, ModuleAnalysisManager &) {
     else
       continue; // null-initialized; no call sites to rewrite yet
 
-    // Create the tagged i64 replacement global.
-    GlobalVariable *Tagged = tagGlobal(GV, M);
+    if (UseHardwarePAC) {
+      // --- Hardware PAC path (arm64e) ---
+      uint64_t Disc = computeDiscriminator(GV->getName());
+      GlobalVariable *Tagged = hwPACTagGlobal(GV, M, SignIntrinsic);
+      if (!Tagged) continue;
 
-    // Rewrite load+call pairs that use the original global.
-    // First, we must redirect all loads from GV to load from Tagged instead.
-    SmallVector<LoadInst *, 16> OrigLoads;
-    for (auto &U : GV->uses()) {
-      auto *LI = dyn_cast<LoadInst>(U.getUser());
-      if (LI)
-        OrigLoads.push_back(LI);
+      // Redirect loads from GV to Tagged (same ptr type).
+      SmallVector<LoadInst *, 16> OrigLoads;
+      for (auto &U : GV->uses()) {
+        auto *LI = dyn_cast<LoadInst>(U.getUser());
+        if (LI) OrigLoads.push_back(LI);
+      }
+      LLVMContext &Ctx = M.getContext();
+      for (auto *LI : OrigLoads) {
+        IRBuilder<> B(LI);
+        auto *NewLI = B.CreateAlignedLoad(PointerType::getUnqual(Ctx),
+                                          Tagged, GV->getAlign(),
+                                          LI->isVolatile(), "hwpac.raw");
+        NewLI->setDebugLoc(LI->getDebugLoc());
+        LI->replaceAllUsesWith(NewLI);
+        LI->eraseFromParent();
+      }
+
+      hwPACRewriteLoadCallPairs(Tagged, CalleeFTy, M, AuthIntrinsic, Disc);
+      GV->replaceAllUsesWith(Tagged);
+      GV->eraseFromParent();
+    } else {
+      // --- Software PAC path (all other targets) ---
+      GlobalVariable *Tagged = tagGlobal(GV, M);
+
+      SmallVector<LoadInst *, 16> OrigLoads;
+      for (auto &U : GV->uses()) {
+        auto *LI = dyn_cast<LoadInst>(U.getUser());
+        if (LI) OrigLoads.push_back(LI);
+      }
+      for (auto *LI : OrigLoads) {
+        IRBuilder<> B(LI);
+        auto *NewLI = B.CreateAlignedLoad(Type::getInt64Ty(M.getContext()),
+                                          Tagged, Align(8),
+                                          LI->isVolatile(), "pac.raw");
+        NewLI->setDebugLoc(LI->getDebugLoc());
+        LI->replaceAllUsesWith(NewLI);
+        LI->eraseFromParent();
+      }
+
+      rewriteLoadCallPairs(Tagged, CalleeFTy, M, PacKey);
+      GV->replaceAllUsesWith(Tagged);
+      GV->eraseFromParent();
     }
-    for (auto *LI : OrigLoads) {
-      // Change the pointer operand to the new tagged global and the loaded
-      // type to i64.
-      IRBuilder<> B(LI);
-      auto *NewLI = B.CreateAlignedLoad(Type::getInt64Ty(M.getContext()),
-                                        Tagged, Align(8),
-                                        LI->isVolatile(), "pac.raw");
-      NewLI->setDebugLoc(LI->getDebugLoc());
-      LI->replaceAllUsesWith(NewLI);
-      LI->eraseFromParent();
-    }
-
-    // Now rewrite call sites that use the loaded tagged value.
-    rewriteLoadCallPairs(Tagged, CalleeFTy, M, PacKey);
-
-    // Replace remaining non-load uses of GV with Tagged (e.g. stores, bitcasts)
-    GV->replaceAllUsesWith(Tagged);
-    GV->eraseFromParent();
 
     Changed = true;
   }
@@ -328,10 +495,12 @@ PreservedAnalyses PointerAuthPass::run(Module &M, ModuleAnalysisManager &) {
   if (!Changed)
     return PreservedAnalyses::all();
 
-  // Build and register the PAC key initialisation constructor.
-  // Priority 65534 so it runs just before the thunk table constructor (65535).
-  Function *Ctor = buildPacKeyConstructor(M, PacKey);
-  appendToGlobalCtors(M, Ctor, 65534);
+  if (!UseHardwarePAC) {
+    // Build and register the software PAC key initialisation constructor.
+    // Priority 65534 so it runs just before the thunk table constructor (65535).
+    Function *Ctor = buildPacKeyConstructor(M, PacKey);
+    appendToGlobalCtors(M, Ctor, 65534);
+  }
 
   return PreservedAnalyses::none();
 }

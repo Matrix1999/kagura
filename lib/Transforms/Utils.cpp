@@ -1,5 +1,6 @@
 #include "kagura/Options.h"
 #include "kagura/Utils.h"
+#include "llvm/ADT/StringRef.h"
 
 #if __has_include("llvm/TargetParser/Triple.h")
 #include "llvm/TargetParser/Triple.h"  // LLVM 20+
@@ -52,9 +53,61 @@ bool hasAnnotation(Function &F, StringRef Attr) {
   return false;
 }
 
+// ---- List-matching helpers (4.6.3 / 4.6.4) --------------------------------
+
+/// Returns true if Name matches any pattern in the comma-separated list.
+/// Patterns may use a trailing '*' glob (e.g. "my_prefix_*").
+static bool matchesList(StringRef Name, StringRef List) {
+  if (List.empty())
+    return false;
+  SmallVector<StringRef, 16> Patterns;
+  List.split(Patterns, ',', /*MaxSplit=*/-1, /*KeepEmpty=*/false);
+  for (StringRef Pat : Patterns) {
+    Pat = Pat.trim();
+    if (Pat.empty())
+      continue;
+    if (Pat.ends_with("*")) {
+      if (Name.starts_with(Pat.drop_back(1)))
+        return true;
+    } else {
+      if (Name == Pat)
+        return true;
+    }
+  }
+  return false;
+}
+
 bool shouldObfuscate(Function &F, StringRef PassAttr, bool GlobalFlag) {
   // Never obfuscate kagura's own injected helper functions
   if (F.getName().starts_with("kagura_"))
+    return false;
+
+  // 4.1.9: Sanitizer compatibility — skip obfuscation when ASan, TSan, UBSan,
+  // or MSan function attributes are present to prevent false positives.
+  // Functions built with sanitizers have __sanitizer_* attributes or
+  // the "noinstrument" attribute set by the sanitizer runtime.
+  if (F.hasFnAttribute(Attribute::SanitizeAddress) ||
+      F.hasFnAttribute(Attribute::SanitizeThread)  ||
+      F.hasFnAttribute(Attribute::SanitizeMemory)  ||
+      F.hasFnAttribute(Attribute::SanitizeHWAddress))
+    return false;
+
+  StringRef Name = F.getName();
+
+  // 4.6.3: force-protect list — overrides everything except deny
+  if (!opt::ProtectList.empty() && matchesList(Name, opt::ProtectList))
+    return true;
+
+  // 4.6.4: denylist — explicit exclusion takes highest precedence
+  if (!opt::DenyList.empty() && matchesList(Name, opt::DenyList))
+    return false;
+
+  // 4.8.2: hot path annotation — skip obfuscation on performance-critical funcs
+  if (hasAnnotation(F, "kagura_hotpath"))
+    return false;
+
+  // 4.6.4: allowlist mode — when set, only matching symbols are obfuscated
+  if (!opt::AllowList.empty() && !matchesList(Name, opt::AllowList))
     return false;
 
   std::string EnableAttr  = ("kagura_" + PassAttr).str();
@@ -101,7 +154,19 @@ static PRNG GlobalPRNG(0);
 PRNG &getModulePRNG() {
   static bool Seeded = false;
   if (!Seeded) {
-    GlobalPRNG = PRNG(opt::Seed);
+    uint64_t BaseSeed = opt::Seed;
+    // 4.2.7: Mix BuildID into seed for per-build key rotation.
+    // Using FNV-1a over the BuildID string ensures unique keys even when
+    // the user specifies a fixed -kagura-seed for reproducible output.
+    if (!opt::BuildID.empty()) {
+      uint64_t Hash = 0xcbf29ce484222325ULL; // FNV offset basis
+      for (char C : opt::BuildID.getValue()) {
+        Hash ^= static_cast<uint8_t>(C);
+        Hash *= 0x100000001b3ULL; // FNV prime
+      }
+      BaseSeed ^= Hash;
+    }
+    GlobalPRNG = PRNG(BaseSeed);
     Seeded = true;
   }
   return GlobalPRNG;
@@ -178,6 +243,13 @@ bool isX86_64Target(const Module &M) {
 // ---- IR helpers ----
 
 void demotePhis(Function &F) {
+  // Full reg2mem: demote both PHI nodes and any non-PHI instruction whose
+  // uses cross a basic-block boundary.  FLA rewires the entire CFG into a
+  // switch dispatch, so the old dominator tree is invalidated — every
+  // cross-block SSA use would violate dominance in the new CFG.
+  //
+  // Process PHIs first (they must be demoted before the instructions that
+  // use their results, otherwise DemoteRegToStack trips on a PHI user).
   std::vector<PHINode *> Phis;
   for (auto &BB : F)
     for (auto &I : BB)
@@ -185,6 +257,24 @@ void demotePhis(Function &F) {
         Phis.push_back(Phi);
   for (auto *Phi : Phis)
     DemotePHIToStack(Phi);
+
+  // Now demote non-PHI instructions with cross-block uses.
+  std::vector<Instruction *> ToSpill;
+  for (auto &BB : F) {
+    for (auto &I : BB) {
+      if (isa<PHINode>(I) || I.isTerminator() || I.use_empty())
+        continue;
+      for (auto *U : I.users()) {
+        auto *UI = dyn_cast<Instruction>(U);
+        if (UI && UI->getParent() != &BB) {
+          ToSpill.push_back(&I);
+          break;
+        }
+      }
+    }
+  }
+  for (auto *I : ToSpill)
+    DemoteRegToStack(*I, /*VolatileLoads=*/false);
 }
 
 std::vector<BasicBlock *> getBlocks(Function &F) {

@@ -1,14 +1,17 @@
-//===-- ConstantObfuscation.cpp - Integer constant MBA obfuscation --------===//
+//===-- ConstantObfuscation.cpp - Integer/float constant MBA obfuscation --===//
 //
-// Replaces integer constant operands with Mixed Boolean-Arithmetic (MBA)
-// expressions that always evaluate to the same value but are harder to
-// reason about statically.
+// Replaces integer and floating-point constant operands with equivalent
+// computations that are harder to reason about statically.
 //
-// Supported MBA identities (for 32/64-bit integers, value V):
+// Integer MBA identities (for 32/64-bit integers, value V):
 //   1. V  =>  (V ^ R) ^ R                     (double XOR with random R)
 //   2. V  =>  (V + R) - R                     (add/sub with random R)
 //   3. V  =>  ((V | ~V) & V)                  (identity via tautology)
 //   4. V  =>  (V * R) * modular_inverse(R)    (multiplicative, R must be odd)
+//
+// 4.2.9: Float/double constant obfuscation:
+//   Float F  =>  bitcast( bitcast(F) ^ R ^ R )  (XOR through integer domain)
+//   Double D =>  bitcast( bitcast(D) ^ R ^ R )  (same idea for 64-bit)
 //
 // Each constant is replaced with a randomly chosen identity.
 // Only replaces constants in user functions, not in kagura's own helpers.
@@ -104,6 +107,42 @@ static bool obfuscateConstant(Instruction *I, unsigned OpIdx,
   return true;
 }
 
+// 4.2.9: Obfuscate a float or double constant by XOR-ing the bit representation
+// with a random integer key in the integer domain, then bitcasting back.
+//   float  F => bitcast_f32( bitcast_i32(F) ^ R ^ R )
+// The double XOR cancels at runtime but the pattern resists naive constant
+// folding in disassemblers and decompilers that don't model bitcasts.
+static bool obfuscateFPConstant(Instruction *I, unsigned OpIdx,
+                                 ConstantFP *CFP, PRNG &RNG) {
+  LLVMContext &Ctx = I->getContext();
+  Type *FTy = CFP->getType();
+  bool IsDouble = FTy->isDoubleTy();
+  bool IsFloat  = FTy->isFloatTy();
+  if (!IsFloat && !IsDouble)
+    return false;
+
+  unsigned Bits = IsDouble ? 64 : 32;
+  Type *ITy = IsDouble ? Type::getInt64Ty(Ctx) : Type::getInt32Ty(Ctx);
+
+  uint64_t FBits = IsDouble
+      ? CFP->getValueAPF().bitcastToAPInt().getZExtValue()
+      : (uint64_t)CFP->getValueAPF().bitcastToAPInt().getZExtValue();
+
+  uint64_t R = RNG.next() & ((Bits == 64) ? ~0ULL : 0xFFFFFFFFULL);
+
+  IRBuilder<> B(I);
+  // Build: bitcast_fp( bitcast_int(FP_constant) ^ R ^ R )
+  // The two XORs cancel — but the pattern is non-trivial for static analysis.
+  auto *FBitsConst = ConstantInt::get(ITy, FBits);
+  auto *RConst     = ConstantInt::get(ITy, R);
+  auto *Xor1 = B.CreateXor(FBitsConst, RConst, "co.fxr1");
+  auto *Xor2 = B.CreateXor(Xor1, RConst, "co.fxr2");
+  auto *FPResult = B.CreateBitCast(Xor2, FTy, "co.fp");
+
+  I->setOperand(OpIdx, FPResult);
+  return true;
+}
+
 static bool obfuscateFunction(Function &F, PRNG &RNG) {
   bool Changed = false;
 
@@ -113,19 +152,21 @@ static bool obfuscateFunction(Function &F, PRNG &RNG) {
     for (auto &I : BB) {
       if (isa<PHINode>(&I) || isa<AllocaInst>(&I))
         continue;
+      if (isa<GetElementPtrInst>(&I))
+        continue;
+      if (isa<CallInst>(&I) || isa<InvokeInst>(&I))
+        continue;
       for (unsigned OpIdx = 0; OpIdx < I.getNumOperands(); ++OpIdx) {
-        auto *CI = dyn_cast<ConstantInt>(I.getOperand(OpIdx));
-        if (!CI)
-          continue;
-        // Don't touch GEP indices, call targets, etc.
-        if (isa<GetElementPtrInst>(&I))
-          continue;
-        if (isa<CallInst>(&I) || isa<InvokeInst>(&I))
-          continue;
+        Value *Op = I.getOperand(OpIdx);
         // 30% chance per constant to avoid code bloat
         if (RNG.nextRange(0, 100) >= 30)
           continue;
-        Changed |= obfuscateConstant(&I, OpIdx, CI, RNG);
+        if (auto *CI = dyn_cast<ConstantInt>(Op)) {
+          Changed |= obfuscateConstant(&I, OpIdx, CI, RNG);
+        } else if (auto *CFP = dyn_cast<ConstantFP>(Op)) {
+          // 4.2.9: Also obfuscate float/double constants
+          Changed |= obfuscateFPConstant(&I, OpIdx, CFP, RNG);
+        }
       }
     }
   }

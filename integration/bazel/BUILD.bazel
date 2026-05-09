@@ -1,0 +1,77 @@
+# 4.6.11: Bazel support for KaguraObfuscator
+#
+# This BUILD file exposes:
+#   //integration/bazel:kagura_runtime    — the runtime C library
+#   //integration/bazel:kagura_plugin     — the LLVM pass plugin (.so/.dylib)
+#   //integration/bazel:kagura_flags      — flag set for cc_binary/cc_library
+#
+# Usage:
+#   load("@kagura//integration/bazel:kagura.bzl", "kagura_cc_binary")
+#   kagura_cc_binary(
+#       name = "my_binary",
+#       srcs = ["main.cc"],
+#       kagura_passes = ["-kagura-fla", "-kagura-sub", "-kagura-str"],
+#   )
+
+package(default_visibility = ["//visibility:public"])
+
+# ---- Runtime library -------------------------------------------------------
+
+RUNTIME_SRCS = glob(
+    ["../../runtime/*.c"],
+    exclude = [
+        # Android-only files (excluded on non-Android platforms)
+        "../../runtime/jni_hook_detection.c",
+        "../../runtime/play_integrity.c",
+        "../../runtime/safetynet_compat.c",
+        "../../runtime/art_environment.c",
+        "../../runtime/proc_inspection.c",
+        "../../runtime/seccomp_checks.c",
+        "../../runtime/load_order.c",
+    ],
+)
+
+cc_library(
+    name = "kagura_runtime",
+    srcs = RUNTIME_SRCS,
+    hdrs = glob(["../../include/**/*.h"]),
+    includes = ["../../include"],
+    copts = ["-std=c11"],
+    linkopts = select({
+        "@platforms//os:linux": ["-ldl"],
+        "@platforms//os:macos": [],
+        "//conditions:default": [],
+    }),
+)
+
+# ---- LLVM pass plugin (prebuilt) -------------------------------------------
+# Users must build the plugin with CMake first (cmake --build .) and point
+# KAGURA_PLUGIN_PATH to the resulting .dylib / .so.
+#
+# Alternatively, if building kagura from source inside the Bazel workspace,
+# replace the filegroup with a cmake_external() rule (requires bazel_skylib
+# and rules_foreign_cc).
+
+filegroup(
+    name = "kagura_plugin_binary",
+    srcs = select({
+        "@platforms//os:macos": ["@kagura_prebuilt//:libKaguraObfuscator.dylib"],
+        "@platforms//os:linux": ["@kagura_prebuilt//:libKaguraObfuscator.so"],
+        "//conditions:default": [],
+    }),
+)
+
+# ---- Toolchain fragment with kagura flags ----------------------------------
+# This is a Bazel toolchain feature that injects kagura flags into every
+# C/C++ compilation action when the feature is enabled.
+
+# NOTE: Full Bazel toolchain feature support requires starlark rules.
+# See kagura.bzl in the same package for the kagura_cc_binary/kagura_cc_library
+# wrappers that inject these flags via copt/linkopts.
+
+KAGURA_DEFAULT_PASSES = [
+    "-kagura-fla",
+    "-kagura-sub",
+    "-kagura-str",
+    "-kagura-bcf",
+]
