@@ -86,8 +86,8 @@ jobs:
       - name: Set compiler env (Linux)
         if: runner.os == 'Linux'
         run: |
-          echo "KAGURA_CC=${LLVM_PREFIX}/bin/clang-${{ matrix.llvm }}"   >> $GITHUB_ENV
-          echo "KAGURA_CXX=${LLVM_PREFIX}/bin/clang++-${{ matrix.llvm }}" >> $GITHUB_ENV
+          echo "KAGURA_CC=$(command -v clang-${{ matrix.llvm }})"   >> $GITHUB_ENV
+          echo "KAGURA_CXX=$(command -v clang++-${{ matrix.llvm }})" >> $GITHUB_ENV
 
       # ── Configure ─────────────────────────────────────────────────────────
       - name: Configure
