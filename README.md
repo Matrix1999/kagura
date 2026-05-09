@@ -80,6 +80,12 @@ kagura/
 | `-kagura-jni` | JNIObfuscation | Android — converts static `Java_*` to dynamic `RegisterNatives` |
 | `-kagura-vm` | VMObfuscation | Virtualizes function bodies into a custom stack-based VM bytecode |
 
+### Infrastructure (`Infrastructure/`)
+
+| Flag | Pass | Effect |
+|:-----|:-----|:-------|
+| `-kagura-dwarf=strip\|obfuscate` | DWARFControl | Strip or remap DWARF debug info after obfuscation |
+
 ### Utilities
 
 | Flag | Pass | Effect |
@@ -100,6 +106,14 @@ kagura/
 | `-kagura-bbs-min=<N>` | `3` | Min instructions before a BB split point |
 | `-kagura-bbs-max-splits=<N>` | `2` | Max splits per basic block |
 | `-kagura-sv-keep=<sym>` | -- | Comma-separated symbols to keep visible |
+
+### Phase 4.1 Infrastructure Options
+
+| Option | Default | Description |
+|:-------|:--------|:------------|
+| `-kagura-lto-safe` | `false` | Enable passes during LTO/ThinLTO pipeline phases |
+| `-kagura-o0-protect` | `false` | Enable lightweight protection (STR, AntiDebug) at `-O0` |
+| `-kagura-dwarf=<mode>` | `keep` | DWARF handling: `keep` / `strip` / `obfuscate` |
 
 ---
 
@@ -174,20 +188,21 @@ The plugin auto-applies this order via `registerOptimizerLastEPCallback`:
 
 ```
 -O1 / -O2 (standard optimizations first)
-  1. kagura-sv          → hide symbols
-  2. kagura-str[-aes]   → encrypt strings
-  3. kagura-genc        → encrypt globals
-  4. kagura-tamper      → integrity hash (before CFG changes)
-  5. kagura-ci          → external call indirection
-  6. kagura-pac         → pointer auth
-  7. kagura-fla         → CFG flattening
-  8. kagura-bcf         → bogus control flow
-  9. kagura-bbs         → BB splitting
- 10. kagura-bbr         → BB reordering
- 11. kagura-dci         → dead code insertion
- 12. kagura-sub         → instruction substitution
- 13. kagura-co          → constant obfuscation
- 14. kagura-anti-debug  → anti-analysis checks last
+  1. kagura-sv               → hide symbols
+  2. kagura-str[-aes]        → encrypt strings
+  3. kagura-genc             → encrypt globals
+  4. kagura-tamper           → integrity hash (before CFG changes)
+  5. kagura-ci               → external call indirection
+  6. kagura-pac              → pointer auth
+  7. kagura-fla              → CFG flattening
+  8. kagura-bcf              → bogus control flow
+  9. kagura-bbs              → BB splitting
+ 10. kagura-bbr              → BB reordering
+ 11. kagura-dci              → dead code insertion
+ 12. kagura-sub              → instruction substitution
+ 13. kagura-co               → constant obfuscation
+ 14. kagura-anti-debug       → anti-analysis checks last
+ 15. kagura-dwarf-control    → DWARF strip/obfuscate (if -kagura-dwarf != keep)
 ```
 
 ---
@@ -229,6 +244,15 @@ See [`integration/`](integration/) for detailed per-platform documentation.
 
 ```bash
 cd build && ctest --output-on-failure
+```
+
+### Reproducible build verification (4.1.12)
+
+Verify that a fixed seed produces byte-identical IR across two builds:
+
+```bash
+./scripts/verify-reproducible.sh
+# PASS: Both builds produced identical IR.
 ```
 
 ---
