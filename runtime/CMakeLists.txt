@@ -47,6 +47,12 @@ add_library(kagura_runtime STATIC
   soft_response.c
   # Phase 4.2.6 Device-bound key derivation
   device_key.c
+  # Phase 4.4.13 Play Integrity API integration (Android)
+  play_integrity.c
+  # Phase 4.4.14 SafetyNet backward compatibility (Android)
+  safetynet_compat.c
+  # Phase 4.6.6 Crash symbolication support (dSYM / tombstone)
+  crash_symbolication.c
 )
 
 target_include_directories(kagura_runtime PUBLIC

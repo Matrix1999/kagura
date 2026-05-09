@@ -7,6 +7,7 @@ on:
     branches: [main]
 
 jobs:
+  # ---- LLVM version matrix (macOS arm64) --------------------------------
   build:
     name: Build & Test (LLVM ${{ matrix.llvm }})
     runs-on: ${{ matrix.os }}
@@ -45,3 +46,141 @@ jobs:
 
       - name: Test
         run: cd build && ctest --output-on-failure -j$(sysctl -n hw.logicalcpu)
+
+  # ---- 4.7.4 NDK version matrix (Android cross-compile, Ubuntu) --------
+  ndk-matrix:
+    name: NDK ${{ matrix.ndk }} / LLVM ${{ matrix.llvm }}
+    runs-on: ubuntu-22.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # NDK r25c (LLVM 14 toolchain) + host LLVM 19
+          - { ndk: "r25c", llvm: "19",
+              ndk_url: "https://dl.google.com/android/repository/android-ndk-r25c-linux.zip" }
+          # NDK r26d (LLVM 17 toolchain) + host LLVM 19
+          - { ndk: "r26d", llvm: "19",
+              ndk_url: "https://dl.google.com/android/repository/android-ndk-r26d-linux.zip" }
+          # NDK r27c (LLVM 18 toolchain) + host LLVM 21
+          - { ndk: "r27c", llvm: "21",
+              ndk_url: "https://dl.google.com/android/repository/android-ndk-r27c-linux.zip" }
+          # NDK r28 (LLVM 18+ toolchain) + host LLVM 22
+          - { ndk: "r28",  llvm: "22",
+              ndk_url: "https://dl.google.com/android/repository/android-ndk-r28-linux.zip" }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install host LLVM ${{ matrix.llvm }}
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo add-apt-repository \
+            "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${{ matrix.llvm }} main"
+          sudo apt-get update -qq
+          sudo apt-get install -y llvm-${{ matrix.llvm }}-dev \
+            clang-${{ matrix.llvm }} ninja-build unzip
+          echo "LLVM_PREFIX=/usr/lib/llvm-${{ matrix.llvm }}" >> $GITHUB_ENV
+
+      - name: Download NDK ${{ matrix.ndk }}
+        run: |
+          wget -q -O ndk.zip "${{ matrix.ndk_url }}"
+          unzip -q ndk.zip -d "$HOME/ndk"
+          NDK_DIR=$(ls -d "$HOME/ndk"/android-ndk-*)
+          echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB_ENV
+          echo "NDK_TOOLCHAIN=$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64" \
+            >> $GITHUB_ENV
+
+      - name: Configure (host build of kagura plugin)
+        run: |
+          cmake -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_DIR="$LLVM_PREFIX/lib/cmake/llvm" \
+            -DCMAKE_C_COMPILER="$LLVM_PREFIX/bin/clang-${{ matrix.llvm }}" \
+            -DCMAKE_CXX_COMPILER="$LLVM_PREFIX/bin/clang++-${{ matrix.llvm }}" \
+            -DKAGURA_BUILD_TESTS=OFF
+
+      - name: Build plugin
+        run: cmake --build build
+
+      - name: Cross-compile smoke test (arm64-v8a)
+        # Compile a trivial C file through the kagura plugin targeting Android arm64
+        run: |
+          cat > /tmp/smoke.c << 'EOF'
+          int add(int a, int b) { return a + b; }
+          EOF
+          "$NDK_TOOLCHAIN/bin/aarch64-linux-android21-clang" \
+            -fpass-plugin=build/lib/libKaguraObfuscator.* \
+            -kagura-fla -kagura-sub \
+            -c /tmp/smoke.c -o /tmp/smoke.o
+          echo "smoke test passed"
+
+  # ---- 4.7.7 Performance benchmark (binary size + compile time) ---------
+  benchmark:
+    name: Performance Benchmark
+    runs-on: macos-14
+    needs: [build]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM 19
+        run: |
+          brew install llvm@19
+          echo "LLVM_PREFIX=$(brew --prefix llvm@19)" >> $GITHUB_ENV
+
+      - name: Build (Release, no tests)
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$LLVM_PREFIX" \
+            -DLLVM_DIR="$LLVM_PREFIX/lib/cmake/llvm" \
+            -DCMAKE_C_COMPILER="$LLVM_PREFIX/bin/clang" \
+            -DCMAKE_CXX_COMPILER="$LLVM_PREFIX/bin/clang++" \
+            -DKAGURA_BUILD_TESTS=OFF
+          cmake --build build -- -j$(sysctl -n hw.logicalcpu)
+
+      - name: Benchmark compile time (baseline vs. all passes)
+        run: |
+          CLANG="$LLVM_PREFIX/bin/clang"
+          PLUGIN="-fpass-plugin=build/lib/libKaguraObfuscator.*"
+          SUBJECT=lib/Transforms/CFG/ControlFlowFlattening.cpp
+
+          # Baseline: no passes
+          time "$CLANG" -O2 -c "$SUBJECT" -o /tmp/bench_base.o 2>&1
+          BASE_SIZE=$(stat -f%z /tmp/bench_base.o)
+
+          # With a moderate pass set
+          time "$CLANG" -O2 $PLUGIN \
+            -kagura-fla -kagura-sub -kagura-bcf \
+            -c "$SUBJECT" -o /tmp/bench_obf.o 2>&1
+          OBF_SIZE=$(stat -f%z /tmp/bench_obf.o)
+
+          echo "Baseline .o size:     $BASE_SIZE bytes"
+          echo "Obfuscated .o size:   $OBF_SIZE bytes"
+          RATIO=$(python3 -c "print(f'{$OBF_SIZE/$BASE_SIZE:.2f}x')")
+          echo "Size ratio:           $RATIO"
+
+      - name: Benchmark binary size (hello-world)
+        run: |
+          CLANG="$LLVM_PREFIX/bin/clang"
+          PLUGIN="-fpass-plugin=build/lib/libKaguraObfuscator.*"
+
+          cat > /tmp/hello.c << 'EOF'
+          #include <stdio.h>
+          int main(void) {
+              printf("hello kagura\n");
+              for (int i = 0; i < 10; i++) printf("%d\n", i);
+              return 0;
+          }
+          EOF
+
+          "$CLANG" -O2 -o /tmp/hello_base /tmp/hello.c
+          "$CLANG" -O2 $PLUGIN -kagura-fla -kagura-str -kagura-sub \
+            -o /tmp/hello_obf /tmp/hello.c
+          BASE=$(stat -f%z /tmp/hello_base)
+          OBF=$(stat -f%z /tmp/hello_obf)
+          echo "Baseline binary:      $BASE bytes"
+          echo "Obfuscated binary:    $OBF bytes"
+          python3 -c "print(f'Size ratio: {$OBF/$BASE:.2f}x')"

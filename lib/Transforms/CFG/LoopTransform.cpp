@@ -215,7 +215,7 @@ static bool splitLoopCounter(Loop *L, IRBuilder<> &EntryB) {
 
   // Insert PHI nodes for i_low and i_high in the header.
   auto *PhiLow  = PHINode::Create(I32, 2, "lt.i_low");
-  PhiLow->insertBefore(Header->begin());
+  PhiLow->insertBefore(&*Header->begin());
   auto *PhiHigh = PHINode::Create(I32, 2, "lt.i_high");
   PhiHigh->insertAfter(PhiLow);
 

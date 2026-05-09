@@ -33,10 +33,10 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.1.2 | O0 mode (lightweight protection for debug builds) | High | S | ✅ Done |
 | 4.1.3 | Legacy pass manager compatibility layer (LLVM 14-16) | Low | L | — |
 | 4.1.4 | Loop pass separation (move LoopTransform under LoopPassManager) | Med | S | ✅ Done |
-| 4.1.5 | Bitcode input support (beyond opt workflows) | Med | S | — |
+| 4.1.5 | Bitcode input support (beyond opt workflows) | Med | S | ✅ Done |
 | 4.1.6 | DWARF debug info stripping/transformation control | High | M | ✅ Done |
 | 4.1.7 | Target triple dispatch (ARM64 / ARMv7 / x86_64) | High | M | ✅ Done |
-| 4.1.8 | arm64e / hardware PAC integration | Med | M | — |
+| 4.1.8 | arm64e / hardware PAC integration | Med | M | ✅ Done |
 | 4.1.9 | Sanitizer compatibility (ASan, TSan, UBSan) | Med | M | ✅ Done |
 | 4.1.10 | Exception handling safety (C++ EH, ObjC @try) | High | M | ✅ Done |
 | 4.1.11 | RTTI / vtable protection | Med | L | — |
@@ -89,7 +89,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.3.13 | Memory page permission check (W+X detection) | Med | S | ✅ Done |
 | 4.3.14 | App repackaging detection | High | M | ✅ Done |
 | 4.3.15 | Anti-dump / anti-memory-scan | Low | L | — |
-| 4.3.16 | Basic block level checksum (fine-grained integrity) | Low | L | — |
+| 4.3.16 | Basic block level checksum (fine-grained integrity) | Low | L | ✅ Done |
 
 ---
 
@@ -118,8 +118,8 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.4.10 | Magisk/Zygisk detection | High | M | ✅ Done |
 | 4.4.11 | Xposed/LSPosed detection | High | M | ✅ Done |
 | 4.4.12 | /proc inspection hardening (maps/status/mounts/fd) | Med | M | ✅ Done |
-| 4.4.13 | Play Integrity API integration | High | M |
-| 4.4.14 | SafetyNet backward compatibility | Low | S |
+| 4.4.13 | Play Integrity API integration | High | M | ✅ Done |
+| 4.4.14 | SafetyNet backward compatibility | Low | S | ✅ Done |
 | 4.4.15 | ART/JIT environment considerations | Med | M | ✅ Done |
 | 4.4.16 | seccomp/prctl checks | Low | M | ✅ Done |
 | 4.4.17 | Native library load order control | Med | S | ✅ Done |
@@ -161,9 +161,9 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.6.3 | Annotation/macro-based protection target specification (extended) | High | S | ✅ Done |
 | 4.6.4 | Allowlist / denylist (symbol/file/module granularity) | High | M | ✅ Done |
 | 4.6.5 | Symbol map output (pre- to post-obfuscation mapping) | High | M | ✅ Done |
-| 4.6.6 | Crash symbolication support (dSYM / tombstone) | High | L | — |
+| 4.6.6 | Crash symbolication support (dSYM / tombstone) | High | L | ✅ Done |
 | 4.6.7 | Incremental build support | Med | L | — |
-| 4.6.8 | Build cache support | Med | M | — |
+| 4.6.8 | Build cache support | Med | M | ✅ Done |
 | 4.6.9 | Multi-flavor support (staging / production) | Med | M | ✅ Done |
 | 4.6.10 | Audit log (record of what was protected and how) | Med | S | ✅ Done |
 | 4.6.11 | Bazel support | Low | M | — |
@@ -182,10 +182,10 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.7.1 | FileCheck lit tests (per-pass IR verification) | High | L | ✅ Done |
 | 4.7.2 | Integration tests (real app smoke tests) | High | L | — |
 | 4.7.3 | LLVM version matrix expansion (add 17, 18) | Med | M | ✅ Done |
-| 4.7.4 | NDK version matrix | Med | M | — |
+| 4.7.4 | NDK version matrix | Med | M | ✅ Done |
 | 4.7.5 | Fuzzing (crash detection on pass inputs) | Med | L | — |
 | 4.7.6 | Differential testing (obfuscated vs. plain behavior match) | High | L | ✅ Done |
-| 4.7.7 | Performance benchmark (binary size / startup / frame time) | Med | M | — |
+| 4.7.7 | Performance benchmark (binary size / startup / frame time) | Med | M | ✅ Done |
 | 4.7.8 | Battery impact measurement | Low | M | — |
 | 4.7.9 | Device farm tests (iOS/Android real devices) | Low | XL | — |
 | 4.7.10 | False positive evaluation (detection accuracy on clean apps) | Med | M | — |
