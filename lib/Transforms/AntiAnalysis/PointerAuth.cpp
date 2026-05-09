@@ -35,6 +35,8 @@
 #include "kagura/Utils.h"
 
 #include "llvm/IR/Attributes.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -256,6 +258,17 @@ static unsigned rewriteLoadCallPairs(GlobalVariable *TaggedGV,
 PreservedAnalyses PointerAuthPass::run(Module &M, ModuleAnalysisManager &) {
   if (!kagura::opt::PAC)
     return PreservedAnalyses::all();
+
+  // 4.1.7 / 4.1.8: Target triple dispatch.
+  // On arm64e targets the hardware PAC instructions (pacia / autia) are
+  // available.  The software-XOR simulation we implement here is still useful
+  // on plain arm64 and x86_64, but on arm64e a future hardware PAC pass
+  // (4.1.8) will supersede it.  For now we emit a diagnostic so developers
+  // know they are on hardware-PAC capable hardware.
+  if (kagura::isArm64eTarget(M)) {
+    LLVM_DEBUG(dbgs() << "[kagura-pac] arm64e target detected: "
+                         "software PAC active (hardware PAC via 4.1.8 pending)\n");
+  }
 
   // Collect taggable globals first; we'll mutate the module as we go.
   SmallVector<GlobalVariable *, 32> Targets;

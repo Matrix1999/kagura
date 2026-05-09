@@ -65,6 +65,17 @@ static std::string scrambleName(StringRef Original, PRNG &RNG) {
 
 PreservedAnalyses ObjCObfuscationPass::run(Module &M,
                                             ModuleAnalysisManager &) {
+  // 4.1.7: ObjC metadata is only meaningful on Apple targets (iOS, macOS,
+  // tvOS, watchOS).  Skip on Android and Linux to avoid false-positive matches
+  // on globals with similar section names in non-Apple toolchains.
+  std::string TripleStr = M.getTargetTriple().str();
+  StringRef Triple(TripleStr);
+  bool IsAppleTarget = Triple.contains("apple") || Triple.contains("darwin") ||
+                       Triple.contains("ios") || Triple.contains("macos") ||
+                       Triple.contains("macosx");
+  if (!IsAppleTarget && !TripleStr.empty())
+    return PreservedAnalyses::all();
+
   LLVMContext &Ctx = M.getContext();
   auto &RNG        = getModulePRNG();
 

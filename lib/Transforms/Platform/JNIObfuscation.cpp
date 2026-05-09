@@ -188,6 +188,19 @@ static void buildOrPatchJNIOnLoad(Module &M,
 
 PreservedAnalyses JNIObfuscationPass::run(Module &M,
                                            ModuleAnalysisManager &) {
+  // 4.1.7: JNI obfuscation is Android-specific.  Skip on non-Android targets
+  // (iOS, macOS, Linux x86) to avoid accidentally mangling Java_ symbols that
+  // may appear in cross-platform test builds.
+  TargetArch Arch = getTargetArch(M);
+  bool IsAndroidTarget =
+      Arch == TargetArch::ARM64 || Arch == TargetArch::ARMv7 ||
+      Arch == TargetArch::X86_64; // Android supports all three
+  // Refine by OS: check the triple contains "android".
+  std::string TripleStr = M.getTargetTriple().str();
+  bool IsAndroid = llvm::StringRef(TripleStr).contains("android");
+  if (!IsAndroid && !TripleStr.empty())
+    return PreservedAnalyses::all();
+
   auto &RNG = getModulePRNG();
 
   SmallVector<Function *, 16> JNIFuncs;
