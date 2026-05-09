@@ -1,0 +1,172 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Build (${{ matrix.os-label }}, LLVM ${{ matrix.llvm }})
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ── macOS (Apple Silicon) ─────────────────────────────────────────
+          - runner: macos-14
+            os-label: macos-arm64
+            llvm: "21"
+            plugin-ext: dylib
+            runtime-prefix: lib
+            runtime-ext: a
+
+          - runner: macos-14
+            os-label: macos-arm64
+            llvm: "22"
+            plugin-ext: dylib
+            runtime-prefix: lib
+            runtime-ext: a
+
+          # ── Linux (x86_64) ────────────────────────────────────────────────
+          - runner: ubuntu-22.04
+            os-label: linux-x86_64
+            llvm: "19"
+            plugin-ext: so
+            runtime-prefix: lib
+            runtime-ext: a
+
+          - runner: ubuntu-22.04
+            os-label: linux-x86_64
+            llvm: "21"
+            plugin-ext: so
+            runtime-prefix: lib
+            runtime-ext: a
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── macOS: install via Homebrew ────────────────────────────────────────
+      - name: Install LLVM (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install llvm@${{ matrix.llvm }}
+          echo "LLVM_PREFIX=$(brew --prefix llvm@${{ matrix.llvm }})" >> $GITHUB_ENV
+
+      # ── Linux: install via apt ─────────────────────────────────────────────
+      - name: Install LLVM (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${{ matrix.llvm }} main" \
+            | sudo tee /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            llvm-${{ matrix.llvm }}-dev \
+            clang-${{ matrix.llvm }} \
+            libclang-${{ matrix.llvm }}-dev
+          echo "LLVM_PREFIX=/usr/lib/llvm-${{ matrix.llvm }}" >> $GITHUB_ENV
+
+      # ── Set compiler paths (macOS: clang, Linux: clang-NN) ───────────────
+      - name: Set compiler env (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          echo "KAGURA_CC=${LLVM_PREFIX}/bin/clang"   >> $GITHUB_ENV
+          echo "KAGURA_CXX=${LLVM_PREFIX}/bin/clang++" >> $GITHUB_ENV
+
+      - name: Set compiler env (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          echo "KAGURA_CC=${LLVM_PREFIX}/bin/clang-${{ matrix.llvm }}"   >> $GITHUB_ENV
+          echo "KAGURA_CXX=${LLVM_PREFIX}/bin/clang++-${{ matrix.llvm }}" >> $GITHUB_ENV
+
+      # ── Configure ─────────────────────────────────────────────────────────
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${LLVM_PREFIX}" \
+            -DLLVM_DIR="${LLVM_PREFIX}/lib/cmake/llvm" \
+            -DCMAKE_C_COMPILER="${KAGURA_CC}" \
+            -DCMAKE_CXX_COMPILER="${KAGURA_CXX}" \
+            -DKAGURA_BUILD_TESTS=OFF
+
+      # ── Build ──────────────────────────────────────────────────────────────
+      - name: Build
+        run: |
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            cmake --build build -- -j$(sysctl -n hw.logicalcpu)
+          else
+            cmake --build build -- -j$(nproc)
+          fi
+
+      # ── Stage artefacts ────────────────────────────────────────────────────
+      #
+      # Bundle layout per platform+llvm:
+      #   kagura-<version>-<os-label>-llvm<llvm>.tar.gz
+      #     ├── plugin/    KaguraObfuscator.{dylib,so}
+      #     ├── runtime/   libkagura_runtime.a
+      #     └── include/   kagura/*.h
+      #
+      - name: Stage artefacts
+        id: stage
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          BUNDLE="kagura-${VERSION}-${{ matrix.os-label }}-llvm${{ matrix.llvm }}"
+          BUNDLE_DIR="${BUNDLE}"
+
+          mkdir -p "${BUNDLE_DIR}/plugin" "${BUNDLE_DIR}/runtime" "${BUNDLE_DIR}/include"
+
+          # Plugin
+          cp build/lib/Transforms/KaguraObfuscator.${{ matrix.plugin-ext }} \
+             "${BUNDLE_DIR}/plugin/"
+
+          # Runtime static library
+          cp build/runtime/${{ matrix.runtime-prefix }}kagura_runtime.${{ matrix.runtime-ext }} \
+             "${BUNDLE_DIR}/runtime/"
+
+          # Public headers
+          cp -r include/kagura "${BUNDLE_DIR}/include/"
+
+          # Create archive
+          tar -czf "${BUNDLE}.tar.gz" "${BUNDLE_DIR}"
+          echo "bundle=${BUNDLE}.tar.gz" >> $GITHUB_OUTPUT
+          echo "bundle_name=${BUNDLE}.tar.gz" >> $GITHUB_OUTPUT
+
+      # ── Upload to GitHub Release ───────────────────────────────────────────
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ steps.stage.outputs.bundle }}
+          asset_name: ${{ steps.stage.outputs.bundle_name }}
+          asset_content_type: application/gzip
+
+  # ── Source tarball (once, not per-matrix) ─────────────────────────────────
+  source-tarball:
+    name: Source tarball
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create source archive
+        id: src
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          NAME="kagura-${VERSION}-source.tar.gz"
+          git archive --format=tar.gz --prefix="kagura-${VERSION}/" HEAD -o "${NAME}"
+          echo "name=${NAME}" >> $GITHUB_OUTPUT
+
+      - name: Upload source archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ steps.src.outputs.name }}
+          asset_name: ${{ steps.src.outputs.name }}
+          asset_content_type: application/gzip
