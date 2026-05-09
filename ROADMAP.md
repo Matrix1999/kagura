@@ -31,7 +31,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 |:---|:--------|:---------|:-------|:-------|
 | 4.1.1 | LTO / ThinLTO pipeline support | High | M | ✅ Done |
 | 4.1.2 | O0 mode (lightweight protection for debug builds) | High | S | ✅ Done |
-| 4.1.3 | Legacy pass manager compatibility layer (LLVM 14-16) | Low | L | — |
+| 4.1.3 | Legacy pass manager compatibility layer (LLVM 14-16) | Low | L | ✅ Done |
 | 4.1.4 | Loop pass separation (move LoopTransform under LoopPassManager) | Med | S | ✅ Done |
 | 4.1.5 | Bitcode input support (beyond opt workflows) | Med | S | ✅ Done |
 | 4.1.6 | DWARF debug info stripping/transformation control | High | M | ✅ Done |

@@ -14,6 +14,7 @@ add_llvm_pass_plugin(KaguraObfuscator
   Plugin.cpp
   Utils.cpp
   ObfuscationMetrics.cpp
+  $<$<BOOL:${KAGURA_LEGACY_PM}>:LegacyPlugin.cpp>
 
   # Phase 4.1 Infrastructure
   Infrastructure/DWARFControl.cpp
@@ -69,6 +70,11 @@ target_include_directories(KaguraObfuscator PRIVATE
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+# ---- 4.1.3 Legacy PM compile definition ----------------------------------
+if(KAGURA_LEGACY_PM)
+  target_compile_definitions(KaguraObfuscator PRIVATE KAGURA_LEGACY_PM=1)
+endif()
 
 # ---- 4.6.7 Incremental build: precompiled header -------------------------
 if(KAGURA_PCH)

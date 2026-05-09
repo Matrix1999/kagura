@@ -61,6 +61,23 @@ if(KAGURA_PCH)
 endif()
 # --------------------------------------------------------------------------
 
+# ---- 4.1.3 Legacy pass manager compatibility ----------------------------
+# When KAGURA_LEGACY_PM=ON, LegacyPlugin.cpp is compiled into the shared
+# library and registers all kagura passes with LLVM 14-16's legacy PM via
+# PassManagerBuilder extension points and RegisterPass<>.
+# Requires LLVM_VERSION_MAJOR <= 16; newer LLVMs removed the legacy PM APIs.
+option(KAGURA_LEGACY_PM "Build legacy pass manager shims (LLVM 14-16)" OFF)
+if(KAGURA_LEGACY_PM)
+  if(LLVM_VERSION_MAJOR GREATER 16)
+    message(WARNING "[kagura] KAGURA_LEGACY_PM=ON but LLVM ${LLVM_VERSION_MAJOR} "
+                    "has removed legacy PM APIs — disabling.")
+    set(KAGURA_LEGACY_PM OFF)
+  else()
+    message(STATUS "[kagura] Legacy PM shims enabled (LLVM ${LLVM_VERSION_MAJOR})")
+  endif()
+endif()
+# --------------------------------------------------------------------------
+
 # ---- 4.1.5 Bitcode input support -----------------------------------------
 # When KAGURA_BITCODE_TOOLS=ON, build a small standalone tool (kagura-opt)
 # that wraps `opt` and auto-loads the kagura plugin, so users can run kagura
