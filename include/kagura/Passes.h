@@ -247,6 +247,17 @@ struct HoneyValuePass : public llvm::PassInfoMixin<HoneyValuePass> {
   static bool isRequired() { return false; }
 };
 
+// ---- Phase 4.3 Anti-Tamper (additional) ----
+
+/// 4.3.16: Injects compile-time opcode checksums and runtime verification
+/// calls into a random subset of basic blocks to detect binary patching.
+struct BasicBlockChecksumPass
+    : public llvm::PassInfoMixin<BasicBlockChecksumPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Phase 4.5 Game / Anti-Cheat (additional) ----
 
 /// 4.5.6: Injects a call to kagura_telemetry_event(uint32_t id) at the entry

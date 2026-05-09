@@ -75,6 +75,9 @@ cl::opt<bool> PE("kagura-pe",
 cl::opt<bool> Telemetry("kagura-telemetry",
                         cl::desc("[Kagura] Inject telemetry event probes"),
                         cl::init(false));
+cl::opt<bool> BBCheck("kagura-bbcheck",
+                      cl::desc("[Kagura] Basic block opcode checksum guards"),
+                      cl::init(false));
 
 // ---- Pass tuning parameters ----
 

@@ -84,6 +84,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     FPM.addPass(TelemetryPass());
                     return true;
                   }
+                  if (Name == "kagura-bbcheck") {
+                    FPM.addPass(BasicBlockChecksumPass());
+                    return true;
+                  }
                   if (Name == "kagura-anti-debug") {
                     // Handled at module level; no-op here
                     return true;
@@ -300,6 +304,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (opt::Telemetry) {
                     FPM.addPass(TelemetryPass());
+                    HasFunctionPass = true;
+                  }
+                  if (opt::BBCheck) {
+                    FPM.addPass(BasicBlockChecksumPass());
                     HasFunctionPass = true;
                   }
                   if (HasFunctionPass)

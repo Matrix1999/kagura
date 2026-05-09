@@ -42,6 +42,9 @@ extern llvm::cl::opt<bool> PE;
 /// 4.5.6: Inject telemetry event calls at function entry.
 extern llvm::cl::opt<bool> Telemetry;
 
+/// 4.3.16: Inject basic-block-level opcode checksum guards.
+extern llvm::cl::opt<bool> BBCheck;
+
 // ---- Pass tuning parameters ----
 extern llvm::cl::opt<uint32_t> BCFProb;
 extern llvm::cl::opt<uint32_t> BCFIter;
