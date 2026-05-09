@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="kagura_icon.png" width="512" alt="Kagura">
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/LLVM-17%E2%80%9322-blue?style=flat-square" alt="LLVM 17-22">
   <img src="https://img.shields.io/badge/C%2B%2B-17-orange?style=flat-square" alt="C++17">
   <img src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Linux-green?style=flat-square" alt="Platforms">
