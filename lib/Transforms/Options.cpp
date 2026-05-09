@@ -111,5 +111,31 @@ cl::opt<bool> WSTR("kagura-wstr",
                    cl::desc("[Kagura] Wide/UTF-16/CFString encryption"),
                    cl::init(false));
 
+// ---- Phase 4.5 game / anti-cheat flags ----
+
+cl::opt<bool> MVO("kagura-mvo",
+                  cl::desc("[Kagura] In-memory value XOR obfuscation"),
+                  cl::init(false));
+
+cl::opt<bool> Honey("kagura-honey",
+                    cl::desc("[Kagura] Honey value / fake symbol injection"),
+                    cl::init(false));
+
+// ---- Phase 4.6 build-system / DX flags ----
+
+cl::opt<std::string> ConfigFile(
+    "kagura-config",
+    cl::desc("[Kagura] Path to JSON policy configuration file"),
+    cl::init(""));
+
+cl::opt<bool> SymMap("kagura-symmap",
+                     cl::desc("[Kagura] Emit symbol map JSON after obfuscation"),
+                     cl::init(false));
+
+cl::opt<std::string> SymMapOut(
+    "kagura-symmap-out",
+    cl::desc("[Kagura] Output path for symbol map (default: kagura_symbols.json)"),
+    cl::init(""));
+
 } // namespace opt
 } // namespace kagura

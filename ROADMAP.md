@@ -132,21 +132,21 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 
 > Goal: Game-client specific protection features.
 
-| ID | Feature | Priority | Effort |
-|:---|:--------|:---------|:-------|
-| 4.5.1 | Memory value obfuscation (XOR/rotate in-memory) | High | M |
-| 4.5.2 | Pointer encryption (address obfuscation) | Med | M |
-| 4.5.3 | Honey value / decoy variable | High | M |
-| 4.5.4 | Fake function / fake symbol (attacker misdirection) | Med | S |
-| 4.5.5 | State integrity check (client-side invariant) | Med | M |
-| 4.5.6 | Telemetry insertion (cheat signal collection) | Med | M |
-| 4.5.7 | Suspicious behavior logging | Med | M |
-| 4.5.8 | Delayed/soft response design (no immediate ban) | Low | S |
-| 4.5.9 | Integrity report signing + replay prevention | Low | M |
-| 4.5.10 | Nonce/challenge-response (server coordination) | Med | M |
-| 4.5.11 | Damage/hit/cooldown/currency protection (template) | High | M |
-| 4.5.12 | Speed/movement value protection | Med | S |
-| 4.5.13 | Random seed protection | Med | S |
+| ID | Feature | Priority | Effort | Status |
+|:---|:--------|:---------|:-------|:-------|
+| 4.5.1 | Memory value obfuscation (XOR/rotate in-memory) | High | M | ✅ Done |
+| 4.5.2 | Pointer encryption (address obfuscation) | Med | M | — |
+| 4.5.3 | Honey value / decoy variable | High | M | ✅ Done |
+| 4.5.4 | Fake function / fake symbol (attacker misdirection) | Med | S | ✅ Done |
+| 4.5.5 | State integrity check (client-side invariant) | Med | M | — |
+| 4.5.6 | Telemetry insertion (cheat signal collection) | Med | M | — |
+| 4.5.7 | Suspicious behavior logging | Med | M | — |
+| 4.5.8 | Delayed/soft response design (no immediate ban) | Low | S | — |
+| 4.5.9 | Integrity report signing + replay prevention | Low | M | — |
+| 4.5.10 | Nonce/challenge-response (server coordination) | Med | M | — |
+| 4.5.11 | Damage/hit/cooldown/currency protection (template) | High | M | ✅ Done |
+| 4.5.12 | Speed/movement value protection | Med | S | — |
+| 4.5.13 | Random seed protection | Med | S | — |
 
 ---
 
@@ -154,22 +154,22 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 
 > Goal: Practical usability for large-scale projects and production operations.
 
-| ID | Feature | Priority | Effort |
-|:---|:--------|:---------|:-------|
-| 4.6.1 | Config DSL (YAML/JSON policy file) | High | M |
-| 4.6.2 | Obfuscation strength profile (FAST / BALANCED / STRONG) | High | M |
-| 4.6.3 | Annotation/macro-based protection target specification (extended) | High | S |
-| 4.6.4 | Allowlist / denylist (symbol/file/module granularity) | High | M |
-| 4.6.5 | Symbol map output (pre- to post-obfuscation mapping) | High | M |
-| 4.6.6 | Crash symbolication support (dSYM / tombstone) | High | L |
-| 4.6.7 | Incremental build support | Med | L |
-| 4.6.8 | Build cache support | Med | M |
-| 4.6.9 | Multi-flavor support (staging / production) | Med | M |
-| 4.6.10 | Audit log (record of what was protected and how) | Med | S |
-| 4.6.11 | Bazel support | Low | M |
-| 4.6.12 | CocoaPods / SwiftPM support | Med | M |
-| 4.6.13 | CLI tool (config generation / report viewer) | Med | M |
-| 4.6.14 | License management (commercial distribution) | Low | M |
+| ID | Feature | Priority | Effort | Status |
+|:---|:--------|:---------|:-------|:-------|
+| 4.6.1 | Config DSL (YAML/JSON policy file) | High | M | ✅ Done |
+| 4.6.2 | Obfuscation strength profile (FAST / BALANCED / STRONG) | High | M | ✅ Done |
+| 4.6.3 | Annotation/macro-based protection target specification (extended) | High | S | — |
+| 4.6.4 | Allowlist / denylist (symbol/file/module granularity) | High | M | — |
+| 4.6.5 | Symbol map output (pre- to post-obfuscation mapping) | High | M | ✅ Done |
+| 4.6.6 | Crash symbolication support (dSYM / tombstone) | High | L | — |
+| 4.6.7 | Incremental build support | Med | L | — |
+| 4.6.8 | Build cache support | Med | M | — |
+| 4.6.9 | Multi-flavor support (staging / production) | Med | M | — |
+| 4.6.10 | Audit log (record of what was protected and how) | Med | S | — |
+| 4.6.11 | Bazel support | Low | M | — |
+| 4.6.12 | CocoaPods / SwiftPM support | Med | M | — |
+| 4.6.13 | CLI tool (config generation / report viewer) | Med | M | — |
+| 4.6.14 | License management (commercial distribution) | Low | M | — |
 
 ---
 
