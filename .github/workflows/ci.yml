@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, init]
+    branches: [main, dev, init]
   pull_request:
     branches: [main]
 
@@ -320,8 +320,16 @@ jobs:
             "function(kagura-bbs)"
             "function(kagura-dci)"
             "function(kagura-lt)"
+            "function(kagura-pe)"
+            "function(kagura-elt)"
             "kagura-str"
+            "kagura-vtp"
           )
+          # Note: kagura-bbcheck and kagura-telemetry are excluded here because
+          # they inject calls to kagura_bb_check() / kagura_telemetry_event()
+          # which require libkagura_runtime.a to be linked. The false-positive
+          # test runs the binary without the runtime, so those passes are only
+          # safe to test in integration tests where the runtime is available.
           FAILED=0
           for PASS in "${PASSES[@]}"; do
             "$CLANG" -O2 -emit-llvm -S -o /tmp/fp_corpus.ll /tmp/fp_corpus.c
@@ -359,6 +367,6 @@ jobs:
       - name: Estimate battery impact (all runtime passes)
         run: |
           python3 scripts/battery_impact.py \
-            --passes str,str-aes,wstr,co,bbcheck,anti-debug,pac,pe,telemetry,vm,elt,ci \
+            --passes str,str-aes,wstr,co,bbcheck,anti-debug,pac,pe,telemetry,vm,elt,vtp,ci \
             --calls-per-sec 500 \
             --duration 60
