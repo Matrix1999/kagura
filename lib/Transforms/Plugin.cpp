@@ -118,6 +118,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(StringEncryptionAESPass());
                     return true;
                   }
+                  if (Name == "kagura-wstr") {
+                    MPM.addPass(WideStringEncryptionPass());
+                    return true;
+                  }
                   if (Name == "kagura-tamper") {
                     MPM.addPass(AntiTamperPass());
                     return true;
@@ -174,6 +178,8 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                       MPM.addPass(StringEncryptionPass());
                     if (opt::STRAES)
                       MPM.addPass(StringEncryptionAESPass());
+                    if (opt::WSTR)
+                      MPM.addPass(WideStringEncryptionPass());
                     if (opt::AntiDebug)
                       MPM.addPass(AntiDebugPass());
                     if (opt::DWARFMode != "keep")
@@ -191,6 +197,8 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(StringEncryptionPass());
                   if (opt::STRAES)
                     MPM.addPass(StringEncryptionAESPass());
+                  if (opt::WSTR)
+                    MPM.addPass(WideStringEncryptionPass());
                   if (opt::Tamper)
                     MPM.addPass(AntiTamperPass());
                   if (opt::ObjC)

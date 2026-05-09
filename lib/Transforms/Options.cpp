@@ -105,5 +105,11 @@ cl::opt<std::string> DWARFMode(
     cl::desc("[Kagura] Debug info handling: keep (default), strip, obfuscate"),
     cl::init("keep"));
 
+// ---- Phase 4.2 data-protection flags ----
+
+cl::opt<bool> WSTR("kagura-wstr",
+                   cl::desc("[Kagura] Wide/UTF-16/CFString encryption"),
+                   cl::init(false));
+
 } // namespace opt
 } // namespace kagura

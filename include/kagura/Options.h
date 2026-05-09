@@ -60,5 +60,11 @@ extern llvm::cl::opt<bool> O0Protect;
 ///   "obfuscate" — remap source locations to synthetic coordinates.
 extern llvm::cl::opt<std::string> DWARFMode;
 
+// ---- Phase 4.2 data-protection flags ----
+
+/// 4.2.1: Encrypt wide-character (wchar_t / char16_t / char32_t) string
+/// literals and ObjC/CoreFoundation CFString backing buffers.
+extern llvm::cl::opt<bool> WSTR;
+
 } // namespace opt
 } // namespace kagura

@@ -219,6 +219,19 @@ struct DeadCodeInsertionPass
   static bool isRequired() { return false; }
 };
 
+// ---- Phase 4.2 Data Protection ----
+
+/// Encrypts wide-character string literals (wchar_t / char16_t / char32_t)
+/// and ObjC/CoreFoundation CFString backing buffers using XOR with a
+/// per-string random 8-byte key.  Wide strings use lazy-decrypt guards;
+/// CFString buffers are decrypted once in a module constructor (priority 0).
+struct WideStringEncryptionPass
+    : public llvm::PassInfoMixin<WideStringEncryptionPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Phase 4.1 Infrastructure ----
 
 /// Controls DWARF / debug-info metadata on functions touched by kagura.

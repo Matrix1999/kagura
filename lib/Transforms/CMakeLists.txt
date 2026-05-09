@@ -31,6 +31,7 @@ add_llvm_pass_plugin(KaguraObfuscator
   # Data obfuscation
   Data/StringEncryption.cpp
   Data/StringEncryptionAES.cpp
+  Data/WideStringEncryption.cpp
   Data/ConstantObfuscation.cpp
   Data/GlobalEncryption.cpp
   Data/Substitution.cpp
