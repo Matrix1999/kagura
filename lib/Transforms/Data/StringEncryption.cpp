@@ -28,38 +28,6 @@ using namespace llvm;
 
 namespace kagura {
 
-// Collect all ConstantDataArray globals that look like strings and are used
-// in at least one function.
-static std::vector<GlobalVariable *> collectStringGlobals(Module &M) {
-  std::vector<GlobalVariable *> Result;
-  for (auto &GV : M.globals()) {
-    if (!GV.isConstant() || !GV.hasInitializer())
-      continue;
-    auto *CDA = dyn_cast<ConstantDataArray>(GV.getInitializer());
-    if (!CDA || !CDA->isString())
-      continue;
-    // Skip short strings (format specifiers, single chars, etc.)
-    StringRef S = CDA->getAsString();
-    if (S.size() < 4)
-      continue;
-    // Skip printf-style format strings (contain % or only whitespace/newline)
-    if (S.contains('%') || S.trim().empty())
-      continue;
-    // Only process if used inside functions (not metadata etc.)
-    bool UsedInFunction = false;
-    for (auto *U : GV.users()) {
-      if (isa<Instruction>(U) ||
-          (isa<ConstantExpr>(U) && !cast<ConstantExpr>(U)->user_empty())) {
-        UsedInFunction = true;
-        break;
-      }
-    }
-    if (UsedInFunction)
-      Result.push_back(&GV);
-  }
-  return Result;
-}
-
 // Build an LLVM function that decrypts Encrypted in-place using key Key.
 // uint8_t Key[KeyLen] is XOR'd over the buffer cyclically.
 // The generated function signature: void kagura_decrypt_<suffix>(void)
@@ -152,7 +120,7 @@ static Function *buildDecryptStub(Module &M, GlobalVariable *Encrypted,
 
 PreservedAnalyses StringEncryptionPass::run(Module &M,
                                              ModuleAnalysisManager &) {
-  auto Strings = collectStringGlobals(M);
+  auto Strings = kagura::collectStringGlobals(M);
   if (Strings.empty())
     return PreservedAnalyses::all();
 

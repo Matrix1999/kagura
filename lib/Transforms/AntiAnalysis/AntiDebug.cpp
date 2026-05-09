@@ -32,13 +32,6 @@ using namespace llvm;
 
 namespace kagura {
 
-// Helper: get or declare an external C function in M
-static Function *getOrDeclare(Module &M, StringRef Name, FunctionType *FTy) {
-  if (auto *F = M.getFunction(Name))
-    return F;
-  return Function::Create(FTy, Function::ExternalLinkage, Name, M);
-}
-
 // Build void kagura_anti_debug_init() — a module constructor
 static Function *buildAntiDebugConstructor(Module &M, bool AntiFramework,
                                             bool AntiPtrace) {

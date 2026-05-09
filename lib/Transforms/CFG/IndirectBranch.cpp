@@ -24,6 +24,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
@@ -36,18 +37,12 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
-#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <string>
 
 using namespace llvm;
-
-// File-scope flag: opt-in via -kagura-ibr
-cl::opt<bool> EnableIBR("kagura-ibr",
-                         cl::desc("[Kagura] Indirect branch / call obfuscation"),
-                         cl::init(false));
 
 namespace kagura {
 
@@ -192,7 +187,7 @@ static bool obfuscateFunction(Function &F, PRNG &RNG) {
 
 PreservedAnalyses IndirectBranchPass::run(Function &F,
                                            FunctionAnalysisManager &) {
-  if (!shouldObfuscate(F, "ibr", EnableIBR))
+  if (!shouldObfuscate(F, "ibr", kagura::opt::IBR))
     return PreservedAnalyses::all();
 
   auto &RNG    = getModulePRNG();

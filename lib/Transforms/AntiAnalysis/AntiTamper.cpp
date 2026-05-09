@@ -39,6 +39,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
@@ -49,19 +50,12 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <cstdint>
 #include <vector>
 
 using namespace llvm;
-
-// Defined here, referenced in Plugin.cpp via extern declaration
-cl::opt<bool> EnableTamper(
-    "kagura-tamper",
-    cl::desc("[Kagura] Anti-tamper: inject runtime integrity checks"),
-    cl::init(false));
 
 namespace kagura {
 
@@ -112,15 +106,6 @@ static uint32_t computeOpcodeHash(const Function &F) {
 //===----------------------------------------------------------------------===//
 // IR declaration helpers
 //===----------------------------------------------------------------------===//
-
-/// Return an existing or freshly declared external function with the given name
-/// and type.  All kagura runtime symbols have external linkage so they resolve
-/// to the symbols in libkagura_runtime.a at link time.
-static Function *getOrDeclare(Module &M, StringRef Name, FunctionType *FTy) {
-  if (Function *Existing = M.getFunction(Name))
-    return Existing;
-  return Function::Create(FTy, Function::ExternalLinkage, Name, M);
-}
 
 /// Declare (or look up):
 ///   void kagura_tamper_detected(void)
@@ -252,7 +237,7 @@ PreservedAnalyses AntiTamperPass::run(Module &M, ModuleAnalysisManager &) {
   for (Function &F : M) {
     if (F.getName() == "main")
       MainFn = &F;
-    if (isTamperEligible(F, EnableTamper))
+    if (isTamperEligible(F, kagura::opt::Tamper))
       Targets.push_back(&F);
   }
 

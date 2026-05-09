@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
@@ -21,17 +22,11 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
-#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <vector>
 
 using namespace llvm;
-
-// CLI flag (exposed so Plugin.cpp can extern-declare it)
-cl::opt<bool> EnableGENC("kagura-genc",
-                          cl::desc("[Kagura] Encrypt non-string integer globals"),
-                          cl::init(false));
 
 namespace kagura {
 
