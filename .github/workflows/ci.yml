@@ -126,8 +126,9 @@ jobs:
             --target=aarch64-linux-android21 \
             -O2 -emit-llvm -S -o /tmp/smoke.ll /tmp/smoke.c
           # Step 2: obfuscate with host opt
+          KAGURA_PLUGIN=$(find build -name "KaguraObfuscator.so" | head -1)
           "$LLVM_PREFIX/bin/opt" \
-            --load-pass-plugin=build/lib/libKaguraObfuscator.so \
+            --load-pass-plugin="$KAGURA_PLUGIN" \
             -passes="function(kagura-fla,kagura-sub)" \
             -S -o /tmp/smoke_obf.ll /tmp/smoke.ll
           # Step 3: compile obfuscated IR to arm64 object with NDK clang
