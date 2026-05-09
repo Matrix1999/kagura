@@ -177,19 +177,19 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 
 > Goal: Regression prevention and reliability proof.
 
-| ID | Feature | Priority | Effort |
-|:---|:--------|:---------|:-------|
-| 4.7.1 | FileCheck lit tests (per-pass IR verification) | High | L |
-| 4.7.2 | Integration tests (real app smoke tests) | High | L |
-| 4.7.3 | LLVM version matrix expansion (add 17, 18) | Med | M |
-| 4.7.4 | NDK version matrix | Med | M |
-| 4.7.5 | Fuzzing (crash detection on pass inputs) | Med | L |
-| 4.7.6 | Differential testing (obfuscated vs. plain behavior match) | High | L |
-| 4.7.7 | Performance benchmark (binary size / startup / frame time) | Med | M |
-| 4.7.8 | Battery impact measurement | Low | M |
-| 4.7.9 | Device farm tests (iOS/Android real devices) | Low | XL |
-| 4.7.10 | False positive evaluation (detection accuracy on clean apps) | Med | M |
-| 4.7.11 | App Store / Google Play review risk assessment | High | M |
+| ID | Feature | Priority | Effort | Status |
+|:---|:--------|:---------|:-------|:-------|
+| 4.7.1 | FileCheck lit tests (per-pass IR verification) | High | L | ✅ Done |
+| 4.7.2 | Integration tests (real app smoke tests) | High | L | — |
+| 4.7.3 | LLVM version matrix expansion (add 17, 18) | Med | M | — |
+| 4.7.4 | NDK version matrix | Med | M | — |
+| 4.7.5 | Fuzzing (crash detection on pass inputs) | Med | L | — |
+| 4.7.6 | Differential testing (obfuscated vs. plain behavior match) | High | L | ✅ Done |
+| 4.7.7 | Performance benchmark (binary size / startup / frame time) | Med | M | — |
+| 4.7.8 | Battery impact measurement | Low | M | — |
+| 4.7.9 | Device farm tests (iOS/Android real devices) | Low | XL | — |
+| 4.7.10 | False positive evaluation (detection accuracy on clean apps) | Med | M | — |
+| 4.7.11 | App Store / Google Play review risk assessment | High | M | ✅ Done |
 
 ---
 
