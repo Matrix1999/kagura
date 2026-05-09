@@ -59,8 +59,10 @@ int kagura_check_sw_breakpoints(void) {
 /* ─── Hardware breakpoint detection ─────────────────────────────────────── */
 
 #if defined(__linux__)
+#include <stddef.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
+#include <sys/user.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <errno.h>
