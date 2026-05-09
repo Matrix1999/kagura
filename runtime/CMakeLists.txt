@@ -33,6 +33,16 @@ add_library(kagura_runtime STATIC
   fishhook_countermeasure.c
   # Phase 4.4.5 TestFlight vs App Store detection (iOS)
   testflight_detect.c
+  # Phase 4.4.15 ART/JIT environment (Android)
+  art_environment.c
+  # Phase 4.4.17 Native library load order (Android)
+  load_order.c
+  # Phase 4.5.5 State invariant checks (cross-platform)
+  state_integrity.c
+  # Phase 4.5.7 Suspicious behavior logging (cross-platform)
+  behavior_log.c
+  # Phase 4.5.12/13 Game value protection (speed/seed)
+  game_values.c
 )
 
 target_include_directories(kagura_runtime PUBLIC

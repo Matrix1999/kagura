@@ -120,9 +120,9 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.4.12 | /proc inspection hardening (maps/status/mounts/fd) | Med | M | ✅ Done |
 | 4.4.13 | Play Integrity API integration | High | M |
 | 4.4.14 | SafetyNet backward compatibility | Low | S |
-| 4.4.15 | ART/JIT environment considerations | Med | M |
+| 4.4.15 | ART/JIT environment considerations | Med | M | ✅ Done |
 | 4.4.16 | seccomp/prctl checks | Low | M | ✅ Done |
-| 4.4.17 | Native library load order control | Med | S |
+| 4.4.17 | Native library load order control | Med | S | ✅ Done |
 | 4.4.18 | Split APK / AAB support | Med | M |
 | 4.4.19 | libil2cpp.so / libUE4.so specialized protection | Med | M |
 
@@ -138,15 +138,15 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.5.2 | Pointer encryption (address obfuscation) | Med | M | ✅ Done |
 | 4.5.3 | Honey value / decoy variable | High | M | ✅ Done |
 | 4.5.4 | Fake function / fake symbol (attacker misdirection) | Med | S | ✅ Done |
-| 4.5.5 | State integrity check (client-side invariant) | Med | M | — |
+| 4.5.5 | State integrity check (client-side invariant) | Med | M | ✅ Done |
 | 4.5.6 | Telemetry insertion (cheat signal collection) | Med | M | — |
-| 4.5.7 | Suspicious behavior logging | Med | M | — |
+| 4.5.7 | Suspicious behavior logging | Med | M | ✅ Done |
 | 4.5.8 | Delayed/soft response design (no immediate ban) | Low | S | — |
 | 4.5.9 | Integrity report signing + replay prevention | Low | M | — |
 | 4.5.10 | Nonce/challenge-response (server coordination) | Med | M | — |
 | 4.5.11 | Damage/hit/cooldown/currency protection (template) | High | M | ✅ Done |
-| 4.5.12 | Speed/movement value protection | Med | S | — |
-| 4.5.13 | Random seed protection | Med | S | — |
+| 4.5.12 | Speed/movement value protection | Med | S | ✅ Done |
+| 4.5.13 | Random seed protection | Med | S | ✅ Done |
 
 ---
 
@@ -168,7 +168,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.6.10 | Audit log (record of what was protected and how) | Med | S | ✅ Done |
 | 4.6.11 | Bazel support | Low | M | — |
 | 4.6.12 | CocoaPods / SwiftPM support | Med | M | — |
-| 4.6.13 | CLI tool (config generation / report viewer) | Med | M | — |
+| 4.6.13 | CLI tool (config generation / report viewer) | Med | M | ✅ Done |
 | 4.6.14 | License management (commercial distribution) | Low | M | — |
 
 ---
