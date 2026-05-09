@@ -20,6 +20,7 @@ add_llvm_pass_plugin(KaguraObfuscator
   # Phase 4.6 Build System / DX
   Infrastructure/ConfigLoader.cpp
   Infrastructure/SymbolMap.cpp
+  Infrastructure/AuditLog.cpp
 
   # CFG obfuscation
   CFG/ControlFlowFlattening.cpp

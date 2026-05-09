@@ -79,11 +79,37 @@ extern llvm::cl::opt<bool> Honey;
 /// 4.6.1: Path to the JSON policy configuration file.
 extern llvm::cl::opt<std::string> ConfigFile;
 
+/// 4.6.3: Comma-separated list of symbol name patterns to force-protect
+/// (overrides per-function annotations; supports '*' glob suffix).
+extern llvm::cl::opt<std::string> ProtectList;
+
+/// 4.6.4: Comma-separated list of symbol/file/module patterns to exclude
+/// from all kagura passes.  Supports '*' glob suffix matching.
+extern llvm::cl::opt<std::string> DenyList;
+
+/// 4.6.4: Comma-separated list of symbol/file/module patterns to explicitly
+/// include (allowlist mode).  When non-empty, only matching symbols are
+/// obfuscated (everything else is treated as denied).
+extern llvm::cl::opt<std::string> AllowList;
+
 /// 4.6.5: Enable symbol map output.
 extern llvm::cl::opt<bool> SymMap;
 
 /// 4.6.5: Output path for the symbol map JSON file.
 extern llvm::cl::opt<std::string> SymMapOut;
+
+/// 4.6.10: Emit an audit log recording what was protected and how.
+extern llvm::cl::opt<bool> AuditLog;
+
+/// 4.6.10: Output path for the audit log (default: kagura_audit.json).
+extern llvm::cl::opt<std::string> AuditLogOut;
+
+// ---- Phase 4.2 additional flags ----
+
+/// 4.2.7: A build-time identifier string mixed into the PRNG seed so every
+/// build produces different keys even with the same -kagura-seed value.
+/// Typically set to a CI build number, git commit hash, or timestamp.
+extern llvm::cl::opt<std::string> BuildID;
 
 } // namespace opt
 } // namespace kagura

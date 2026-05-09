@@ -150,6 +150,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(SymbolVisibilityPass());
                     return true;
                   }
+                  if (Name == "kagura-audit") {
+                    MPM.addPass(AuditLogPass());
+                    return true;
+                  }
                   return false;
                 });
 
@@ -299,6 +303,12 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   // Run last so all obfuscated names are already in place.
                   if (opt::SymMap)
                     MPM.addPass(SymbolMapPass());
+
+                  // --- 4.6.10: Audit log ---
+                  // Run after everything else so all markObfuscated() calls
+                  // are already recorded.
+                  if (opt::AuditLog)
+                    MPM.addPass(AuditLogPass());
                 });
           }};
 }

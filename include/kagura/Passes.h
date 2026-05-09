@@ -241,6 +241,14 @@ struct HoneyValuePass : public llvm::PassInfoMixin<HoneyValuePass> {
 
 // ---- Phase 4.6 Build System / DX ----
 
+/// 4.6.10: Emits a JSON audit log recording all obfuscated functions and
+/// which passes were applied.  Run AFTER all obfuscation passes.
+struct AuditLogPass : public llvm::PassInfoMixin<AuditLogPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
 /// 4.6.1 + 4.6.2: Reads a JSON policy file and applies per-module protection
 /// settings, including profile presets (FAST / BALANCED / STRONG) and
 /// per-pass enable/disable overrides.  Run BEFORE other passes.

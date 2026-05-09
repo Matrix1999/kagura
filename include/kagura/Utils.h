@@ -11,6 +11,12 @@
 
 namespace kagura {
 
+// ---- Audit log helpers ----
+
+/// Attach a kagura_obfuscated metadata node to F recording the pass name.
+/// Multiple calls accumulate pass names in a single MDTuple.
+void markObfuscated(llvm::Function &F, llvm::StringRef PassName);
+
 // ---- Annotation helpers ----
 
 /// Returns true if F has the given annotation attribute.

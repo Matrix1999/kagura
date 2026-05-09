@@ -1,5 +1,6 @@
 #include "kagura/Options.h"
 #include "kagura/Utils.h"
+#include "llvm/ADT/StringRef.h"
 
 #if __has_include("llvm/TargetParser/Triple.h")
 #include "llvm/TargetParser/Triple.h"  // LLVM 20+
@@ -52,9 +53,51 @@ bool hasAnnotation(Function &F, StringRef Attr) {
   return false;
 }
 
+// ---- List-matching helpers (4.6.3 / 4.6.4) --------------------------------
+
+/// Returns true if Name matches any pattern in the comma-separated list.
+/// Patterns may use a trailing '*' glob (e.g. "my_prefix_*").
+static bool matchesList(StringRef Name, StringRef List) {
+  if (List.empty())
+    return false;
+  SmallVector<StringRef, 16> Patterns;
+  List.split(Patterns, ',', /*MaxSplit=*/-1, /*KeepEmpty=*/false);
+  for (StringRef Pat : Patterns) {
+    Pat = Pat.trim();
+    if (Pat.empty())
+      continue;
+    if (Pat.ends_with("*")) {
+      if (Name.starts_with(Pat.drop_back(1)))
+        return true;
+    } else {
+      if (Name == Pat)
+        return true;
+    }
+  }
+  return false;
+}
+
 bool shouldObfuscate(Function &F, StringRef PassAttr, bool GlobalFlag) {
   // Never obfuscate kagura's own injected helper functions
   if (F.getName().starts_with("kagura_"))
+    return false;
+
+  StringRef Name = F.getName();
+
+  // 4.6.3: force-protect list — overrides everything except deny
+  if (!opt::ProtectList.empty() && matchesList(Name, opt::ProtectList))
+    return true;
+
+  // 4.6.4: denylist — explicit exclusion takes highest precedence
+  if (!opt::DenyList.empty() && matchesList(Name, opt::DenyList))
+    return false;
+
+  // 4.8.2: hot path annotation — skip obfuscation on performance-critical funcs
+  if (hasAnnotation(F, "kagura_hotpath"))
+    return false;
+
+  // 4.6.4: allowlist mode — when set, only matching symbols are obfuscated
+  if (!opt::AllowList.empty() && !matchesList(Name, opt::AllowList))
     return false;
 
   std::string EnableAttr  = ("kagura_" + PassAttr).str();
@@ -101,7 +144,19 @@ static PRNG GlobalPRNG(0);
 PRNG &getModulePRNG() {
   static bool Seeded = false;
   if (!Seeded) {
-    GlobalPRNG = PRNG(opt::Seed);
+    uint64_t BaseSeed = opt::Seed;
+    // 4.2.7: Mix BuildID into seed for per-build key rotation.
+    // Using FNV-1a over the BuildID string ensures unique keys even when
+    // the user specifies a fixed -kagura-seed for reproducible output.
+    if (!opt::BuildID.empty()) {
+      uint64_t Hash = 0xcbf29ce484222325ULL; // FNV offset basis
+      for (char C : opt::BuildID.getValue()) {
+        Hash ^= static_cast<uint8_t>(C);
+        Hash *= 0x100000001b3ULL; // FNV prime
+      }
+      BaseSeed ^= Hash;
+    }
+    GlobalPRNG = PRNG(BaseSeed);
     Seeded = true;
   }
   return GlobalPRNG;
