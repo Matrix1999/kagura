@@ -9,6 +9,9 @@ on:
         description: "Release tag to upload assets to (e.g. v0.0.1)"
         required: true
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build (${{ matrix.os-label }}, LLVM ${{ matrix.llvm }})
@@ -55,7 +58,8 @@ jobs:
       - name: Install LLVM (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install llvm@${{ matrix.llvm }}
+          brew install llvm@${{ matrix.llvm }} || true
+          brew link --force --overwrite llvm@${{ matrix.llvm }} || true
           echo "LLVM_PREFIX=$(brew --prefix llvm@${{ matrix.llvm }})" >> $GITHUB_ENV
 
       # ── Linux: install via apt ─────────────────────────────────────────────
