@@ -2,15 +2,15 @@
 
 ## Phase 1-3 (Completed)
 
-Phase 1-3ではコアの難読化パス、ランタイムライブラリ、CI/CD、ゲームエンジン統合を実装済み。
+Phases 1-3 delivered the core obfuscation passes, runtime library, CI/CD, and game engine integrations.
 
-### 実装済み機能
+### Implemented Features
 
-- 10種のCFG難読化パス (FLA, BCF, IBR, CI, LT, FSplit, BBS, BBR, DCI, VM)
-- 5種のデータ難読化パス (STR, STR-AES, CO, SUB, GENC)
+- 10 CFG obfuscation passes (FLA, BCF, IBR, CI, LT, FSplit, BBS, BBR, DCI, VM)
+- 5 data obfuscation passes (STR, STR-AES, CO, SUB, GENC)
 - Anti-analysis (AntiDebug, AntiTamper, PAC, SymbolVisibility)
-- Platform (ObjC, JNI)
-- Runtime library (AES復号, VM実行, hook/breakpoint/emulator検知)
+- Platform-specific (ObjC, JNI)
+- Runtime library (AES decryption, VM execution, hook/breakpoint/emulator detection)
 - Integration (Xcode, Gradle, Unity IL2CPP, Unreal, CMake toolchain)
 - CI (GitHub Actions, LLVM 19/21/22 matrix)
 - Metrics reporting
@@ -19,240 +19,239 @@ Phase 1-3ではコアの難読化パス、ランタイムライブラリ、CI/CD
 
 ## Phase 4: Production-Grade Hardening
 
-Phase 4はkaguraを**商用レベルのプロテクションツール**に引き上げるフェーズ。
-研究プロトタイプからプロダクション品質への移行を目指す。
+Phase 4 elevates kagura from a **research prototype** to a **production-grade protection tool**.
 
 ---
 
 ### Phase 4.1 — LLVM Infrastructure Hardening
 
-> 目標: LLVM全バージョン・全最適化レベルで安定動作
+> Goal: Stable operation across all LLVM versions and optimization levels.
 
 | ID | Feature | Priority | Effort |
 |:---|:--------|:---------|:-------|
-| 4.1.1 | LTO / ThinLTO パイプライン対応 | 高 | M |
-| 4.1.2 | O0動作モード (デバッグビルド向け軽量保護) | 高 | S |
-| 4.1.3 | legacy pass manager互換レイヤー (LLVM 14-16) | 低 | L |
-| 4.1.4 | loop pass分離 (LoopTransformをLoopPassManager配下に) | 中 | S |
-| 4.1.5 | bitcode入力対応 (opt以外のフロー) | 中 | S |
-| 4.1.6 | DWARF debug情報除去/変換制御 | 高 | M |
-| 4.1.7 | target triple別処理分岐 (ARM64/ARMv7/x86_64) | 高 | M |
-| 4.1.8 | arm64e / PAC hardware連携 | 中 | M |
-| 4.1.9 | sanitizer互換性 (ASan, TSan, UBSan) | 中 | M |
-| 4.1.10 | exception handling (C++ EH, ObjC @try) 安全性 | 高 | M |
-| 4.1.11 | RTTI / vtable保護 | 中 | L |
-| 4.1.12 | reproducible build / deterministic output検証 | 高 | S |
+| 4.1.1 | LTO / ThinLTO pipeline support | High | M |
+| 4.1.2 | O0 mode (lightweight protection for debug builds) | High | S |
+| 4.1.3 | Legacy pass manager compatibility layer (LLVM 14-16) | Low | L |
+| 4.1.4 | Loop pass separation (move LoopTransform under LoopPassManager) | Med | S |
+| 4.1.5 | Bitcode input support (beyond opt workflows) | Med | S |
+| 4.1.6 | DWARF debug info stripping/transformation control | High | M |
+| 4.1.7 | Target triple dispatch (ARM64 / ARMv7 / x86_64) | High | M |
+| 4.1.8 | arm64e / hardware PAC integration | Med | M |
+| 4.1.9 | Sanitizer compatibility (ASan, TSan, UBSan) | Med | M |
+| 4.1.10 | Exception handling safety (C++ EH, ObjC @try) | High | M |
+| 4.1.11 | RTTI / vtable protection | Med | L |
+| 4.1.12 | Reproducible build / deterministic output verification | High | S |
 
-**Effort**: S = ~1日, M = 2-5日, L = 1-2週
+**Effort**: S = ~1 day, M = 2-5 days, L = 1-2 weeks, XL = 2+ weeks
 
 ---
 
 ### Phase 4.2 — Advanced Encryption & Data Protection
 
-> 目標: 全データ型の暗号化カバレッジ、runtime復号の堅牢化
+> Goal: Full data-type encryption coverage with hardened runtime decryption.
 
 | ID | Feature | Priority | Effort |
 |:---|:--------|:---------|:-------|
-| 4.2.1 | wide string / UTF-16 / CFString暗号化 | 高 | M |
-| 4.2.2 | ObjC selector文字列保護 (メタデータレベル) | 高 | M |
-| 4.2.3 | ObjC class名/メソッド名難読化 | 中 | L |
-| 4.2.4 | lazy decryption (初回アクセス時のみ復号) | 高 | M |
-| 4.2.5 | short-lived decrypted buffer (使用後ゼロクリア) | 高 | S |
-| 4.2.6 | device-bound key導出 (UDID/Android ID由来) | 中 | M |
-| 4.2.7 | build-time key rotation (ビルド毎に鍵変更) | 中 | S |
-| 4.2.8 | per-customer / per-app変種生成 | 低 | L |
-| 4.2.9 | native constant encryption (float/double含む) | 中 | M |
-| 4.2.10 | encrypted lookup table (table encoding) | 低 | L |
-| 4.2.11 | white-box crypto的処理 | 低 | XL |
-| 4.2.12 | network endpoint / API key / config blob保護 | 高 | M |
-| 4.2.13 | checksum付き復号 (tamper時の復号失敗設計) | 中 | M |
+| 4.2.1 | Wide string / UTF-16 / CFString encryption | High | M |
+| 4.2.2 | ObjC selector string protection (metadata level) | High | M |
+| 4.2.3 | ObjC class/method name obfuscation | Med | L |
+| 4.2.4 | Lazy decryption (decrypt on first access only) | High | M |
+| 4.2.5 | Short-lived decrypted buffer (zero after use) | High | S |
+| 4.2.6 | Device-bound key derivation (UDID / Android ID) | Med | M |
+| 4.2.7 | Build-time key rotation (unique keys per build) | Med | S |
+| 4.2.8 | Per-customer / per-app variant generation | Low | L |
+| 4.2.9 | Native constant encryption (float/double included) | Med | M |
+| 4.2.10 | Encrypted lookup table (table encoding) | Low | L |
+| 4.2.11 | White-box cryptography | Low | XL |
+| 4.2.12 | Network endpoint / API key / config blob protection | High | M |
+| 4.2.13 | Checksum-guarded decryption (fail on tamper) | Med | M |
 
 ---
 
 ### Phase 4.3 — Anti-Tamper & Integrity
 
-> 目標: バイナリ改変・動的攻撃の多層検知
+> Goal: Multi-layer detection of binary modification and dynamic attacks.
 
 | ID | Feature | Priority | Effort |
 |:---|:--------|:---------|:-------|
-| 4.3.1 | Mach-O構造改変検知 (LC_LOAD_DYLIB, code signature blob) | 高 | M |
-| 4.3.2 | ELF構造改変検知 (section hash, PHT検証) | 高 | M |
-| 4.3.3 | iOS code signing状態確認 (embedded.mobileprovision) | 高 | M |
-| 4.3.4 | Android APK signature検証 (v2/v3/v4) | 高 | M |
-| 4.3.5 | dynamic library injection検知 (DYLD_INSERT) | 高 | S |
-| 4.3.6 | loaded module検査 (suspicious dylib/so) | 高 | M |
-| 4.3.7 | GOT/PLT hook検知 | 高 | M |
-| 4.3.8 | symbol interposition検知 | 中 | M |
-| 4.3.9 | ObjC method swizzling検知 | 高 | M |
-| 4.3.10 | JNI table hook検知 | 中 | M |
-| 4.3.11 | syscall直接呼び出し (hook回避) | 中 | M |
-| 4.3.12 | hardware breakpoint検知 | 中 | S |
-| 4.3.13 | memory page permission検査 (W+X検知) | 中 | S |
-| 4.3.14 | app repackaging検知 | 高 | M |
-| 4.3.15 | anti-dump / anti-memory-scan | 低 | L |
-| 4.3.16 | basic block level checksum (細粒度整合性) | 低 | L |
+| 4.3.1 | Mach-O structure tampering detection (LC_LOAD_DYLIB, code signature blob) | High | M |
+| 4.3.2 | ELF structure tampering detection (section hash, PHT verification) | High | M |
+| 4.3.3 | iOS code signing status verification (embedded.mobileprovision) | High | M |
+| 4.3.4 | Android APK signature verification (v2/v3/v4) | High | M |
+| 4.3.5 | Dynamic library injection detection (DYLD_INSERT) | High | S |
+| 4.3.6 | Loaded module inspection (suspicious dylib/so) | High | M |
+| 4.3.7 | GOT/PLT hook detection | High | M |
+| 4.3.8 | Symbol interposition detection | Med | M |
+| 4.3.9 | ObjC method swizzling detection | High | M |
+| 4.3.10 | JNI table hook detection | Med | M |
+| 4.3.11 | Direct syscall invocation (hook bypass) | Med | M |
+| 4.3.12 | Hardware breakpoint detection | Med | S |
+| 4.3.13 | Memory page permission check (W+X detection) | Med | S |
+| 4.3.14 | App repackaging detection | High | M |
+| 4.3.15 | Anti-dump / anti-memory-scan | Low | L |
+| 4.3.16 | Basic block level checksum (fine-grained integrity) | Low | L |
 
 ---
 
 ### Phase 4.4 — Platform-Specific Hardening
 
-> 目標: iOS/Android固有の攻撃ベクトルへの対応
+> Goal: Address iOS and Android specific attack vectors.
 
 #### iOS
 
 | ID | Feature | Priority | Effort |
 |:---|:--------|:---------|:-------|
-| 4.4.1 | jailbreak filesystem artifact検知 | 高 | M |
-| 4.4.2 | Cydia/Substrate/FridaGadget.dylib検知 | 高 | S |
-| 4.4.3 | fishhook対策 (rebinding検知) | 中 | M |
-| 4.4.4 | Swift metadata/demangling対策 | 中 | L |
-| 4.4.5 | TestFlight/production差分対応 | 低 | S |
-| 4.4.6 | iOS simulator除外 (TARGET_OS_SIMULATOR) | 中 | S |
-| 4.4.7 | entitlements確認 | 中 | S |
-| 4.4.8 | App Store審査安全性確認 | 高 | M |
-| 4.4.9 | dyld image list動的検査 | 中 | S |
+| 4.4.1 | Jailbreak filesystem artifact detection | High | M |
+| 4.4.2 | Cydia/Substrate/FridaGadget.dylib detection | High | S |
+| 4.4.3 | fishhook countermeasure (rebinding detection) | Med | M |
+| 4.4.4 | Swift metadata / demangling countermeasure | Med | L |
+| 4.4.5 | TestFlight vs. production differentiation | Low | S |
+| 4.4.6 | iOS simulator exclusion (TARGET_OS_SIMULATOR) | Med | S |
+| 4.4.7 | Entitlements verification | Med | S |
+| 4.4.8 | App Store review safety validation | High | M |
+| 4.4.9 | dyld image list runtime inspection | Med | S |
 
 #### Android
 
 | ID | Feature | Priority | Effort |
 |:---|:--------|:---------|:-------|
-| 4.4.10 | Magisk/Zygisk検知 | 高 | M |
-| 4.4.11 | Xposed/LSPosed検知 | 高 | M |
-| 4.4.12 | /proc検査強化 (maps/status/mounts/fd) | 中 | M |
-| 4.4.13 | Play Integrity API連携 | 高 | M |
-| 4.4.14 | SafetyNet後方互換 | 低 | S |
-| 4.4.15 | ART/JIT環境考慮 | 中 | M |
-| 4.4.16 | seccomp/prctl系チェック | 低 | M |
-| 4.4.17 | native library load順制御 | 中 | S |
-| 4.4.18 | split APK / AAB対応 | 中 | M |
-| 4.4.19 | libil2cpp.so / libUE4.so保護特化 | 中 | M |
+| 4.4.10 | Magisk/Zygisk detection | High | M |
+| 4.4.11 | Xposed/LSPosed detection | High | M |
+| 4.4.12 | /proc inspection hardening (maps/status/mounts/fd) | Med | M |
+| 4.4.13 | Play Integrity API integration | High | M |
+| 4.4.14 | SafetyNet backward compatibility | Low | S |
+| 4.4.15 | ART/JIT environment considerations | Med | M |
+| 4.4.16 | seccomp/prctl checks | Low | M |
+| 4.4.17 | Native library load order control | Med | S |
+| 4.4.18 | Split APK / AAB support | Med | M |
+| 4.4.19 | libil2cpp.so / libUE4.so specialized protection | Med | M |
 
 ---
 
 ### Phase 4.5 — Game / Anti-Cheat
 
-> 目標: ゲームクライアント固有の保護機能
+> Goal: Game-client specific protection features.
 
 | ID | Feature | Priority | Effort |
 |:---|:--------|:---------|:-------|
-| 4.5.1 | memory value obfuscation (XOR/rotate in-memory) | 高 | M |
-| 4.5.2 | pointer encryption (アドレス難読化) | 中 | M |
-| 4.5.3 | honey value / decoy variable | 高 | M |
-| 4.5.4 | fake function / fake symbol (attacker誘導) | 中 | S |
-| 4.5.5 | state integrity check (client-side invariant) | 中 | M |
-| 4.5.6 | telemetry挿入 (cheat signal収集) | 中 | M |
-| 4.5.7 | suspicious behavior logging | 中 | M |
-| 4.5.8 | delayed/soft response設計 (即banしない) | 低 | S |
-| 4.5.9 | integrity report署名 + replay防止 | 低 | M |
-| 4.5.10 | nonce/challenge-response (server連携) | 中 | M |
-| 4.5.11 | damage/hit/cooldown/currency保護 (template) | 高 | M |
-| 4.5.12 | speed/movement値保護 | 中 | S |
-| 4.5.13 | random seed保護 | 中 | S |
+| 4.5.1 | Memory value obfuscation (XOR/rotate in-memory) | High | M |
+| 4.5.2 | Pointer encryption (address obfuscation) | Med | M |
+| 4.5.3 | Honey value / decoy variable | High | M |
+| 4.5.4 | Fake function / fake symbol (attacker misdirection) | Med | S |
+| 4.5.5 | State integrity check (client-side invariant) | Med | M |
+| 4.5.6 | Telemetry insertion (cheat signal collection) | Med | M |
+| 4.5.7 | Suspicious behavior logging | Med | M |
+| 4.5.8 | Delayed/soft response design (no immediate ban) | Low | S |
+| 4.5.9 | Integrity report signing + replay prevention | Low | M |
+| 4.5.10 | Nonce/challenge-response (server coordination) | Med | M |
+| 4.5.11 | Damage/hit/cooldown/currency protection (template) | High | M |
+| 4.5.12 | Speed/movement value protection | Med | S |
+| 4.5.13 | Random seed protection | Med | S |
 
 ---
 
 ### Phase 4.6 — Build System & Developer Experience
 
-> 目標: 大規模プロジェクトでの実用性、運用品質
+> Goal: Practical usability for large-scale projects and production operations.
 
 | ID | Feature | Priority | Effort |
 |:---|:--------|:---------|:-------|
-| 4.6.1 | config DSL (YAML/JSON policy file) | 高 | M |
-| 4.6.2 | obfuscation strength profile (FAST/BALANCED/STRONG) | 高 | M |
-| 4.6.3 | annotation/macroで保護対象指定 (拡張) | 高 | S |
-| 4.6.4 | allowlist / denylist (symbol/file/module単位) | 高 | M |
-| 4.6.5 | symbol map出力 (難読化前→後マッピング) | 高 | M |
-| 4.6.6 | crash symbolication支援 (dSYM/tombstone) | 高 | L |
-| 4.6.7 | incremental build対応 | 中 | L |
-| 4.6.8 | build cache対応 | 中 | M |
-| 4.6.9 | multi-flavor対応 (staging/production) | 中 | M |
-| 4.6.10 | audit log (何をどう保護したかの記録) | 中 | S |
-| 4.6.11 | Bazel対応 | 低 | M |
-| 4.6.12 | CocoaPods / SwiftPM対応 | 中 | M |
-| 4.6.13 | CLI tool (config生成/レポート表示) | 中 | M |
-| 4.6.14 | license管理 (商用配布向け) | 低 | M |
+| 4.6.1 | Config DSL (YAML/JSON policy file) | High | M |
+| 4.6.2 | Obfuscation strength profile (FAST / BALANCED / STRONG) | High | M |
+| 4.6.3 | Annotation/macro-based protection target specification (extended) | High | S |
+| 4.6.4 | Allowlist / denylist (symbol/file/module granularity) | High | M |
+| 4.6.5 | Symbol map output (pre- to post-obfuscation mapping) | High | M |
+| 4.6.6 | Crash symbolication support (dSYM / tombstone) | High | L |
+| 4.6.7 | Incremental build support | Med | L |
+| 4.6.8 | Build cache support | Med | M |
+| 4.6.9 | Multi-flavor support (staging / production) | Med | M |
+| 4.6.10 | Audit log (record of what was protected and how) | Med | S |
+| 4.6.11 | Bazel support | Low | M |
+| 4.6.12 | CocoaPods / SwiftPM support | Med | M |
+| 4.6.13 | CLI tool (config generation / report viewer) | Med | M |
+| 4.6.14 | License management (commercial distribution) | Low | M |
 
 ---
 
 ### Phase 4.7 — Testing & Quality
 
-> 目標: リグレッション防止、信頼性の証明
+> Goal: Regression prevention and reliability proof.
 
 | ID | Feature | Priority | Effort |
 |:---|:--------|:---------|:-------|
-| 4.7.1 | FileCheck lit tests (per-pass IR検証) | 高 | L |
-| 4.7.2 | integration tests (real app smoke) | 高 | L |
-| 4.7.3 | LLVM version matrix拡張 (17, 18追加) | 中 | M |
-| 4.7.4 | NDK version matrix | 中 | M |
-| 4.7.5 | fuzzing (pass入力のcrash検出) | 中 | L |
-| 4.7.6 | differential testing (obfuscated vs plain動作一致) | 高 | L |
-| 4.7.7 | performance benchmark (binary size / startup / frame time) | 中 | M |
-| 4.7.8 | battery impact測定 | 低 | M |
-| 4.7.9 | device farm tests (iOS/Android実機) | 低 | XL |
-| 4.7.10 | false positive評価 (正常アプリ誤検知率) | 中 | M |
-| 4.7.11 | App Store/Google Play審査リスク評価 | 高 | M |
+| 4.7.1 | FileCheck lit tests (per-pass IR verification) | High | L |
+| 4.7.2 | Integration tests (real app smoke tests) | High | L |
+| 4.7.3 | LLVM version matrix expansion (add 17, 18) | Med | M |
+| 4.7.4 | NDK version matrix | Med | M |
+| 4.7.5 | Fuzzing (crash detection on pass inputs) | Med | L |
+| 4.7.6 | Differential testing (obfuscated vs. plain behavior match) | High | L |
+| 4.7.7 | Performance benchmark (binary size / startup / frame time) | Med | M |
+| 4.7.8 | Battery impact measurement | Low | M |
+| 4.7.9 | Device farm tests (iOS/Android real devices) | Low | XL |
+| 4.7.10 | False positive evaluation (detection accuracy on clean apps) | Med | M |
+| 4.7.11 | App Store / Google Play review risk assessment | High | M |
 
 ---
 
 ### Phase 4.8 — Research & Advanced
 
-> 目標: 攻撃者コスト最大化、自動化への対抗
+> Goal: Maximize attacker cost and resist automated analysis.
 
 | ID | Feature | Priority | Effort |
 |:---|:--------|:---------|:-------|
-| 4.8.1 | obfuscation transform自動選択 (risk-based) | 中 | XL |
-| 4.8.2 | hot path回避 (パフォーマンスクリティカルパス保護除外) | 高 | M |
-| 4.8.3 | attacker cost modeling | 低 | L |
-| 4.8.4 | symbolic execution耐性評価 (angr/Triton) | 中 | L |
-| 4.8.5 | decompiler耐性評価 (Ghidra/IDA/Binary Ninja) | 中 | L |
-| 4.8.6 | Frida script耐性評価 | 中 | M |
-| 4.8.7 | regression corpus (known-attack再現テスト) | 中 | L |
-| 4.8.8 | red-team用評価ツール | 低 | L |
-| 4.8.9 | ML/heuristicによる保護対象自動推定 | 低 | XL |
-| 4.8.10 | machine code/backend寄りobfuscation | 低 | XL |
+| 4.8.1 | Obfuscation transform auto-selection (risk-based) | Med | XL |
+| 4.8.2 | Hot path avoidance (skip protection on perf-critical paths) | High | M |
+| 4.8.3 | Attacker cost modeling | Low | L |
+| 4.8.4 | Symbolic execution resistance evaluation (angr/Triton) | Med | L |
+| 4.8.5 | Decompiler resistance evaluation (Ghidra/IDA/Binary Ninja) | Med | L |
+| 4.8.6 | Frida script resistance evaluation | Med | M |
+| 4.8.7 | Regression corpus (known-attack reproduction tests) | Med | L |
+| 4.8.8 | Red-team evaluation tooling | Low | L |
+| 4.8.9 | ML/heuristic-based protection target inference | Low | XL |
+| 4.8.10 | Machine code / backend-level obfuscation | Low | XL |
 
 ---
 
 ## Implementation Priority (Phase 4 First Wave)
 
-Phase 4の最初のスプリントで着手すべき高優先度項目:
+High-priority items to tackle in the first sprints:
 
 ```
 Sprint 1 (4.1 Infrastructure):
-  4.1.1  LTO/ThinLTO
-  4.1.6  DWARF制御
-  4.1.7  target triple別処理
-  4.1.10 exception handling安全性
-  4.1.12 reproducible build検証
+  4.1.1  LTO / ThinLTO
+  4.1.6  DWARF control
+  4.1.7  Target triple dispatch
+  4.1.10 Exception handling safety
+  4.1.12 Reproducible build verification
 
 Sprint 2 (4.2 + 4.3 Encryption & Integrity):
-  4.2.1  wide string対応
-  4.2.4  lazy decryption
-  4.2.5  short-lived buffer
-  4.2.12 endpoint/API key保護
-  4.3.1  Mach-O改変検知
-  4.3.4  APK signature検証
-  4.3.5  dylib injection検知
-  4.3.7  GOT/PLT hook検知
+  4.2.1  Wide string support
+  4.2.4  Lazy decryption
+  4.2.5  Short-lived buffer
+  4.2.12 Endpoint / API key protection
+  4.3.1  Mach-O tampering detection
+  4.3.4  APK signature verification
+  4.3.5  Dylib injection detection
+  4.3.7  GOT/PLT hook detection
 
 Sprint 3 (4.4 Platform):
-  4.4.1  jailbreak検知
-  4.4.2  Cydia/Substrate検知
-  4.4.10 Magisk/Zygisk検知
-  4.4.13 Play Integrity連携
+  4.4.1  Jailbreak detection
+  4.4.2  Cydia/Substrate detection
+  4.4.10 Magisk/Zygisk detection
+  4.4.13 Play Integrity integration
 
 Sprint 4 (4.5 + 4.6 Game & DX):
-  4.5.1  memory value obfuscation
-  4.5.3  honey value
-  4.5.11 game logic保護テンプレート
-  4.6.1  config DSL
-  4.6.2  strength profile
-  4.6.5  symbol map出力
+  4.5.1  Memory value obfuscation
+  4.5.3  Honey value
+  4.5.11 Game logic protection template
+  4.6.1  Config DSL
+  4.6.2  Strength profile
+  4.6.5  Symbol map output
 
 Sprint 5 (4.7 Quality):
   4.7.1  FileCheck tests
-  4.7.6  differential testing
-  4.7.11 審査リスク評価
+  4.7.6  Differential testing
+  4.7.11 Review risk assessment
 ```
 
 ---
@@ -261,24 +260,24 @@ Sprint 5 (4.7 Quality):
 
 | Phase | Items | Est. Total |
 |:------|:------|:-----------|
-| 4.1 Infrastructure | 12 | 3-4週 |
-| 4.2 Encryption | 13 | 4-6週 |
-| 4.3 Anti-Tamper | 16 | 4-6週 |
-| 4.4 Platform | 19 | 5-7週 |
-| 4.5 Game | 13 | 3-5週 |
-| 4.6 Build/DX | 14 | 4-6週 |
-| 4.7 Testing | 11 | 4-6週 |
-| 4.8 Research | 10 | 6-10週 |
-| **Total** | **108** | **33-50週** |
+| 4.1 Infrastructure | 12 | 3-4 weeks |
+| 4.2 Encryption | 13 | 4-6 weeks |
+| 4.3 Anti-Tamper | 16 | 4-6 weeks |
+| 4.4 Platform | 19 | 5-7 weeks |
+| 4.5 Game | 13 | 3-5 weeks |
+| 4.6 Build/DX | 14 | 4-6 weeks |
+| 4.7 Testing | 11 | 4-6 weeks |
+| 4.8 Research | 10 | 6-10 weeks |
+| **Total** | **108** | **33-50 weeks** |
 
 ---
 
 ## Non-Goals (Phase 4)
 
-以下はPhase 4のスコープ外:
+The following are out of scope for Phase 4:
 
-- サーバーサイドコンポーネント (dashboard, remote config等は将来Phase 5)
-- GUI/Electron app
-- Webベースのobfuscation
-- ソースコードレベルobfuscation (C preprocessor tricks等)
-- Java/Kotlin bytecodeレベル難読化 (ProGuard/R8の領域)
+- Server-side components (dashboard, remote config — deferred to Phase 5)
+- GUI / Electron app
+- Web-based obfuscation
+- Source-level obfuscation (C preprocessor tricks, etc.)
+- Java/Kotlin bytecode-level obfuscation (ProGuard/R8 territory)
