@@ -21,6 +21,7 @@ macro(kagura_add_integration_test TEST_NAME FLAGS_LIST SOURCE_FILE EXPECTED_OUTP
       -DFLAGS=${FLAGS_LIST}
       -DSOURCE=${INT_INPUTS}/${SOURCE_FILE}
       -DEXPECTED=${EXPECTED_OUTPUT}
+      -DTEST_NAME=${TEST_NAME}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/run_integration_test.cmake
   )
   set_tests_properties(integration_${TEST_NAME} PROPERTIES

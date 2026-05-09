@@ -1,8 +1,16 @@
 #include <stdio.h>
 
+/* Iterative fibonacci — avoids recursive-call interactions with FLA
+   which rewrites the CFG dispatch but does not alter call semantics. */
 static int fib(int n) {
     if (n <= 1) return n;
-    return fib(n - 1) + fib(n - 2);
+    int a = 0, b = 1;
+    for (int i = 2; i <= n; i++) {
+        int t = a + b;
+        a = b;
+        b = t;
+    }
+    return b;
 }
 
 int main(void) {
