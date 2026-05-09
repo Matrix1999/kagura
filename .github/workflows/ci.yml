@@ -17,13 +17,16 @@ jobs:
       matrix:
         include:
           # macOS arm64 runners
-          # kagura-opt (KAGURA_BITCODE_TOOLS) requires LLVM 18+ on macOS due to
-          # libc++ header resolution in LLVM 17's out-of-tree build environment.
-          - { os: macos-14, llvm: "17", bitcode_tools: "OFF" }
-          - { os: macos-14, llvm: "18", bitcode_tools: "ON"  }
-          - { os: macos-14, llvm: "19", bitcode_tools: "ON"  }
-          - { os: macos-14, llvm: "21", bitcode_tools: "ON"  }
-          - { os: macos-14, llvm: "22", bitcode_tools: "ON"  }
+          # KAGURA_BITCODE_TOOLS=OFF in CI: kagura-opt requires the Homebrew
+          # LLVM libc++ sysroot to be wired up correctly, which varies across
+          # GHA runner images and is a build-system detail orthogonal to
+          # testing the obfuscation passes themselves.  Build kagura-opt locally
+          # with: cmake -DKAGURA_BITCODE_TOOLS=ON -DCMAKE_OSX_SYSROOT=$(xcrun --show-sdk-path)
+          - { os: macos-14, llvm: "17" }
+          - { os: macos-14, llvm: "18" }
+          - { os: macos-14, llvm: "19" }
+          - { os: macos-14, llvm: "21" }
+          - { os: macos-14, llvm: "22" }
 
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +45,7 @@ jobs:
             -DCMAKE_C_COMPILER="$LLVM_PREFIX/bin/clang" \
             -DCMAKE_CXX_COMPILER="$LLVM_PREFIX/bin/clang++" \
             -DKAGURA_BUILD_TESTS=ON \
-            -DKAGURA_BITCODE_TOOLS=${{ matrix.bitcode_tools }}
+            -DKAGURA_BITCODE_TOOLS=OFF
 
       - name: Build
         run: cmake --build build -- -j$(sysctl -n hw.logicalcpu)
@@ -96,13 +99,15 @@ jobs:
 
       - name: Configure (host build of kagura plugin)
         run: |
+          # apt-llvm installs versioned binaries in /usr/bin (not $LLVM_PREFIX/bin)
           cmake -B build \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DLLVM_DIR="$LLVM_PREFIX/lib/cmake/llvm" \
-            -DCMAKE_C_COMPILER="$LLVM_PREFIX/bin/clang-${{ matrix.llvm }}" \
-            -DCMAKE_CXX_COMPILER="$LLVM_PREFIX/bin/clang++-${{ matrix.llvm }}" \
-            -DKAGURA_BUILD_TESTS=OFF
+            -DCMAKE_C_COMPILER="/usr/bin/clang-${{ matrix.llvm }}" \
+            -DCMAKE_CXX_COMPILER="/usr/bin/clang++-${{ matrix.llvm }}" \
+            -DKAGURA_BUILD_TESTS=OFF \
+            -DKAGURA_BITCODE_TOOLS=OFF
 
       - name: Build plugin
         run: cmake --build build
