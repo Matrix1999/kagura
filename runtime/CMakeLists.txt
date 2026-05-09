@@ -27,6 +27,12 @@ add_library(kagura_runtime STATIC
   ios_platform.c
   # Phase 4.2.13 Checksum-guarded decryption
   blob_integrity.c
+  # Phase 4.4.16 seccomp/prctl checks (Linux/Android)
+  seccomp_checks.c
+  # Phase 4.4.3 fishhook countermeasure (Apple)
+  fishhook_countermeasure.c
+  # Phase 4.4.5 TestFlight vs App Store detection (iOS)
+  testflight_detect.c
 )
 
 target_include_directories(kagura_runtime PUBLIC

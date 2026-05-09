@@ -69,6 +69,9 @@ cl::opt<bool> PAC("kagura-pac",
 cl::opt<bool> GENC("kagura-genc",
                    cl::desc("[Kagura] Global variable encryption"),
                    cl::init(false));
+cl::opt<bool> PE("kagura-pe",
+                 cl::desc("[Kagura] Pointer encryption (address obfuscation)"),
+                 cl::init(false));
 
 // ---- Pass tuning parameters ----
 

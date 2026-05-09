@@ -1,5 +1,8 @@
 build/
+build_*/
 *.o
 *.a
 *.dylib
 *.so
+.cache/
+Testing/

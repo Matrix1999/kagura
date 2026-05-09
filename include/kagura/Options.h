@@ -36,6 +36,9 @@ extern llvm::cl::opt<bool> CI;
 extern llvm::cl::opt<bool> PAC;
 extern llvm::cl::opt<bool> GENC;
 
+/// 4.5.2: XOR-encrypt alloca'd pointer values to defeat memory dump analysis.
+extern llvm::cl::opt<bool> PE;
+
 // ---- Pass tuning parameters ----
 extern llvm::cl::opt<uint32_t> BCFProb;
 extern llvm::cl::opt<uint32_t> BCFIter;

@@ -221,6 +221,14 @@ struct DeadCodeInsertionPass
 
 // ---- Phase 4.5 Game / Anti-Cheat ----
 
+/// 4.5.2: XOR-encrypts alloca'd pointer variables to defeat memory dump
+/// analysis by obscuring raw pointer addresses in game object fields.
+struct PointerEncryptionPass : public llvm::PassInfoMixin<PointerEncryptionPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
 /// 4.5.1: XOR-encrypts local (alloca'd) integer variables at every store site
 /// and decrypts at every load site, protecting in-memory values from memory
 /// dump and debugger inspection.

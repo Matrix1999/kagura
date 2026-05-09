@@ -53,7 +53,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | ID | Feature | Priority | Effort | Status |
 |:---|:--------|:---------|:-------|:-------|
 | 4.2.1 | Wide string / UTF-16 / CFString encryption | High | M | ✅ Done |
-| 4.2.2 | ObjC selector string protection (metadata level) | High | M | — |
+| 4.2.2 | ObjC selector string protection (metadata level) | High | M | ✅ Done |
 | 4.2.3 | ObjC class/method name obfuscation | Med | L | — |
 | 4.2.4 | Lazy decryption (decrypt on first access only) | High | M | ✅ Done |
 | 4.2.5 | Short-lived decrypted buffer (zero after use) | High | S | ✅ Done |
@@ -103,9 +103,9 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 |:---|:--------|:---------|:-------|:-------|
 | 4.4.1 | Jailbreak filesystem artifact detection | High | M | ✅ Done |
 | 4.4.2 | Cydia/Substrate/FridaGadget.dylib detection | High | S | ✅ Done |
-| 4.4.3 | fishhook countermeasure (rebinding detection) | Med | M | — |
+| 4.4.3 | fishhook countermeasure (rebinding detection) | Med | M | ✅ Done |
 | 4.4.4 | Swift metadata / demangling countermeasure | Med | L | — |
-| 4.4.5 | TestFlight vs. production differentiation | Low | S | — |
+| 4.4.5 | TestFlight vs. production differentiation | Low | S | ✅ Done |
 | 4.4.6 | iOS simulator exclusion (TARGET_OS_SIMULATOR) | Med | S | ✅ Done |
 | 4.4.7 | Entitlements verification | Med | S | ✅ Done |
 | 4.4.8 | App Store review safety validation | High | M | — |
@@ -121,7 +121,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.4.13 | Play Integrity API integration | High | M |
 | 4.4.14 | SafetyNet backward compatibility | Low | S |
 | 4.4.15 | ART/JIT environment considerations | Med | M |
-| 4.4.16 | seccomp/prctl checks | Low | M |
+| 4.4.16 | seccomp/prctl checks | Low | M | ✅ Done |
 | 4.4.17 | Native library load order control | Med | S |
 | 4.4.18 | Split APK / AAB support | Med | M |
 | 4.4.19 | libil2cpp.so / libUE4.so specialized protection | Med | M |
@@ -135,7 +135,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | ID | Feature | Priority | Effort | Status |
 |:---|:--------|:---------|:-------|:-------|
 | 4.5.1 | Memory value obfuscation (XOR/rotate in-memory) | High | M | ✅ Done |
-| 4.5.2 | Pointer encryption (address obfuscation) | Med | M | — |
+| 4.5.2 | Pointer encryption (address obfuscation) | Med | M | ✅ Done |
 | 4.5.3 | Honey value / decoy variable | High | M | ✅ Done |
 | 4.5.4 | Fake function / fake symbol (attacker misdirection) | Med | S | ✅ Done |
 | 4.5.5 | State integrity check (client-side invariant) | Med | M | — |

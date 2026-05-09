@@ -76,6 +76,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     FPM.addPass(MemoryValueObfuscationPass());
                     return true;
                   }
+                  if (Name == "kagura-pe") {
+                    FPM.addPass(PointerEncryptionPass());
+                    return true;
+                  }
                   if (Name == "kagura-anti-debug") {
                     // Handled at module level; no-op here
                     return true;
@@ -284,6 +288,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (opt::MVO) {
                     FPM.addPass(MemoryValueObfuscationPass());
+                    HasFunctionPass = true;
+                  }
+                  if (opt::PE) {
+                    FPM.addPass(PointerEncryptionPass());
                     HasFunctionPass = true;
                   }
                   if (HasFunctionPass)

@@ -40,6 +40,7 @@ add_llvm_pass_plugin(KaguraObfuscator
   Data/ConstantObfuscation.cpp
   Data/GlobalEncryption.cpp
   Data/Substitution.cpp
+  Data/PointerEncryption.cpp
 
   # Anti-analysis
   AntiAnalysis/AntiDebug.cpp
