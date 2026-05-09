@@ -165,28 +165,31 @@ jobs:
       - name: Benchmark compile time (baseline vs. all passes)
         run: |
           CLANG="$LLVM_PREFIX/bin/clang"
-          PLUGIN="build/lib/libKaguraObfuscator.dylib"
+          OPT="$LLVM_PREFIX/bin/opt"
+          PLUGIN=$(find build -name "KaguraObfuscator.dylib" | head -1)
           SUBJECT=lib/Transforms/CFG/ControlFlowFlattening.cpp
 
           # Baseline: no passes
           time "$CLANG" -O2 -c "$SUBJECT" -o /tmp/bench_base.o 2>&1
           BASE_SIZE=$(stat -f%z /tmp/bench_base.o)
 
-          # With a moderate pass set (kagura flags via -mllvm)
-          time "$CLANG" -O2 -fpass-plugin="$PLUGIN" \
-            -mllvm -kagura-fla -mllvm -kagura-sub -mllvm -kagura-bcf \
-            -c "$SUBJECT" -o /tmp/bench_obf.o 2>&1
+          # With a moderate pass set via opt --load-pass-plugin
+          "$CLANG" -O2 -emit-llvm -S -o /tmp/bench_subject.ll "$SUBJECT"
+          time "$OPT" --load-pass-plugin="$PLUGIN" \
+            -passes="function(kagura-fla,kagura-sub,kagura-bcf)" \
+            -S -o /tmp/bench_obf.ll /tmp/bench_subject.ll
+          "$CLANG" -O2 -c /tmp/bench_obf.ll -o /tmp/bench_obf.o
           OBF_SIZE=$(stat -f%z /tmp/bench_obf.o)
 
           echo "Baseline .o size:     $BASE_SIZE bytes"
           echo "Obfuscated .o size:   $OBF_SIZE bytes"
-          RATIO=$(python3 -c "print(f'{$OBF_SIZE/$BASE_SIZE:.2f}x')")
-          echo "Size ratio:           $RATIO"
+          python3 -c "print(f'Size ratio: {$OBF_SIZE/$BASE_SIZE:.2f}x')"
 
       - name: Benchmark binary size (hello-world)
         run: |
           CLANG="$LLVM_PREFIX/bin/clang"
-          PLUGIN="build/lib/libKaguraObfuscator.dylib"
+          OPT="$LLVM_PREFIX/bin/opt"
+          PLUGIN=$(find build -name "KaguraObfuscator.dylib" | head -1)
 
           cat > /tmp/hello.c << 'EOF'
           #include <stdio.h>
@@ -198,9 +201,11 @@ jobs:
           EOF
 
           "$CLANG" -O2 -o /tmp/hello_base /tmp/hello.c
-          "$CLANG" -O2 -fpass-plugin="$PLUGIN" \
-            -mllvm -kagura-fla -mllvm -kagura-str -mllvm -kagura-sub \
-            -o /tmp/hello_obf /tmp/hello.c
+          "$CLANG" -O2 -emit-llvm -S -o /tmp/hello.ll /tmp/hello.c
+          "$OPT" --load-pass-plugin="$PLUGIN" \
+            -passes="kagura-str,function(kagura-fla,kagura-sub)" \
+            -S -o /tmp/hello_obf.ll /tmp/hello.ll
+          "$CLANG" -O2 /tmp/hello_obf.ll -o /tmp/hello_obf
           BASE=$(stat -f%z /tmp/hello_base)
           OBF=$(stat -f%z /tmp/hello_obf)
           echo "Baseline binary:      $BASE bytes"
@@ -240,7 +245,7 @@ jobs:
         run: |
           CLANG="$LLVM_PREFIX/bin/clang"
           OPT="$LLVM_PREFIX/bin/opt"
-          PLUGIN="build/lib/libKaguraObfuscator.dylib"
+          PLUGIN=$(find build -name "KaguraObfuscator.dylib" | head -1)
 
           # Corpus: iterative fibonacci (FLA-safe), fnv1a hash, string ops.
           # Recursive fibonacci is avoided because FLA rewrites the CFG dispatch
