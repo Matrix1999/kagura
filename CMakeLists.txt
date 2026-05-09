@@ -83,6 +83,12 @@ endif()
 # that wraps `opt` and auto-loads the kagura plugin, so users can run kagura
 # passes on .bc / .ll files without needing a full clang invocation.
 option(KAGURA_BITCODE_TOOLS "Build kagura-opt bitcode processing tool" ON)
+if(KAGURA_BITCODE_TOOLS AND APPLE AND LLVM_VERSION_MAJOR LESS 18)
+  message(STATUS "[kagura] KAGURA_BITCODE_TOOLS: auto-disabled on LLVM "
+                 "${LLVM_VERSION_MAJOR} (libc++ header-path issue on macOS; "
+                 "use LLVM 18+ or pass -DKAGURA_BITCODE_TOOLS=ON to override)")
+  set(KAGURA_BITCODE_TOOLS OFF)
+endif()
 # --------------------------------------------------------------------------
 
 # Passes (loaded as plugin via -fpass-plugin)

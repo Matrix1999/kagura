@@ -17,11 +17,13 @@ jobs:
       matrix:
         include:
           # macOS arm64 runners
-          - { os: macos-14, llvm: "17" }
-          - { os: macos-14, llvm: "18" }
-          - { os: macos-14, llvm: "19" }
-          - { os: macos-14, llvm: "21" }
-          - { os: macos-14, llvm: "22" }
+          # kagura-opt (KAGURA_BITCODE_TOOLS) requires LLVM 18+ on macOS due to
+          # libc++ header resolution in LLVM 17's out-of-tree build environment.
+          - { os: macos-14, llvm: "17", bitcode_tools: "OFF" }
+          - { os: macos-14, llvm: "18", bitcode_tools: "ON"  }
+          - { os: macos-14, llvm: "19", bitcode_tools: "ON"  }
+          - { os: macos-14, llvm: "21", bitcode_tools: "ON"  }
+          - { os: macos-14, llvm: "22", bitcode_tools: "ON"  }
 
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +41,8 @@ jobs:
             -DLLVM_DIR="$LLVM_PREFIX/lib/cmake/llvm" \
             -DCMAKE_C_COMPILER="$LLVM_PREFIX/bin/clang" \
             -DCMAKE_CXX_COMPILER="$LLVM_PREFIX/bin/clang++" \
-            -DKAGURA_BUILD_TESTS=ON
+            -DKAGURA_BUILD_TESTS=ON \
+            -DKAGURA_BITCODE_TOOLS=${{ matrix.bitcode_tools }}
 
       - name: Build
         run: cmake --build build -- -j$(sysctl -n hw.logicalcpu)
