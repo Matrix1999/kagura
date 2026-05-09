@@ -113,15 +113,26 @@ jobs:
         run: cmake --build build
 
       - name: Cross-compile smoke test (arm64-v8a)
-        # Compile a trivial C file through the kagura plugin targeting Android arm64
+        # Two-stage: obfuscate with host opt, then compile IR with NDK clang.
+        # Using opt --load-pass-plugin avoids the cl::opt timing issue where
+        # -fpass-plugin loads the plugin after LLVM option parsing, causing
+        # -mllvm -kagura-* to be rejected as unknown options.
         run: |
           cat > /tmp/smoke.c << 'EOF'
           int add(int a, int b) { return a + b; }
           EOF
+          # Step 1: emit host IR
+          "$LLVM_PREFIX/bin/clang-${{ matrix.llvm }}" \
+            --target=aarch64-linux-android21 \
+            -O2 -emit-llvm -S -o /tmp/smoke.ll /tmp/smoke.c
+          # Step 2: obfuscate with host opt
+          "$LLVM_PREFIX/bin/opt" \
+            --load-pass-plugin=build/lib/libKaguraObfuscator.so \
+            -passes="function(kagura-fla,kagura-sub)" \
+            -S -o /tmp/smoke_obf.ll /tmp/smoke.ll
+          # Step 3: compile obfuscated IR to arm64 object with NDK clang
           "$NDK_TOOLCHAIN/bin/aarch64-linux-android21-clang" \
-            -fpass-plugin=build/lib/libKaguraObfuscator.* \
-            -mllvm -kagura-fla -mllvm -kagura-sub \
-            -c /tmp/smoke.c -o /tmp/smoke.o
+            -c /tmp/smoke_obf.ll -o /tmp/smoke.o
           echo "smoke test passed"
 
   # ---- 4.7.7 Performance benchmark (binary size + compile time) ---------
