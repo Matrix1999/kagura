@@ -7,6 +7,12 @@
 //   3. Replaces uses of the original global with a call to a per-string
 //      decryption stub that calls kagura_aes128_ctr_decrypt() at runtime.
 //
+// 4.2.5: Short-lived decrypted buffer (zero after use)
+//   The output buffer (kagura_aesbuf_<suffix>) is zeroed by injecting a call
+//   to kagura_zero_buf(ptr, len) immediately after the last use of the
+//   decrypted pointer in each basic block.  This minimises the window during
+//   which the plaintext is resident in memory.
+//
 // Registered as: -kagura-str-aes
 //
 //===----------------------------------------------------------------------===//
@@ -40,6 +46,21 @@ namespace kagura {
 //                                   uint8_t *out);
 //===----------------------------------------------------------------------===//
 
+// ---- 4.2.5: Zero-after-use runtime helper declaration ---------------------
+
+/// Declare kagura_zero_buf(void *ptr, uint32_t len) — provided by the runtime.
+/// Uses volatile semantics so the compiler cannot elide the zeroing.
+static FunctionCallee getOrDeclareZeroBuf(Module &M) {
+  LLVMContext &Ctx = M.getContext();
+  auto *VoidTy  = Type::getVoidTy(Ctx);
+  auto *PtrTy   = PointerType::getUnqual(Ctx);
+  auto *Int32Ty = Type::getInt32Ty(Ctx);
+  auto *FTy     = FunctionType::get(VoidTy, {PtrTy, Int32Ty}, false);
+  return M.getOrInsertFunction("kagura_zero_buf", FTy);
+}
+
+// ---- AES decrypt runtime declaration -------------------------------------
+
 static FunctionCallee getOrDeclareRuntimeDecrypt(Module &M) {
   LLVMContext &Ctx = M.getContext();
   auto *Int32Ty = Type::getInt32Ty(Ctx);
@@ -60,6 +81,7 @@ static Function *buildAESDecryptStub(Module &M,
                                       GlobalVariable *EncGV,
                                       GlobalVariable *KeyGV,
                                       GlobalVariable *NonceGV,
+                                      GlobalVariable *OutBuf,
                                       uint64_t Len,
                                       StringRef Suffix,
                                       FunctionCallee RuntimeDecrypt) {
@@ -69,13 +91,6 @@ static Function *buildAESDecryptStub(Module &M,
   auto *Int8Ty  = Type::getInt8Ty(Ctx);
   auto *Int32Ty = Type::getInt32Ty(Ctx);
   auto *PtrTy   = PointerType::getUnqual(Ctx);
-
-  // Static output buffer
-  auto *OutArrTy = ArrayType::get(Int8Ty, Len);
-  auto *OutBuf = new GlobalVariable(
-      M, OutArrTy, /*isConstant=*/false, GlobalValue::PrivateLinkage,
-      ConstantAggregateZero::get(OutArrTy),
-      "kagura_aesbuf_" + Suffix);
 
   // i8* kagura_aesdec_<suffix>()
   auto *FTy = FunctionType::get(PtrTy, false);
@@ -158,11 +173,24 @@ PreservedAnalyses StringEncryptionAESPass::run(Module &M,
       auto *NonceGV = createPrivateByteGlobal(
           M, ArrayRef<uint8_t>(Nonce, 8), "kagura_aesnonce_" + Suffix);
 
+      // 4.2.5: Static output buffer — declared here so we can zero it later.
+      auto *OutArrTy = ArrayType::get(Int8Ty, Len);
+      auto *OutBuf   = new GlobalVariable(
+          M, OutArrTy, /*isConstant=*/false, GlobalValue::PrivateLinkage,
+          ConstantAggregateZero::get(OutArrTy),
+          "kagura_aesbuf_" + Suffix);
+
       // Build per-string decryption stub
-      Function *Stub = buildAESDecryptStub(M, EncGV, KeyGV, NonceGV,
+      Function *Stub = buildAESDecryptStub(M, EncGV, KeyGV, NonceGV, OutBuf,
                                            Len, Suffix, RuntimeDecrypt);
 
-      // Replace uses of the original global
+      // 4.2.5: Declare zero helper once per module.
+      FunctionCallee ZeroBuf = getOrDeclareZeroBuf(M);
+      auto *Int32Ty = Type::getInt32Ty(Ctx);
+      auto *PtrTy   = PointerType::getUnqual(Ctx);
+
+      // Replace uses of the original global.
+      // Track all call results so we can insert zero-after-use.
       SmallVector<User *, 8> Users(GV->users());
       for (auto *U : Users) {
         if (auto *CE = dyn_cast<ConstantExpr>(U)) {
@@ -175,6 +203,15 @@ PreservedAnalyses StringEncryptionAESPass::run(Module &M,
               if (CE->getType() != DecPtr->getType())
                 Replacement = IB.CreateBitCast(DecPtr, CE->getType());
               Inst->replaceUsesOfWith(CE, Replacement);
+
+              // 4.2.5: zero immediately after the instruction that consumed
+              // the decrypted pointer (best-effort; covers the common case).
+              if (Instruction *NextI = Inst->getNextNode()) {
+                IRBuilder<> ZB(NextI);
+                ZB.CreateCall(ZeroBuf, {
+                    ZB.CreateBitCast(OutBuf, PtrTy),
+                    ConstantInt::get(Int32Ty, static_cast<uint32_t>(Len))});
+              }
             }
           }
           continue;
@@ -191,6 +228,13 @@ PreservedAnalyses StringEncryptionAESPass::run(Module &M,
                     IB.CreateBitCast(DecPtr, Inst->getOperand(I)->getType());
               Inst->setOperand(I, Replacement);
             }
+          }
+          // 4.2.5: zero buffer right after the use-site instruction.
+          if (Instruction *NextI = Inst->getNextNode()) {
+            IRBuilder<> ZB(NextI);
+            ZB.CreateCall(ZeroBuf, {
+                ZB.CreateBitCast(OutBuf, PtrTy),
+                ConstantInt::get(Int32Ty, static_cast<uint32_t>(Len))});
           }
         }
       }
