@@ -79,7 +79,7 @@ Releases are published from the `main` branch. On GitHub:
 1. Create a new Release tag (e.g., `v0.2.0`) from the GitHub UI.
 2. The `release.yml` workflow triggers automatically and uploads pre-built binaries for:
    - macOS arm64 × LLVM 21 and 22
-   - Linux x86_64 × LLVM 19 and 21
+   - Linux x86_64 × LLVM 19, 21, and 22
 3. A source tarball (`kagura-<version>-source.tar.gz`) is also attached.
 
 ## License
