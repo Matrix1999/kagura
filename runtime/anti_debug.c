@@ -22,6 +22,9 @@ __attribute__((weak)) void kagura_on_tamper_detected(void) {
 
 #ifdef __linux__
 #include <stdio.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 int kagura_check_tracer_pid(void) {
     FILE *f = fopen("/proc/self/status", "r");
@@ -68,8 +71,6 @@ int kagura_check_maps(void) {
 
 // Check if Frida's default port (27042) is open on localhost
 int kagura_check_frida_port(void) {
-#include <sys/socket.h>
-#include <netinet/in.h>
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) return 0;
 
