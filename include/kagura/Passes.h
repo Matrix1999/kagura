@@ -308,6 +308,18 @@ struct WideStringEncryptionPass
   static bool isRequired() { return false; }
 };
 
+// ---- Phase 4.2 Encrypted lookup table ----
+
+/// 4.2.10: Transforms eligible switch statements into XOR-encrypted lookup
+/// tables.  Contiguous constant-return switches with N <= 64 cases and 8-bit
+/// output values are replaced with a bounds-checked table load + XOR decrypt.
+struct EncryptedLookupTablePass
+    : public llvm::PassInfoMixin<EncryptedLookupTablePass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Phase 4.1 RTTI / vtable protection ----
 
 /// 4.1.11: Obfuscates C++ RTTI typeinfo name strings (_ZTS) using XOR

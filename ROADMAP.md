@@ -54,14 +54,14 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 |:---|:--------|:---------|:-------|:-------|
 | 4.2.1 | Wide string / UTF-16 / CFString encryption | High | M | ✅ Done |
 | 4.2.2 | ObjC selector string protection (metadata level) | High | M | ✅ Done |
-| 4.2.3 | ObjC class/method name obfuscation | Med | L | — |
+| 4.2.3 | ObjC class/method name obfuscation | Med | L | ✅ Done |
 | 4.2.4 | Lazy decryption (decrypt on first access only) | High | M | ✅ Done |
 | 4.2.5 | Short-lived decrypted buffer (zero after use) | High | S | ✅ Done |
 | 4.2.6 | Device-bound key derivation (UDID / Android ID) | Med | M | ✅ Done |
 | 4.2.7 | Build-time key rotation (unique keys per build) | Med | S | ✅ Done |
 | 4.2.8 | Per-customer / per-app variant generation | Low | L | — |
 | 4.2.9 | Native constant encryption (float/double included) | Med | M | ✅ Done |
-| 4.2.10 | Encrypted lookup table (table encoding) | Low | L | — |
+| 4.2.10 | Encrypted lookup table (table encoding) | Low | L | ✅ Done |
 | 4.2.11 | White-box cryptography | Low | XL | — |
 | 4.2.12 | Network endpoint / API key / config blob protection | High | M | ✅ Done |
 | 4.2.13 | Checksum-guarded decryption (fail on tamper) | Med | M | ✅ Done |
@@ -201,12 +201,12 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 |:---|:--------|:---------|:-------|:-------|
 | 4.8.1 | Obfuscation transform auto-selection (risk-based) | Med | XL | — |
 | 4.8.2 | Hot path avoidance (skip protection on perf-critical paths) | High | M | ✅ Done |
-| 4.8.3 | Attacker cost modeling | Low | L | — |
+| 4.8.3 | Attacker cost modeling | Low | L | ✅ Done |
 | 4.8.4 | Symbolic execution resistance evaluation (angr/Triton) | Med | L | ✅ Done |
 | 4.8.5 | Decompiler resistance evaluation (Ghidra/IDA/Binary Ninja) | Med | L | ✅ Done |
 | 4.8.6 | Frida script resistance evaluation | Med | M | ✅ Done |
 | 4.8.7 | Regression corpus (known-attack reproduction tests) | Med | L | ✅ Done |
-| 4.8.8 | Red-team evaluation tooling | Low | L | — |
+| 4.8.8 | Red-team evaluation tooling | Low | L | ✅ Done |
 | 4.8.9 | ML/heuristic-based protection target inference | Low | XL | — |
 | 4.8.10 | Machine code / backend-level obfuscation | Low | XL | — |
 

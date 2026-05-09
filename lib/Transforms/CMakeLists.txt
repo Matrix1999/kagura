@@ -36,6 +36,7 @@ add_llvm_pass_plugin(KaguraObfuscator
   CFG/LoopTransform.cpp
 
   # Data obfuscation
+  Data/EncryptedLookupTable.cpp
   Data/StringEncryption.cpp
   Data/StringEncryptionAES.cpp
   Data/WideStringEncryption.cpp

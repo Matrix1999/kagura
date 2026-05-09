@@ -61,6 +61,8 @@ add_library(kagura_runtime STATIC
   split_apk.c
   # Phase 4.4.4 Swift metadata / demangling countermeasure (Apple)
   swift_protection.c
+  # Phase 4.2.3 ObjC class/method/property name obfuscation remap table
+  objc_name_remap.c
 )
 
 target_include_directories(kagura_runtime PUBLIC

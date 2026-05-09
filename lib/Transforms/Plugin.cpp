@@ -88,6 +88,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     FPM.addPass(BasicBlockChecksumPass());
                     return true;
                   }
+                  if (Name == "kagura-elt") {
+                    FPM.addPass(EncryptedLookupTablePass());
+                    return true;
+                  }
                   if (Name == "kagura-anti-debug") {
                     // Handled at module level; no-op here
                     return true;
@@ -312,6 +316,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (opt::BBCheck) {
                     FPM.addPass(BasicBlockChecksumPass());
+                    HasFunctionPass = true;
+                  }
+                  if (opt::ELT) {
+                    FPM.addPass(EncryptedLookupTablePass());
                     HasFunctionPass = true;
                   }
                   if (HasFunctionPass)

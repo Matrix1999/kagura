@@ -81,6 +81,9 @@ cl::opt<bool> BBCheck("kagura-bbcheck",
 cl::opt<bool> VTP("kagura-vtp",
                   cl::desc("[Kagura] RTTI / vtable protection (C++ ABI)"),
                   cl::init(false));
+cl::opt<bool> ELT("kagura-elt",
+                  cl::desc("[Kagura] Encrypted lookup table (switch encoding)"),
+                  cl::init(false));
 
 // ---- Pass tuning parameters ----
 

@@ -45,6 +45,7 @@ extern llvm::cl::opt<bool> Telemetry;
 /// 4.3.16: Inject basic-block-level opcode checksum guards.
 extern llvm::cl::opt<bool> BBCheck;
 extern llvm::cl::opt<bool> VTP;
+extern llvm::cl::opt<bool> ELT;
 
 // ---- Pass tuning parameters ----
 extern llvm::cl::opt<uint32_t> BCFProb;
