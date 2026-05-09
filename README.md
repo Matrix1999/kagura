@@ -31,7 +31,12 @@ kagura/
 │   ├── Options.cpp         # Centralized CLI flag definitions
 │   ├── Plugin.cpp          # Pass registration & pipeline wiring
 │   └── Utils.cpp           # Shared IR helpers & PRNG
-├── runtime/                # C runtime library (linked into target binary)
+├── runtime/
+│   ├── core/               # AES, VM interpreter, crash symbolication, device key
+│   ├── anti_debug/         # Anti-debug / anti-Frida (cross-platform)
+│   ├── android/            # Android + Linux: root detection, attestation, proc/syscall
+│   ├── ios/                # iOS / macOS: jailbreak detection, Mach-O integrity
+│   └── game/               # Anti-cheat, IL2CPP protection, telemetry
 ├── integration/            # Xcode, Gradle, Unity, Unreal, CMake, Bazel, CocoaPods, SPM
 ├── scripts/                # CLI tools, verification, differential testing, review risk assessment
 └── tests/                  # CTest + FileCheck lit-based regression tests
