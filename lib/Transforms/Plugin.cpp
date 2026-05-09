@@ -237,8 +237,12 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
             // our obfuscated IR.
             //
             PB.registerOptimizerLastEPCallback(
+#if LLVM_VERSION_MAJOR >= 20
                 [](ModulePassManager &MPM, OptimizationLevel OL,
                    ThinOrFullLTOPhase) {
+#else
+                [](ModulePassManager &MPM, OptimizationLevel OL) {
+#endif
                   if (OL == OptimizationLevel::O0)
                     return;
                   // Snapshot BEFORE obfuscation
