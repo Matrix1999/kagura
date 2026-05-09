@@ -26,8 +26,9 @@ Prerequisites:
 ```bash
 # Build the test subject with kagura obfuscation
 clang -O2 \
-  -fpass-plugin=../../build/lib/libKaguraObfuscator.dylib \
-  -kagura-str -kagura-fla -kagura-sub -kagura-sv \
+  -fpass-plugin=../../build/lib/Transforms/KaguraObfuscator.dylib \
+  -mllvm -kagura-str -mllvm -kagura-fla \
+  -mllvm -kagura-sub -mllvm -kagura-sv \
   -o /tmp/kagura_frida_test \
   frida_test_subject.c
 
