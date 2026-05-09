@@ -3,6 +3,12 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/ykus4/kagura/actions/workflows/ci.yml">
+    <img src="https://github.com/ykus4/kagura/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI">
+  </a>
+  <a href="https://github.com/ykus4/kagura/actions/workflows/release.yml">
+    <img src="https://github.com/ykus4/kagura/actions/workflows/release.yml/badge.svg" alt="Release">
+  </a>
   <img src="https://img.shields.io/badge/LLVM-17%E2%80%9322-blue?style=flat-square" alt="LLVM 17-22">
   <img src="https://img.shields.io/badge/C%2B%2B-17-orange?style=flat-square" alt="C++17">
   <img src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Linux-green?style=flat-square" alt="Platforms">
