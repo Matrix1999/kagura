@@ -10,6 +10,11 @@ add_library(kagura_runtime STATIC
   zero_buf.c
   macho_integrity.c
   apk_integrity.c
+  elf_integrity.c
+  ios_integrity.c
+  ios_jailbreak_advanced.c
+  loaded_library_scan.c
+  android_root_advanced.c
 )
 
 target_include_directories(kagura_runtime PUBLIC
