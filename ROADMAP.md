@@ -59,7 +59,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.2.5 | Short-lived decrypted buffer (zero after use) | High | S | ✅ Done |
 | 4.2.6 | Device-bound key derivation (UDID / Android ID) | Med | M | ✅ Done |
 | 4.2.7 | Build-time key rotation (unique keys per build) | Med | S | ✅ Done |
-| 4.2.8 | Per-customer / per-app variant generation | Low | L | — |
+| 4.2.8 | Per-customer / per-app variant generation | Low | L | ✅ Done |
 | 4.2.9 | Native constant encryption (float/double included) | Med | M | ✅ Done |
 | 4.2.10 | Encrypted lookup table (table encoding) | Low | L | ✅ Done |
 | 4.2.11 | White-box cryptography | Low | XL | — |
@@ -169,7 +169,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.6.11 | Bazel support | Low | M | ✅ Done |
 | 4.6.12 | CocoaPods / SwiftPM support | Med | M | ✅ Done |
 | 4.6.13 | CLI tool (config generation / report viewer) | Med | M | ✅ Done |
-| 4.6.14 | License management (commercial distribution) | Low | M | — |
+| 4.6.14 | License management (commercial distribution) | Low | M | ✅ Done |
 
 ---
 
@@ -186,7 +186,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.7.5 | Fuzzing (crash detection on pass inputs) | Med | L | ✅ Done |
 | 4.7.6 | Differential testing (obfuscated vs. plain behavior match) | High | L | ✅ Done |
 | 4.7.7 | Performance benchmark (binary size / startup / frame time) | Med | M | ✅ Done |
-| 4.7.8 | Battery impact measurement | Low | M | — |
+| 4.7.8 | Battery impact measurement | Low | M | ✅ Done |
 | 4.7.9 | Device farm tests (iOS/Android real devices) | Low | XL | — |
 | 4.7.10 | False positive evaluation (detection accuracy on clean apps) | Med | M | ✅ Done |
 | 4.7.11 | App Store / Google Play review risk assessment | High | M | ✅ Done |

@@ -283,3 +283,27 @@ jobs:
             fi
           done
           exit $FAILED
+
+  # ---- 4.7.8 Battery impact estimation ------------------------------------
+  battery-impact:
+    name: Battery Impact Estimation
+    runs-on: macos-14
+    needs: [build]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Estimate battery impact from pass list
+        run: |
+          # Model-based estimate; no binary needed in CI
+          python3 scripts/battery_impact.py \
+            --passes str,bbcheck,anti-debug,co,pe \
+            --calls-per-sec 200 \
+            --duration 60
+
+      - name: Estimate battery impact (all runtime passes)
+        run: |
+          python3 scripts/battery_impact.py \
+            --passes str,str-aes,wstr,co,bbcheck,anti-debug,pac,pe,telemetry,vm,elt,ci \
+            --calls-per-sec 500 \
+            --duration 60
