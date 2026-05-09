@@ -7,6 +7,9 @@ add_library(kagura_runtime STATIC
   hook_detection.c
   breakpoint_detection.c
   emulator_detection.c
+  zero_buf.c
+  macho_integrity.c
+  apk_integrity.c
 )
 
 target_include_directories(kagura_runtime PUBLIC

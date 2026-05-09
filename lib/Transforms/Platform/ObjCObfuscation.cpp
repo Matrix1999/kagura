@@ -23,7 +23,6 @@
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
-#include "llvm/Config/llvm-config.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Module.h"
@@ -69,13 +68,9 @@ PreservedAnalyses ObjCObfuscationPass::run(Module &M,
   // 4.1.7: ObjC metadata is only meaningful on Apple targets (iOS, macOS,
   // tvOS, watchOS).  Skip on Android and Linux to avoid false-positive matches
   // on globals with similar section names in non-Apple toolchains.
-  // getTargetTriple() returns const std::string & on LLVM 17-19 and
-  // const Triple & on LLVM 20+.
-#if LLVM_VERSION_MAJOR >= 20
-  std::string TripleStr = M.getTargetTriple().str();
-#else
-  std::string TripleStr = M.getTargetTriple();
-#endif
+  // kagura::getModuleTriple() handles the getTargetTriple() API difference
+  // between LLVM versions (returns std::string in 17-19, Triple in 20+).
+  std::string TripleStr = kagura::getModuleTriple(M);
   StringRef Triple(TripleStr);
   bool IsAppleTarget = Triple.contains("apple") || Triple.contains("darwin") ||
                        Triple.contains("ios") || Triple.contains("macos") ||

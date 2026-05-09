@@ -6,6 +6,22 @@
 //   2. Replaces the global with an encrypted version.
 //   3. Injects a runtime decryption stub that decrypts on first use.
 //
+// 4.2.4: Lazy decryption — each string is guarded by a private i8 flag.
+//   The decryption stub is only executed the first time the string is
+//   accessed at runtime:
+//
+//     if (!kagura_flag_<suffix>) {
+//       kagura_decrypt_<suffix>();
+//       kagura_flag_<suffix> = 1;
+//     }
+//
+// 4.2.12: API key / network endpoint protection — the pass also encrypts
+//   longer string globals that are skipped by collectStringGlobals() due
+//   to heuristics (format specifiers, length thresholds).  URL/key-like
+//   strings are opt-in via the "kagura_apikey" annotation or automatically
+//   detected when the string starts with "https://", "http://", "Bearer ",
+//   "sk-", or "AIza" (common API key prefixes).
+//
 // The decryption stub itself is later obfuscated by the other passes.
 //
 //===----------------------------------------------------------------------===//
@@ -31,7 +47,7 @@ namespace kagura {
 // Build an LLVM function that decrypts Encrypted in-place using key Key.
 // uint8_t Key[KeyLen] is XOR'd over the buffer cyclically.
 // The generated function signature: void kagura_decrypt_<suffix>(void)
-// It is marked with `alwaysinline` so it folds into the caller.
+// It is marked NoInline so other passes can still obfuscate it independently.
 static Function *buildDecryptStub(Module &M, GlobalVariable *Encrypted,
                                    ArrayRef<uint8_t> Key, StringRef Suffix) {
   LLVMContext &Ctx = M.getContext();
@@ -118,9 +134,103 @@ static Function *buildDecryptStub(Module &M, GlobalVariable *Encrypted,
   return F;
 }
 
+// ---- 4.2.12: API key / network endpoint detection -------------------------
+
+/// Returns true if Raw looks like a network endpoint, bearer token, or API key
+/// that should be force-encrypted regardless of the collectStringGlobals()
+/// heuristics (e.g., even if it contains '%' or is otherwise filtered).
+static bool looksLikeApiKey(StringRef Raw) {
+  // Common URL schemes
+  if (Raw.starts_with("https://") || Raw.starts_with("http://"))
+    return true;
+  // Common API key prefixes
+  if (Raw.starts_with("Bearer ") || Raw.starts_with("Authorization:"))
+    return true;
+  if (Raw.starts_with("sk-"))          // OpenAI / Stripe style keys
+    return true;
+  if (Raw.starts_with("AIza"))         // Google API keys
+    return true;
+  if (Raw.starts_with("AAAA") && Raw.size() >= 40) // Firebase / FCM tokens
+    return true;
+  return false;
+}
+
+/// Collect string globals that should be encrypted by the STR pass.
+/// Extends collectStringGlobals() to also capture API key / URL globals.
+static std::vector<GlobalVariable *> collectEncryptionTargets(Module &M) {
+  // Standard collection (strips format strings etc.)
+  auto Result = kagura::collectStringGlobals(M);
+
+  // 4.2.12: Additionally scan for API key / URL-like strings that were
+  // rejected by the standard heuristics (e.g. contain '%' from URL encoding).
+  for (auto &GV : M.globals()) {
+    if (!GV.isConstant() || !GV.hasInitializer())
+      continue;
+    if (GV.getName().starts_with("kagura_"))
+      continue;
+    auto *CDA = dyn_cast<ConstantDataArray>(GV.getInitializer());
+    if (!CDA || !CDA->isString())
+      continue;
+    StringRef S = CDA->getAsString();
+    if (S.size() < 8)
+      continue;
+    if (!looksLikeApiKey(S))
+      continue;
+    // Avoid duplicates with the standard list
+    if (std::find(Result.begin(), Result.end(), &GV) == Result.end())
+      Result.push_back(&GV);
+  }
+  return Result;
+}
+
+// ---- 4.2.4: Lazy decryption guard injection --------------------------------
+
+/// Emit the lazy-decrypt guard inline before Inst.
+///
+///   if (!FlagGV) {
+///     call kagura_decrypt_<suffix>();
+///     FlagGV = 1;
+///   }
+///   // ... use EncGV ...
+///
+/// The flag is a private i8 global initialised to 0.  After the first
+/// decryption it is set to 1 so subsequent calls skip the decrypt loop.
+/// This avoids re-decrypting on every call path into the function.
+static void emitLazyGuard(Instruction *InsertBefore,
+                           GlobalVariable *FlagGV,
+                           Function *DecryptStub) {
+  Function *ParentF   = InsertBefore->getFunction();
+  LLVMContext &Ctx    = ParentF->getContext();
+  auto *Int8Ty        = Type::getInt8Ty(Ctx);
+
+  // Split the current block at InsertBefore so we get:
+  //   CheckBB  → (if flag==0) DecryptBB → MergeBB
+  //           → (if flag!=0) MergeBB
+  BasicBlock *CheckBB  = InsertBefore->getParent();
+  BasicBlock *MergeBB  = CheckBB->splitBasicBlock(InsertBefore, "lazy.merge");
+  BasicBlock *DecryptBB = BasicBlock::Create(Ctx, "lazy.decrypt",
+                                              ParentF, MergeBB);
+
+  // Remove the unconditional branch that splitBasicBlock added.
+  CheckBB->getTerminator()->eraseFromParent();
+
+  IRBuilder<> B(CheckBB);
+  Value *Flag    = B.CreateLoad(Int8Ty, FlagGV, "lazy.flag");
+  Value *IsZero  = B.CreateICmpEQ(Flag, ConstantInt::get(Int8Ty, 0));
+  B.CreateCondBr(IsZero, DecryptBB, MergeBB);
+
+  // DecryptBB: call the stub, set flag = 1, branch to MergeBB.
+  IRBuilder<> DB(DecryptBB);
+  DB.CreateCall(DecryptStub);
+  DB.CreateStore(ConstantInt::get(Int8Ty, 1), FlagGV);
+  DB.CreateBr(MergeBB);
+}
+
+// ---- Pass entry point ------------------------------------------------------
+
 PreservedAnalyses StringEncryptionPass::run(Module &M,
                                              ModuleAnalysisManager &) {
-  auto Strings = kagura::collectStringGlobals(M);
+  auto Strings = collectEncryptionTargets(M);
   if (Strings.empty())
     return PreservedAnalyses::all();
 
@@ -128,8 +238,12 @@ PreservedAnalyses StringEncryptionPass::run(Module &M,
   auto &RNG        = getModulePRNG();
   bool Changed     = false;
 
+  auto *Int8Ty = Type::getInt8Ty(Ctx);
+
   for (auto *GV : Strings) {
-    auto *CDA = cast<ConstantDataArray>(GV->getInitializer());
+    auto *CDA = dyn_cast<ConstantDataArray>(GV->getInitializer());
+    if (!CDA)
+      continue;
     StringRef Raw = CDA->getRawDataValues();
     uint64_t Len  = Raw.size();
 
@@ -146,7 +260,6 @@ PreservedAnalyses StringEncryptionPass::run(Module &M,
       Encrypted[I] = static_cast<uint8_t>(Raw[I]) ^ Key[I % KeyLen];
 
     // Build encrypted global (mutable, private)
-    auto *Int8Ty   = Type::getInt8Ty(Ctx);
     auto *ArrTy    = ArrayType::get(Int8Ty, Len);
     std::vector<Constant *> EncBytes;
     EncBytes.reserve(Len);
@@ -160,31 +273,43 @@ PreservedAnalyses StringEncryptionPass::run(Module &M,
                                      "kagura_enc_" + Suffix);
     EncGV->setAlignment(GV->getAlign());
 
+    // 4.2.4: Per-string decrypted flag (i8, init=0).
+    auto *FlagGV = new GlobalVariable(M, Int8Ty, /*isConstant=*/false,
+                                      GlobalValue::PrivateLinkage,
+                                      ConstantInt::get(Int8Ty, 0),
+                                      "kagura_flag_" + Suffix);
+    FlagGV->setAlignment(Align(1));
+
     // Build decryption stub
     ArrayRef<uint8_t> KeyRef(Key, KeyLen);
     auto *Stub = buildDecryptStub(M, EncGV, KeyRef, Suffix);
 
-    // For each use of the original global in a function, replace with:
-    //   call void @kagura_decrypt_<suffix>()   (only on first access via flag)
-    //   use EncGV instead of GV
-    //
-    // Simple approach: call stub before first user instruction in entry block.
-    // A flag-guarded approach is left as a future enhancement.
+    // Replace uses: inject lazy guard before each instruction that uses GV,
+    // then redirect the operand to EncGV.
     SmallVector<User *, 8> Users(GV->users());
     for (auto *U : Users) {
       if (auto *CE = dyn_cast<ConstantExpr>(U)) {
-        // Replace ConstantExpr uses with the encrypted global
         CE->replaceAllUsesWith(
             ConstantExpr::getBitCast(EncGV, CE->getType()));
         continue;
       }
       if (auto *Inst = dyn_cast<Instruction>(U)) {
-        // Insert decrypt call at the start of the function's entry block
-        Function *ParentF = Inst->getFunction();
-        IRBuilder<> B(&*ParentF->getEntryBlock().getFirstInsertionPt());
-        B.CreateCall(Stub);
+        // PHI nodes cannot be split-points: splitBasicBlock at a PHI leaves
+        // the PHI in the wrong block with stale predecessor lists.  Skip PHI
+        // uses here; they are reached from a non-PHI use site where the guard
+        // will be inserted, or they are covered by the ConstantExpr path above.
+        if (isa<PHINode>(Inst)) {
+          for (unsigned I = 0; I < Inst->getNumOperands(); ++I) {
+            if (Inst->getOperand(I)->stripPointerCasts() == GV)
+              Inst->setOperand(I, EncGV);
+          }
+          continue;
+        }
 
-        // Replace the operand pointing to GV with EncGV
+        // 4.2.4: emit lazy guard — splits the block, so must come before
+        // any operand replacement.
+        emitLazyGuard(Inst, FlagGV, Stub);
+
         for (unsigned I = 0; I < Inst->getNumOperands(); ++I) {
           if (Inst->getOperand(I)->stripPointerCasts() == GV)
             Inst->setOperand(I, EncGV);
@@ -192,7 +317,6 @@ PreservedAnalyses StringEncryptionPass::run(Module &M,
       }
     }
 
-    // Remove the original global if now unused
     if (GV->use_empty())
       GV->eraseFromParent();
 
