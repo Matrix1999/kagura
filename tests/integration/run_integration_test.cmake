@@ -32,9 +32,16 @@ if(NOT RUN_RESULT EQUAL 0)
 endif()
 
 # ---- Compile with kagura plugin ---------------------------------------------
+# kagura flags are cl::opt options registered inside the plugin and must be
+# forwarded to LLVM's command-line parser via -mllvm, not passed directly to
+# clang (which would produce "unknown argument" errors).
 separate_arguments(FLAG_LIST UNIX_COMMAND "${FLAGS}")
+set(MLLVM_FLAGS)
+foreach(F IN LISTS FLAG_LIST)
+  list(APPEND MLLVM_FLAGS "-mllvm" "${F}")
+endforeach()
 execute_process(
-  COMMAND ${CLANG} -O2 -fpass-plugin=${PLUGIN} ${FLAG_LIST}
+  COMMAND ${CLANG} -O2 -fpass-plugin=${PLUGIN} ${MLLVM_FLAGS}
           ${SOURCE} -o /tmp/kagura_int_obf
   RESULT_VARIABLE OBF_COMPILE_RESULT
   ERROR_VARIABLE  OBF_COMPILE_ERR
