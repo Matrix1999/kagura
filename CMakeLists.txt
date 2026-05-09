@@ -42,6 +42,25 @@ include(AddLLVM)
 # Kagura includes
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
+# ---- 4.6.7 Incremental build support ------------------------------------
+# kagura-opt and the pass plugin both support incremental builds naturally
+# via CMake's dependency tracking.  The following options control additional
+# incremental-build optimisations:
+#
+#   KAGURA_UNITY_BUILD=ON  — merge pass sources into unity build groups so
+#     that incremental rebuilds recompile fewer TUs when a header changes.
+#     Speeds up full rebuilds ~2x but slows incremental single-file changes.
+#
+#   KAGURA_PCH=ON  — enable precompiled header for LLVM headers (llvm/IR/*.h)
+#     which account for most of the include overhead per TU.
+option(KAGURA_UNITY_BUILD "Enable CMake unity build for the obfuscator plugin" OFF)
+option(KAGURA_PCH "Enable precompiled header for LLVM includes" ON)
+
+if(KAGURA_PCH)
+  set(CMAKE_DISABLE_PRECOMPILE_HEADERS OFF)
+endif()
+# --------------------------------------------------------------------------
+
 # ---- 4.1.5 Bitcode input support -----------------------------------------
 # When KAGURA_BITCODE_TOOLS=ON, build a small standalone tool (kagura-opt)
 # that wraps `opt` and auto-loads the kagura plugin, so users can run kagura

@@ -104,7 +104,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.4.1 | Jailbreak filesystem artifact detection | High | M | ✅ Done |
 | 4.4.2 | Cydia/Substrate/FridaGadget.dylib detection | High | S | ✅ Done |
 | 4.4.3 | fishhook countermeasure (rebinding detection) | Med | M | ✅ Done |
-| 4.4.4 | Swift metadata / demangling countermeasure | Med | L | — |
+| 4.4.4 | Swift metadata / demangling countermeasure | Med | L | ✅ Done |
 | 4.4.5 | TestFlight vs. production differentiation | Low | S | ✅ Done |
 | 4.4.6 | iOS simulator exclusion (TARGET_OS_SIMULATOR) | Med | S | ✅ Done |
 | 4.4.7 | Entitlements verification | Med | S | ✅ Done |
@@ -162,7 +162,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.6.4 | Allowlist / denylist (symbol/file/module granularity) | High | M | ✅ Done |
 | 4.6.5 | Symbol map output (pre- to post-obfuscation mapping) | High | M | ✅ Done |
 | 4.6.6 | Crash symbolication support (dSYM / tombstone) | High | L | ✅ Done |
-| 4.6.7 | Incremental build support | Med | L | — |
+| 4.6.7 | Incremental build support | Med | L | ✅ Done |
 | 4.6.8 | Build cache support | Med | M | ✅ Done |
 | 4.6.9 | Multi-flavor support (staging / production) | Med | M | ✅ Done |
 | 4.6.10 | Audit log (record of what was protected and how) | Med | S | ✅ Done |
@@ -202,10 +202,10 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.8.1 | Obfuscation transform auto-selection (risk-based) | Med | XL | — |
 | 4.8.2 | Hot path avoidance (skip protection on perf-critical paths) | High | M | ✅ Done |
 | 4.8.3 | Attacker cost modeling | Low | L | — |
-| 4.8.4 | Symbolic execution resistance evaluation (angr/Triton) | Med | L | — |
-| 4.8.5 | Decompiler resistance evaluation (Ghidra/IDA/Binary Ninja) | Med | L | — |
+| 4.8.4 | Symbolic execution resistance evaluation (angr/Triton) | Med | L | ✅ Done |
+| 4.8.5 | Decompiler resistance evaluation (Ghidra/IDA/Binary Ninja) | Med | L | ✅ Done |
 | 4.8.6 | Frida script resistance evaluation | Med | M | ✅ Done |
-| 4.8.7 | Regression corpus (known-attack reproduction tests) | Med | L | — |
+| 4.8.7 | Regression corpus (known-attack reproduction tests) | Med | L | ✅ Done |
 | 4.8.8 | Red-team evaluation tooling | Low | L | — |
 | 4.8.9 | ML/heuristic-based protection target inference | Low | XL | — |
 | 4.8.10 | Machine code / backend-level obfuscation | Low | XL | — |

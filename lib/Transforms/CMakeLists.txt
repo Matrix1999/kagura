@@ -68,3 +68,46 @@ target_include_directories(KaguraObfuscator PRIVATE
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+# ---- 4.6.7 Incremental build: precompiled header -------------------------
+if(KAGURA_PCH)
+  target_precompile_headers(KaguraObfuscator PRIVATE
+    <llvm/IR/Function.h>
+    <llvm/IR/Module.h>
+    <llvm/IR/IRBuilder.h>
+    <llvm/IR/Instructions.h>
+    <llvm/IR/Constants.h>
+    <llvm/IR/PassManager.h>
+    <llvm/Support/raw_ostream.h>
+  )
+endif()
+
+# ---- 4.6.7 Incremental build: unity build --------------------------------
+if(KAGURA_UNITY_BUILD)
+  set_target_properties(KaguraObfuscator PROPERTIES UNITY_BUILD ON)
+  # Group CFG passes and Data passes into separate unity groups to avoid
+  # symbol collisions between files that define static helpers with the
+  # same name.
+  set_source_files_properties(
+    CFG/ControlFlowFlattening.cpp CFG/BogusControlFlow.cpp
+    CFG/BasicBlockReordering.cpp  CFG/BasicBlockSplitting.cpp
+    CFG/DeadCodeInsertion.cpp     CFG/FunctionSplit.cpp
+    CFG/IndirectBranch.cpp        CFG/LoopTransform.cpp
+    CFG/VTableProtection.cpp
+    PROPERTIES UNITY_GROUP "kagura_cfg"
+  )
+  set_source_files_properties(
+    Data/StringEncryption.cpp     Data/StringEncryptionAES.cpp
+    Data/WideStringEncryption.cpp Data/MemoryValueObfuscation.cpp
+    Data/ConstantObfuscation.cpp  Data/GlobalEncryption.cpp
+    Data/Substitution.cpp         Data/PointerEncryption.cpp
+    PROPERTIES UNITY_GROUP "kagura_data"
+  )
+  set_source_files_properties(
+    AntiAnalysis/AntiDebug.cpp       AntiAnalysis/AntiTamper.cpp
+    AntiAnalysis/HoneyValue.cpp      AntiAnalysis/CallIndirection.cpp
+    AntiAnalysis/PointerAuth.cpp     AntiAnalysis/SymbolVisibility.cpp
+    AntiAnalysis/Telemetry.cpp       AntiAnalysis/BasicBlockChecksum.cpp
+    PROPERTIES UNITY_GROUP "kagura_antianalysis"
+  )
+endif()

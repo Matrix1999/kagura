@@ -59,6 +59,8 @@ add_library(kagura_runtime STATIC
   integrity_report.c
   # Phase 4.4.18 Split APK / AAB support (Android)
   split_apk.c
+  # Phase 4.4.4 Swift metadata / demangling countermeasure (Apple)
+  swift_protection.c
 )
 
 target_include_directories(kagura_runtime PUBLIC

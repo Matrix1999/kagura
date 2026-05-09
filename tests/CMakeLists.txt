@@ -84,6 +84,9 @@ add_subdirectory(integration)
 # ---- 4.7.5 Fuzz targets (only when KAGURA_BUILD_FUZZ=ON) -------------------
 add_subdirectory(fuzz)
 
+# ---- 4.8.7 Regression corpus -----------------------------------------------
+add_subdirectory(regression)
+
 if(LIT_EXECUTABLE AND FILECHECK_EXECUTABLE)
   set(KAGURA_PLUGIN_PATH $<TARGET_FILE:KaguraObfuscator>)
 
