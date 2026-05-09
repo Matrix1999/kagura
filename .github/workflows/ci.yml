@@ -113,17 +113,17 @@ jobs:
         run: cmake --build build
 
       - name: Cross-compile smoke test (arm64-v8a)
-        # Two-stage: obfuscate with host opt, then compile IR with NDK clang.
-        # Using opt --load-pass-plugin avoids the cl::opt timing issue where
-        # -fpass-plugin loads the plugin after LLVM option parsing, causing
-        # -mllvm -kagura-* to be rejected as unknown options.
+        # Three-stage: NDK clang emits Android-targeted IR → host opt obfuscates
+        # → NDK clang assembles to .o.  Using NDK clang for IR emission ensures
+        # target-specific attributes (cpu, features) are Android-compatible.
+        # opt --load-pass-plugin is used to avoid the cl::opt timing issue with
+        # -fpass-plugin (plugin loaded after option parsing).
         run: |
           cat > /tmp/smoke.c << 'EOF'
           int add(int a, int b) { return a + b; }
           EOF
-          # Step 1: emit host IR
-          "$LLVM_PREFIX/bin/clang-${{ matrix.llvm }}" \
-            --target=aarch64-linux-android21 \
+          # Step 1: emit Android arm64 IR using NDK clang
+          "$NDK_TOOLCHAIN/bin/aarch64-linux-android21-clang" \
             -O2 -emit-llvm -S -o /tmp/smoke.ll /tmp/smoke.c
           # Step 2: obfuscate with host opt
           KAGURA_PLUGIN=$(find build -name "KaguraObfuscator.so" | head -1)
@@ -131,9 +131,9 @@ jobs:
             --load-pass-plugin="$KAGURA_PLUGIN" \
             -passes="function(kagura-fla,kagura-sub)" \
             -S -o /tmp/smoke_obf.ll /tmp/smoke.ll
-          # Step 3: compile obfuscated IR to arm64 object with NDK clang
+          # Step 3: assemble obfuscated IR to arm64 object with NDK clang
           "$NDK_TOOLCHAIN/bin/aarch64-linux-android21-clang" \
-            -c /tmp/smoke_obf.ll -o /tmp/smoke.o
+            -c -x ir /tmp/smoke_obf.ll -o /tmp/smoke.o
           echo "smoke test passed"
 
   # ---- 4.7.7 Performance benchmark (binary size + compile time) ---------
