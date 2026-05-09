@@ -35,6 +35,10 @@ PreservedAnalyses BasicBlockReorderingPass::run(Function &F,
     return PreservedAnalyses::all();
   if (F.isDeclaration() || F.size() < 3)
     return PreservedAnalyses::all();
+  // 4.1.10: Moving EH landing-pad blocks away from their invoke predecessors
+  // produces invalid IR.  Skip the entire function if it uses exceptions.
+  if (hasExceptionHandling(F))
+    return PreservedAnalyses::all();
 
   PRNG &RNG = getModulePRNG();
 

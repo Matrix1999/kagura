@@ -52,6 +52,42 @@ std::vector<llvm::BasicBlock *> getBlocks(llvm::Function &F);
 llvm::Function *getOrDeclare(llvm::Module &M, llvm::StringRef Name,
                              llvm::FunctionType *FTy);
 
+// ---- Exception-handling safety ----
+
+/// Returns true if F contains any invoke or landingpad instructions.
+/// Passes that restructure the CFG must skip such functions unless they
+/// explicitly handle exception-handling edges.
+bool hasExceptionHandling(const llvm::Function &F);
+
+/// Returns true if BB is a landing pad block (starts with LandingPadInst or
+/// CleanupPadInst) or contains a catchpad/cleanuppad instruction.
+bool isEHBlock(const llvm::BasicBlock &BB);
+
+// ---- Target triple helpers ----
+
+enum class TargetArch {
+  ARM64,   // AArch64 (including arm64e)
+  ARM64e,  // AArch64 with hardware PAC (apple-arm64e)
+  ARMv7,   // 32-bit ARM
+  X86_64,  // x86-64
+  Other,
+};
+
+/// Return the architecture of the module's target triple.
+TargetArch getTargetArch(const llvm::Module &M);
+
+/// Returns true if the module targets AArch64 (arm64 or arm64e).
+bool isAArch64Target(const llvm::Module &M);
+
+/// Returns true if the module targets arm64e (hardware PAC available).
+bool isArm64eTarget(const llvm::Module &M);
+
+/// Returns true if the module targets a 32-bit ARM device.
+bool isARMv7Target(const llvm::Module &M);
+
+/// Returns true if the module targets x86-64.
+bool isX86_64Target(const llvm::Module &M);
+
 // ---- String global collection ----
 
 /// Collect all ConstantDataArray globals that look like strings, are used in
