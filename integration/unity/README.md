@@ -27,20 +27,26 @@ All settings are stored in `EditorPrefs` and can be changed via the
 | Setting | Default | Description |
 |---------|---------|-------------|
 | Release builds only | on | Skip obfuscation for Development builds |
+| Profile | `BALANCED` | Strength preset: `FAST` / `BALANCED` / `STRONG` (overrides individual toggles) |
 | CFG Flattening | on | `-kagura-fla` |
 | Bogus Control Flow | on | `-kagura-bcf` |
 | Substitution | on | `-kagura-sub` |
 | String Encryption | on | `-kagura-str` |
+| Wide String Encryption | on | `-kagura-wstr` |
+| AES String Encryption | off | `-kagura-str-aes` (requires runtime) |
+| Global Encryption | off | `-kagura-genc` |
+| Memory Value Obfuscation | off | `-kagura-mvo` |
 | Indirect Branch | on | `-kagura-ibr` |
 | BB Reordering | on | `-kagura-bbr` |
 | Symbol Visibility | on | `-kagura-sv` |
 | Anti-Debug | on | `-kagura-anti-debug` |
 | Anti-Tamper | on | `-kagura-tamper` |
+| Honey Values | off | `-kagura-honey` |
 | BB Splitting | off | `-kagura-bbs` (increases build time) |
 | Dead Code Insertion | off | `-kagura-dci` |
 | Constant Obfuscation | off | `-kagura-co` |
-| Global Encryption | off | `-kagura-genc` |
 | VM Obfuscation | off | `-kagura-vm` (significant overhead) |
+| Symbol Map | off | `-kagura-symmap` (emit JSON for crash symbolication) |
 | BCF Probability | 30 | Bogus CF probability per block [0–100] |
 
 ## CMake-only workflow
@@ -58,6 +64,40 @@ set(KAGURA_PLUGIN_PATH "/path/to/KaguraObfuscator.so")
 set(KAGURA_PROFILE "STRONG")   # FAST | BALANCED | STRONG
 include(".../kagura_unity_config.cmake")
 ```
+
+Or use the JSON config DSL for full control:
+
+```cmake
+set(KAGURA_CONFIG_PATH "${CMAKE_SOURCE_DIR}/kagura.json")
+```
+
+```json
+{
+  "profile": "BALANCED",
+  "passes": { "honey": true, "mvo": true },
+  "tuning": { "bcf_prob": 40, "seed": 42 }
+}
+```
+
+## Game Value Protection
+
+For IL2CPP C++ plugins or native game code, include `game_protect.h` to protect
+game-critical values from memory scanners (GameGuardian, Cheat Engine):
+
+```cpp
+#include "kagura/game_protect.h"
+
+class Player {
+    kagura::Protected<int>   hp{100};
+    kagura::Protected<float> speed{5.5f};
+    kagura::Protected<int>   currency{0};
+public:
+    void takeDamage(int dmg) { hp -= dmg; }
+    bool isAlive() const     { return static_cast<int>(hp) > 0; }
+};
+```
+
+See `include/kagura/game_protect.h` for full documentation.
 
 ## IL2CPP Protection Runtime
 

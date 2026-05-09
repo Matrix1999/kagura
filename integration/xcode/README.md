@@ -107,13 +107,21 @@ control, or via a User-Defined build setting in the target.
 | Setting | Default | Pass |
 |---------|---------|------|
 | `KAGURA_ENABLE_STR` | `1` | StringEncryption — XOR-encrypts string literals |
+| `KAGURA_ENABLE_STR_AES` | `0` | StringEncryptionAES — AES-128-CTR string encryption (requires runtime) |
+| `KAGURA_ENABLE_WSTR` | `1` | WideStringEncryption — encrypts wide strings and CFString buffers |
 | `KAGURA_ENABLE_FLA` | `1` | ControlFlowFlattening — switch-based state machine |
 | `KAGURA_ENABLE_BCF` | `1` | BogusControlFlow — MBA opaque predicates |
 | `KAGURA_ENABLE_SUB` | `1` | Substitution — MBA arithmetic replacements |
 | `KAGURA_ENABLE_CO` | `0` | ConstantObfuscation — replaces integer constants |
+| `KAGURA_ENABLE_GENC` | `0` | GlobalEncryption — XOR-encrypts private integer globals |
+| `KAGURA_ENABLE_MVO` | `0` | MemoryValueObfuscation — XOR-encrypts alloca'd integer locals |
 | `KAGURA_ENABLE_OBJC` | `1` | ObjCObfuscation — selector/class name obfuscation |
+| `KAGURA_ENABLE_HONEY` | `0` | HoneyValue — decoy globals and fake security-stub functions |
 | `KAGURA_ENABLE_ANTIDEB` | `1` | AntiDebug — ptrace/Frida/port-27042 checks |
+| `KAGURA_ENABLE_TAMPER` | `1` | AntiTamper — FNV-1a integrity + jailbreak detection |
 | `KAGURA_ENABLE_METRICS` | `0` | ObfuscationMetrics — stderr diagnostic output |
+| `KAGURA_ENABLE_SYMMAP` | `0` | SymbolMap — emit JSON symbol map for crash symbolication |
+| `KAGURA_DWARF` | `keep` | DWARF handling: `keep` / `strip` / `obfuscate` |
 
 ### Tuning Parameters
 
@@ -372,18 +380,37 @@ that codesign measures.
 
 The table below shows recommended flag combinations for three common scenarios.
 
-| Pass flag | Fastest build | Balanced security | Maximum security |
-|-----------|:---:|:---:|:---:|
+Alternatively, use the JSON config DSL (`-mllvm -kagura-config=kagura.json`) with a built-in profile:
+
+```xcconfig
+KAGURA_CONFIG_FLAG = -mllvm -kagura-config=$(SRCROOT)/kagura.json
+```
+
+```json
+{ "profile": "BALANCED" }
+```
+
+Available profiles: `FAST`, `BALANCED`, `STRONG`.
+
+For manual tuning, the table below shows recommended flag combinations:
+
+| Pass flag | FAST | BALANCED | STRONG |
+|-----------|:----:|:--------:|:------:|
 | `-kagura-str` | YES | YES | YES |
+| `-kagura-wstr` | NO | YES | YES |
 | `-kagura-fla` | NO | YES | YES |
 | `-kagura-bcf` | NO | YES | YES |
 | `-kagura-bcf-prob` | — | 30 | 60 |
 | `-kagura-bcf-iter` | — | 1 | 2 |
-| `-kagura-sub` | YES | YES | YES |
-| `-kagura-sub-iter` | 1 | 1 | 2 |
+| `-kagura-sub` | NO | YES | YES |
+| `-kagura-sub-iter` | — | 1 | 2 |
 | `-kagura-co` | NO | NO | YES |
+| `-kagura-genc` | NO | YES | YES |
+| `-kagura-mvo` | NO | YES | YES |
 | `-kagura-objc` | YES | YES | YES |
 | `-kagura-anti-debug` | NO | YES | YES |
+| `-kagura-tamper` | NO | YES | YES |
+| `-kagura-honey` | NO | NO | YES |
 | `-kagura-vm` | NO | NO | selective |
 | `-kagura-ibr` | NO | NO | YES |
 | `-kagura-lt` | NO | YES | YES |
