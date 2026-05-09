@@ -31,7 +31,7 @@ kagura_add_pass_test(test_string_encryption "kagura-str" string_test.c)
 kagura_add_pass_test(test_flattening "function(kagura-fla)" control_flow_test.c)
 kagura_add_pass_test(test_bogus_cf "function(kagura-bcf)" control_flow_test.c)
 kagura_add_pass_test(test_substitution "function(kagura-sub)" arithmetic_test.c)
-kagura_add_pass_test(test_vm "function(kagura-vm)" vm_test.c)
+kagura_add_pass_test(test_vm_vm "function(kagura-vm)" vm_test.c)
 kagura_add_pass_test(test_indirect_branch "function(kagura-ibr)" indirect_branch_test.c)
 kagura_add_pass_test(test_loop_transform "function(kagura-lt)" loop_test.c)
 kagura_add_pass_test(test_pointer "function(kagura-bcf,kagura-sub,kagura-ibr,kagura-lt)" pointer_test.c)
@@ -41,6 +41,29 @@ kagura_add_pass_test(test_dead_code_insertion "function(kagura-dci)" control_flo
 kagura_add_pass_test(test_symbol_visibility "kagura-sv" arithmetic_test.c)
 kagura_add_pass_test(test_all_passes
   "kagura-str,kagura-fsplit,kagura-sv,function(kagura-bcf,kagura-sub,kagura-co,kagura-ibr,kagura-lt,kagura-bbr,kagura-bbs,kagura-dci)"
+  combined_test.c)
+
+# ── New pass tests (Sprint 5 / 4.7.1) ────────────────────────────────────────
+kagura_add_pass_test(test_mvo
+  "function(kagura-mvo)"
+  arithmetic_test.c)
+kagura_add_pass_test(test_honey
+  "kagura-honey"
+  arithmetic_test.c)
+kagura_add_pass_test(test_wstr
+  "kagura-wstr"
+  string_test.c)
+kagura_add_pass_test(test_str_aes
+  "kagura-str-aes"
+  string_test.c)
+kagura_add_pass_test(test_global_enc
+  "kagura-genc"
+  arithmetic_test.c)
+kagura_add_pass_test(test_call_indirection
+  "kagura-ci"
+  combined_test.c)
+kagura_add_pass_test(test_function_split
+  "kagura-fsplit"
   combined_test.c)
 
 # ── FileCheck / lit tests ──────────────────────────────────────────────────────

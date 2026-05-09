@@ -66,18 +66,53 @@ public class YourGameTarget : TargetRules
 
 ## Configuration
 
-Edit `KaguraConfig` in `KaguraToolchain.cs`:
+Edit `KaguraConfig` in `KaguraToolchain.cs`, or point to a JSON config file:
 
 ```csharp
 public static class KaguraConfig
 {
-    public static bool EnableStr       = true;
-    public static bool EnableFla       = true;
-    public static bool EnableBcf       = true;
-    public static bool ShippingOnly    = true;  // only apply for Shipping builds
-    public static int  BcfProb         = 30;
+    public static string ConfigFile    = "";        // path to kagura.json (optional)
+    public static string Profile       = "BALANCED"; // FAST | BALANCED | STRONG
+    public static bool   EnableStr     = true;
+    public static bool   EnableWstr    = true;
+    public static bool   EnableFla     = true;
+    public static bool   EnableBcf     = true;
+    public static bool   EnableSub     = true;
+    public static bool   EnableGenc    = false;
+    public static bool   EnableMvo     = false;
+    public static bool   EnableHoney   = false;
+    public static bool   EnableTamper  = true;
+    public static bool   EnableSymMap  = false;
+    public static bool   ShippingOnly  = true;   // only apply for Shipping builds
+    public static int    BcfProb       = 30;
+    public static int    BcfIter       = 1;
     // ... see file for full list
 }
+```
+
+JSON config (recommended for team projects):
+
+```json
+{ "profile": "STRONG" }
+```
+
+Point to the config file via `KAGURA_CONFIG_PATH` environment variable or
+by setting `KaguraConfig.ConfigFile` before build start.
+
+## Game Value Protection
+
+For C++ gameplay code, use `game_protect.h` to protect values from memory
+scanners and freeze tools:
+
+```cpp
+#include "kagura/game_protect.h"
+
+UCLASS()
+class AMyCharacter : public ACharacter
+{
+    kagura::Protected<int>   HP{100};
+    kagura::Protected<float> MoveSpeed{600.f};
+};
 ```
 
 ## Pass reference

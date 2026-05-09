@@ -76,19 +76,26 @@ kagura_android_target(mynativelib)   # auto-links kagura_runtime
 | `KAGURA_PLUGIN_PATH` | PATH | auto | Absolute path to `KaguraObfuscator.so` |
 | `KAGURA_PROFILE` | STRING | `BALANCED` | Preset profile (see below) |
 | `KAGURA_RUNTIME_DIR` | PATH | auto | Directory with runtime `.c` sources |
-| `KAGURA_ENABLE_STR` | BOOL | ON | String encryption |
+| `KAGURA_ENABLE_STR` | BOOL | ON | Narrow string encryption |
+| `KAGURA_ENABLE_STR_AES` | BOOL | OFF | AES-128-CTR string encryption |
+| `KAGURA_ENABLE_WSTR` | BOOL | ON | Wide string encryption |
 | `KAGURA_ENABLE_FLA` | BOOL | ON | CFG flattening |
 | `KAGURA_ENABLE_BCF` | BOOL | OFF | Bogus control flow |
 | `KAGURA_ENABLE_SUB` | BOOL | OFF | Instruction substitution |
 | `KAGURA_ENABLE_CO` | BOOL | OFF | Constant obfuscation (MBA) |
+| `KAGURA_ENABLE_GENC` | BOOL | OFF | Global integer encryption |
+| `KAGURA_ENABLE_MVO` | BOOL | OFF | Memory value obfuscation (local integer XOR) |
 | `KAGURA_ENABLE_JNI` | BOOL | ON | JNI dynamic registration |
 | `KAGURA_ENABLE_ANTIDEBUG` | BOOL | ON | Anti-debug / Anti-Frida |
+| `KAGURA_ENABLE_TAMPER` | BOOL | ON | Anti-tamper integrity checks |
+| `KAGURA_ENABLE_HONEY` | BOOL | OFF | Honey value / fake symbol injection |
 | `KAGURA_ENABLE_IL2CPP` | BOOL | OFF | IL2CPP runtime protection |
 | `KAGURA_BCF_PROB` | STRING | 30 | Bogus CF probability 0–100 |
 | `KAGURA_BCF_ITER` | STRING | 1 | Bogus CF iterations |
 | `KAGURA_SUB_ITER` | STRING | 1 | Instruction substitution iterations |
 | `KAGURA_SEED` | STRING | 0 | PRNG seed (0 = system entropy) |
 | `KAGURA_METRICS` | BOOL | OFF | Print obfuscation metrics to stdout |
+| `KAGURA_SYMMAP` | BOOL | OFF | Emit JSON symbol map |
 
 Fine-grained toggles are only applied when `KAGURA_PROFILE=CUSTOM`.  All other
 profiles override the individual flags.
@@ -99,10 +106,21 @@ profiles override the individual flags.
 
 | Profile | Passes enabled | BCF prob | Intended use |
 |---|---|---|---|
-| `FAST` | fla, sub, jni, anti-debug | 20 | Hot paths, CI builds, debug variants |
-| `BALANCED` | str, fla, bcf, sub, jni, anti-debug | 30 | Release builds (default) |
-| `STRONG` | all passes + il2cpp | 50, 2 iter | Security-critical shipping builds |
+| `FAST` | str, jni, anti-debug | — | Hot paths, CI builds, debug variants |
+| `BALANCED` | str, wstr, bcf, bbr, bbs, genc, mvo, jni, anti-debug, tamper | 30 | Release builds (default) |
+| `STRONG` | all passes + il2cpp | 60, 2 iter | Security-critical shipping builds |
 | `CUSTOM` | whatever `KAGURA_ENABLE_*` says | user-defined | Fine-grained control |
+
+Profiles can also be set via the JSON config DSL:
+
+```cmake
+set(KAGURA_CONFIG_PATH "${CMAKE_SOURCE_DIR}/kagura.json")
+kagura_android_config()
+```
+
+```json
+{ "profile": "STRONG" }
+```
 
 ---
 
