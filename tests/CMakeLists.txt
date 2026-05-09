@@ -10,136 +10,38 @@ add_custom_target(check-kagura
 set(KAGURA_PLUGIN $<TARGET_FILE:KaguraObfuscator>)
 set(LLVM_BIN ${LLVM_TOOLS_BINARY_DIR})
 
-add_test(NAME test_string_encryption
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-str
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/string_test.c
-)
+# Use opt --load-pass-plugin -passes= for testing, which works across all
+# LLVM versions (avoids -mllvm cl::opt registration timing issues in LLVM 19).
+# Each test: clang -O0 -emit-llvm → opt --load-pass-plugin -passes=...
 
-add_test(NAME test_flattening
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-fla
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/control_flow_test.c
-)
+# Helper macro: create a two-stage test (C → IR → opt with pass)
+macro(kagura_add_pass_test TEST_NAME PASS_PIPELINE SOURCE_FILE)
+  add_test(NAME ${TEST_NAME}
+    COMMAND ${CMAKE_COMMAND}
+      -DCLANG=${LLVM_BIN}/clang
+      -DOPT=${LLVM_BIN}/opt
+      -DPLUGIN=${KAGURA_PLUGIN}
+      -DPASSES=${PASS_PIPELINE}
+      -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/inputs/${SOURCE_FILE}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/run_pass_test.cmake
+  )
+endmacro()
 
-add_test(NAME test_bogus_cf
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-bcf
-    -mllvm -kagura-bcf-prob=50
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/control_flow_test.c
-)
-
-add_test(NAME test_substitution
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-sub
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/arithmetic_test.c
-)
-
-# Runtime library (vm_interpreter, anti_debug)
-set(RUNTIME_LIB $<TARGET_FILE:kagura_runtime>)
-
-add_test(NAME test_vm
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-vm
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/vm_test.c
-    ${RUNTIME_LIB}
-)
-
-add_test(NAME test_indirect_branch
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-ibr
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/indirect_branch_test.c
-)
-
-add_test(NAME test_loop_transform
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-lt
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/loop_test.c
-)
-
-add_test(NAME test_pointer
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-fla
-    -mllvm -kagura-bcf
-    -mllvm -kagura-sub
-    -mllvm -kagura-ibr
-    -mllvm -kagura-lt
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/pointer_test.c
-)
-
-add_test(NAME test_basic_block_reordering
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-bbr
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/control_flow_test.c
-)
-
-add_test(NAME test_basic_block_splitting
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-bbs
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/arithmetic_test.c
-)
-
-add_test(NAME test_dead_code_insertion
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-dci
-    -mllvm -kagura-dci-prob=80
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/control_flow_test.c
-)
-
-add_test(NAME test_symbol_visibility
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-sv
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/arithmetic_test.c
-)
-
-add_test(NAME test_all_passes
-  COMMAND ${LLVM_BIN}/clang
-    -fpass-plugin=${KAGURA_PLUGIN}
-    -mllvm -kagura-fla -mllvm -kagura-bcf -mllvm -kagura-sub
-    -mllvm -kagura-str -mllvm -kagura-co -mllvm -kagura-ibr
-    -mllvm -kagura-lt -mllvm -kagura-fsplit
-    -mllvm -kagura-bbr -mllvm -kagura-bbs -mllvm -kagura-dci
-    -mllvm -kagura-sv
-    -O1
-    -o /dev/null
-    ${CMAKE_CURRENT_SOURCE_DIR}/inputs/combined_test.c
-)
+kagura_add_pass_test(test_string_encryption "kagura-str" string_test.c)
+kagura_add_pass_test(test_flattening "function(kagura-fla)" control_flow_test.c)
+kagura_add_pass_test(test_bogus_cf "function(kagura-bcf)" control_flow_test.c)
+kagura_add_pass_test(test_substitution "function(kagura-sub)" arithmetic_test.c)
+kagura_add_pass_test(test_vm "function(kagura-vm)" vm_test.c)
+kagura_add_pass_test(test_indirect_branch "function(kagura-ibr)" indirect_branch_test.c)
+kagura_add_pass_test(test_loop_transform "function(kagura-lt)" loop_test.c)
+kagura_add_pass_test(test_pointer "function(kagura-bcf,kagura-sub,kagura-ibr,kagura-lt)" pointer_test.c)
+kagura_add_pass_test(test_basic_block_reordering "function(kagura-bbr)" control_flow_test.c)
+kagura_add_pass_test(test_basic_block_splitting "function(kagura-bbs)" arithmetic_test.c)
+kagura_add_pass_test(test_dead_code_insertion "function(kagura-dci)" control_flow_test.c)
+kagura_add_pass_test(test_symbol_visibility "kagura-sv" arithmetic_test.c)
+kagura_add_pass_test(test_all_passes
+  "kagura-str,kagura-fsplit,kagura-sv,function(kagura-bcf,kagura-sub,kagura-co,kagura-ibr,kagura-lt,kagura-bbr,kagura-bbs,kagura-dci)"
+  combined_test.c)
 
 # ── FileCheck / lit tests ──────────────────────────────────────────────────────
 
