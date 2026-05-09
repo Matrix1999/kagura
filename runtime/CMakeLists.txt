@@ -43,6 +43,10 @@ add_library(kagura_runtime STATIC
   behavior_log.c
   # Phase 4.5.12/13 Game value protection (speed/seed)
   game_values.c
+  # Phase 4.5.8 Soft/delayed response
+  soft_response.c
+  # Phase 4.2.6 Device-bound key derivation
+  device_key.c
 )
 
 target_include_directories(kagura_runtime PUBLIC

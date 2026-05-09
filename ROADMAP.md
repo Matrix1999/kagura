@@ -57,7 +57,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.2.3 | ObjC class/method name obfuscation | Med | L | — |
 | 4.2.4 | Lazy decryption (decrypt on first access only) | High | M | ✅ Done |
 | 4.2.5 | Short-lived decrypted buffer (zero after use) | High | S | ✅ Done |
-| 4.2.6 | Device-bound key derivation (UDID / Android ID) | Med | M | — |
+| 4.2.6 | Device-bound key derivation (UDID / Android ID) | Med | M | ✅ Done |
 | 4.2.7 | Build-time key rotation (unique keys per build) | Med | S | ✅ Done |
 | 4.2.8 | Per-customer / per-app variant generation | Low | L | — |
 | 4.2.9 | Native constant encryption (float/double included) | Med | M | — |
@@ -108,7 +108,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.4.5 | TestFlight vs. production differentiation | Low | S | ✅ Done |
 | 4.4.6 | iOS simulator exclusion (TARGET_OS_SIMULATOR) | Med | S | ✅ Done |
 | 4.4.7 | Entitlements verification | Med | S | ✅ Done |
-| 4.4.8 | App Store review safety validation | High | M | — |
+| 4.4.8 | App Store review safety validation | High | M | ✅ Done |
 | 4.4.9 | dyld image list runtime inspection | Med | S | ✅ Done |
 
 #### Android
@@ -141,7 +141,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.5.5 | State integrity check (client-side invariant) | Med | M | ✅ Done |
 | 4.5.6 | Telemetry insertion (cheat signal collection) | Med | M | — |
 | 4.5.7 | Suspicious behavior logging | Med | M | ✅ Done |
-| 4.5.8 | Delayed/soft response design (no immediate ban) | Low | S | — |
+| 4.5.8 | Delayed/soft response design (no immediate ban) | Low | S | ✅ Done |
 | 4.5.9 | Integrity report signing + replay prevention | Low | M | — |
 | 4.5.10 | Nonce/challenge-response (server coordination) | Med | M | — |
 | 4.5.11 | Damage/hit/cooldown/currency protection (template) | High | M | ✅ Done |
@@ -164,7 +164,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.6.6 | Crash symbolication support (dSYM / tombstone) | High | L | — |
 | 4.6.7 | Incremental build support | Med | L | — |
 | 4.6.8 | Build cache support | Med | M | — |
-| 4.6.9 | Multi-flavor support (staging / production) | Med | M | — |
+| 4.6.9 | Multi-flavor support (staging / production) | Med | M | ✅ Done |
 | 4.6.10 | Audit log (record of what was protected and how) | Med | S | ✅ Done |
 | 4.6.11 | Bazel support | Low | M | — |
 | 4.6.12 | CocoaPods / SwiftPM support | Med | M | — |
