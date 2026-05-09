@@ -1,0 +1,41 @@
+// kagura.xcconfig
+// Xcode build settings for kagura LLVM obfuscator
+//
+// Usage:
+//   1. Add this file to your Xcode project (drag into Project Navigator)
+//   2. In Build Settings > Based on Configuration File, select kagura.xcconfig
+//      for the Release configuration
+//   3. Adjust the KAGURA_* settings below for your needs
+//
+// Requirements:
+//   - kagura plugin must be built first: run build.sh in the kagura repo
+//   - Set KAGURA_PLUGIN_PATH to the .dylib location
+
+// ---- Path to kagura plugin ----
+// Override this in your local .xcconfig or via xcode user-defined setting
+KAGURA_PLUGIN_PATH = $(SRCROOT)/../kagura/build/lib/Transforms/KaguraObfuscator.dylib
+
+// ---- Feature toggles (set to 1 to enable) ----
+KAGURA_ENABLE_STR     = 1   // string encryption
+KAGURA_ENABLE_FLA     = 1   // CFG flattening
+KAGURA_ENABLE_BCF     = 1   // bogus control flow
+KAGURA_ENABLE_SUB     = 1   // instruction substitution
+KAGURA_ENABLE_CO      = 0   // constant obfuscation (increases binary size)
+KAGURA_ENABLE_OBJC    = 1   // ObjC selector/class obfuscation
+KAGURA_ENABLE_ANTIDEB = 1   // anti-debug / anti-Frida
+KAGURA_ENABLE_METRICS = 0   // print metrics to stderr (debug only)
+
+// ---- Tuning ----
+KAGURA_BCF_PROB  = 30   // bogus CF probability [0-100]
+KAGURA_BCF_ITER  = 1    // bogus CF iterations
+KAGURA_SUB_ITER  = 1    // substitution iterations
+
+// ---- Build flags ----
+// These are assembled by kagura-flags.sh and injected via OTHER_CFLAGS
+// Do not edit below this line — edit the toggles above instead
+KAGURA_FLAGS = $(SRCROOT)/../kagura/integration/xcode/kagura-flags.sh
+
+// Inject plugin into clang invocation
+OTHER_CFLAGS = $(inherited) $(shell $(KAGURA_FLAGS))
+OTHER_CPLUSPLUSFLAGS = $(inherited) $(shell $(KAGURA_FLAGS))
+OTHER_SWIFT_FLAGS = $(inherited) $(shell $(KAGURA_FLAGS))
