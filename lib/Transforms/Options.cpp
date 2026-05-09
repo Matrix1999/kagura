@@ -78,6 +78,9 @@ cl::opt<bool> Telemetry("kagura-telemetry",
 cl::opt<bool> BBCheck("kagura-bbcheck",
                       cl::desc("[Kagura] Basic block opcode checksum guards"),
                       cl::init(false));
+cl::opt<bool> VTP("kagura-vtp",
+                  cl::desc("[Kagura] RTTI / vtable protection (C++ ABI)"),
+                  cl::init(false));
 
 // ---- Pass tuning parameters ----
 

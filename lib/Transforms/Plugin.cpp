@@ -166,6 +166,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(AuditLogPass());
                     return true;
                   }
+                  if (Name == "kagura-vtp") {
+                    MPM.addPass(VTableProtectionPass());
+                    return true;
+                  }
                   return false;
                 });
 
@@ -327,6 +331,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   // Run last so all obfuscated names are already in place.
                   if (opt::SymMap)
                     MPM.addPass(SymbolMapPass());
+
+                  // --- 4.1.11: RTTI / vtable protection ---
+                  if (opt::VTP)
+                    MPM.addPass(VTableProtectionPass());
 
                   // --- 4.6.10: Audit log ---
                   // Run after everything else so all markObfuscated() calls

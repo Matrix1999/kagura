@@ -78,6 +78,12 @@ find_program(FILECHECK_EXECUTABLE NAMES FileCheck
   DOC "LLVM FileCheck"
 )
 
+# ---- 4.7.2 Integration tests ------------------------------------------------
+add_subdirectory(integration)
+
+# ---- 4.7.5 Fuzz targets (only when KAGURA_BUILD_FUZZ=ON) -------------------
+add_subdirectory(fuzz)
+
 if(LIT_EXECUTABLE AND FILECHECK_EXECUTABLE)
   set(KAGURA_PLUGIN_PATH $<TARGET_FILE:KaguraObfuscator>)
 

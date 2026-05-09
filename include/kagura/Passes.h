@@ -308,6 +308,18 @@ struct WideStringEncryptionPass
   static bool isRequired() { return false; }
 };
 
+// ---- Phase 4.1 RTTI / vtable protection ----
+
+/// 4.1.11: Obfuscates C++ RTTI typeinfo name strings (_ZTS) using XOR
+/// encryption with a per-string key, and records vtable metadata for
+/// runtime integrity checking via kagura_vtable_check().
+struct VTableProtectionPass
+    : public llvm::PassInfoMixin<VTableProtectionPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Phase 4.1 Infrastructure ----
 
 /// Controls DWARF / debug-info metadata on functions touched by kagura.

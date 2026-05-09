@@ -22,6 +22,9 @@ add_llvm_pass_plugin(KaguraObfuscator
   Infrastructure/SymbolMap.cpp
   Infrastructure/AuditLog.cpp
 
+  # Phase 4.1.11 RTTI / vtable protection
+  CFG/VTableProtection.cpp
+
   # CFG obfuscation
   CFG/ControlFlowFlattening.cpp
   CFG/BogusControlFlow.cpp

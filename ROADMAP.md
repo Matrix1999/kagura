@@ -39,7 +39,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.1.8 | arm64e / hardware PAC integration | Med | M | ✅ Done |
 | 4.1.9 | Sanitizer compatibility (ASan, TSan, UBSan) | Med | M | ✅ Done |
 | 4.1.10 | Exception handling safety (C++ EH, ObjC @try) | High | M | ✅ Done |
-| 4.1.11 | RTTI / vtable protection | Med | L | — |
+| 4.1.11 | RTTI / vtable protection | Med | L | ✅ Done |
 | 4.1.12 | Reproducible build / deterministic output verification | High | S | ✅ Done |
 
 **Effort**: S = ~1 day, M = 2-5 days, L = 1-2 weeks, XL = 2+ weeks
@@ -180,10 +180,10 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | ID | Feature | Priority | Effort | Status |
 |:---|:--------|:---------|:-------|:-------|
 | 4.7.1 | FileCheck lit tests (per-pass IR verification) | High | L | ✅ Done |
-| 4.7.2 | Integration tests (real app smoke tests) | High | L | — |
+| 4.7.2 | Integration tests (real app smoke tests) | High | L | ✅ Done |
 | 4.7.3 | LLVM version matrix expansion (add 17, 18) | Med | M | ✅ Done |
 | 4.7.4 | NDK version matrix | Med | M | ✅ Done |
-| 4.7.5 | Fuzzing (crash detection on pass inputs) | Med | L | — |
+| 4.7.5 | Fuzzing (crash detection on pass inputs) | Med | L | ✅ Done |
 | 4.7.6 | Differential testing (obfuscated vs. plain behavior match) | High | L | ✅ Done |
 | 4.7.7 | Performance benchmark (binary size / startup / frame time) | Med | M | ✅ Done |
 | 4.7.8 | Battery impact measurement | Low | M | — |
