@@ -1,6 +1,11 @@
 #include "kagura/Options.h"
 #include "kagura/Utils.h"
 
+#if __has_include("llvm/TargetParser/Triple.h")
+#include "llvm/TargetParser/Triple.h"  // LLVM 20+
+#else
+#include "llvm/ADT/Triple.h"           // LLVM 17-19
+#endif
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Instructions.h"
