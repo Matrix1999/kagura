@@ -23,6 +23,7 @@
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
+#include "llvm/Config/llvm-config.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Module.h"
@@ -65,6 +66,23 @@ static std::string scrambleName(StringRef Original, PRNG &RNG) {
 
 PreservedAnalyses ObjCObfuscationPass::run(Module &M,
                                             ModuleAnalysisManager &) {
+  // 4.1.7: ObjC metadata is only meaningful on Apple targets (iOS, macOS,
+  // tvOS, watchOS).  Skip on Android and Linux to avoid false-positive matches
+  // on globals with similar section names in non-Apple toolchains.
+  // getTargetTriple() returns const std::string & on LLVM 17-19 and
+  // const Triple & on LLVM 20+.
+#if LLVM_VERSION_MAJOR >= 20
+  std::string TripleStr = M.getTargetTriple().str();
+#else
+  std::string TripleStr = M.getTargetTriple();
+#endif
+  StringRef Triple(TripleStr);
+  bool IsAppleTarget = Triple.contains("apple") || Triple.contains("darwin") ||
+                       Triple.contains("ios") || Triple.contains("macos") ||
+                       Triple.contains("macosx");
+  if (!IsAppleTarget && !TripleStr.empty())
+    return PreservedAnalyses::all();
+
   LLVMContext &Ctx = M.getContext();
   auto &RNG        = getModulePRNG();
 

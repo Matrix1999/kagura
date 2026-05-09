@@ -58,6 +58,11 @@ PreservedAnalyses BasicBlockSplittingPass::run(Function &F,
     return PreservedAnalyses::all();
   if (F.isDeclaration())
     return PreservedAnalyses::all();
+  // 4.1.10: Skip functions with exception-handling constructs.  SplitBlock
+  // does not update landing-pad predecessor lists, so splitting EH blocks
+  // can produce invalid IR.
+  if (hasExceptionHandling(F))
+    return PreservedAnalyses::all();
 
   PRNG &RNG = getModulePRNG();
   uint32_t Min       = BBSMin   > 0 ? BBSMin   : 3u;

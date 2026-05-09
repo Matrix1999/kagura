@@ -27,20 +27,20 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 
 > Goal: Stable operation across all LLVM versions and optimization levels.
 
-| ID | Feature | Priority | Effort |
-|:---|:--------|:---------|:-------|
-| 4.1.1 | LTO / ThinLTO pipeline support | High | M |
-| 4.1.2 | O0 mode (lightweight protection for debug builds) | High | S |
-| 4.1.3 | Legacy pass manager compatibility layer (LLVM 14-16) | Low | L |
-| 4.1.4 | Loop pass separation (move LoopTransform under LoopPassManager) | Med | S |
-| 4.1.5 | Bitcode input support (beyond opt workflows) | Med | S |
-| 4.1.6 | DWARF debug info stripping/transformation control | High | M |
-| 4.1.7 | Target triple dispatch (ARM64 / ARMv7 / x86_64) | High | M |
-| 4.1.8 | arm64e / hardware PAC integration | Med | M |
-| 4.1.9 | Sanitizer compatibility (ASan, TSan, UBSan) | Med | M |
-| 4.1.10 | Exception handling safety (C++ EH, ObjC @try) | High | M |
-| 4.1.11 | RTTI / vtable protection | Med | L |
-| 4.1.12 | Reproducible build / deterministic output verification | High | S |
+| ID | Feature | Priority | Effort | Status |
+|:---|:--------|:---------|:-------|:-------|
+| 4.1.1 | LTO / ThinLTO pipeline support | High | M | ✅ Done |
+| 4.1.2 | O0 mode (lightweight protection for debug builds) | High | S | ✅ Done |
+| 4.1.3 | Legacy pass manager compatibility layer (LLVM 14-16) | Low | L | — |
+| 4.1.4 | Loop pass separation (move LoopTransform under LoopPassManager) | Med | S | — |
+| 4.1.5 | Bitcode input support (beyond opt workflows) | Med | S | — |
+| 4.1.6 | DWARF debug info stripping/transformation control | High | M | ✅ Done |
+| 4.1.7 | Target triple dispatch (ARM64 / ARMv7 / x86_64) | High | M | ✅ Done |
+| 4.1.8 | arm64e / hardware PAC integration | Med | M | — |
+| 4.1.9 | Sanitizer compatibility (ASan, TSan, UBSan) | Med | M | — |
+| 4.1.10 | Exception handling safety (C++ EH, ObjC @try) | High | M | ✅ Done |
+| 4.1.11 | RTTI / vtable protection | Med | L | — |
+| 4.1.12 | Reproducible build / deterministic output verification | High | S | ✅ Done |
 
 **Effort**: S = ~1 day, M = 2-5 days, L = 1-2 weeks, XL = 2+ weeks
 

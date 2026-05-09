@@ -82,6 +82,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
             PB.registerPipelineParsingCallback(
                 [](StringRef Name, ModulePassManager &MPM,
                    ArrayRef<PassBuilder::PipelineElement>) -> bool {
+                  if (Name == "kagura-dwarf-control") {
+                    MPM.addPass(DWARFControlPass());
+                    return true;
+                  }
                   if (Name == "kagura-ci") {
                     MPM.addPass(CallIndirectionPass());
                     return true;
@@ -135,12 +139,47 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
             PB.registerOptimizerLastEPCallback(
 #if LLVM_VERSION_MAJOR >= 20
                 [](ModulePassManager &MPM, OptimizationLevel OL,
-                   ThinOrFullLTOPhase) {
+                   ThinOrFullLTOPhase Phase) {
 #else
                 [](ModulePassManager &MPM, OptimizationLevel OL) {
 #endif
-                  if (OL == OptimizationLevel::O0)
+                  // --- 4.1.1: LTO / ThinLTO pipeline gating ---
+                  // During link-time optimisation the IR is often an incomplete
+                  // cross-module view.  Passes that inject new globals or rely on
+                  // single-module semantics (AntiTamper, JNI, ObjC) can produce
+                  // invalid IR in this context.  Skip them unless the user
+                  // explicitly opts in with -kagura-lto-safe.
+#if LLVM_VERSION_MAJOR >= 20
+                  bool IsLTOPhase =
+                      Phase == ThinOrFullLTOPhase::ThinLTOPreLink ||
+                      Phase == ThinOrFullLTOPhase::ThinLTOPostLink ||
+                      Phase == ThinOrFullLTOPhase::FullLTOPreLink ||
+                      Phase == ThinOrFullLTOPhase::FullLTOPostLink;
+                  if (IsLTOPhase && !opt::LTOSafe)
                     return;
+#endif
+
+                  // --- 4.1.2: O0 lightweight protection ---
+                  if (OL == OptimizationLevel::O0) {
+                    // At -O0 we only enable the passes that are explicitly
+                    // requested AND that the user has opted into via
+                    // -kagura-o0-protect.  Heavy structural passes (FLA, BCF,
+                    // VM) are skipped because they substantially increase
+                    // compilation time and binary size even at -O0.
+                    if (!opt::O0Protect)
+                      return;
+                    // Lightweight subset at O0: string encryption and anti-debug
+                    // only.  These have bounded, predictable overhead.
+                    if (opt::STR)
+                      MPM.addPass(StringEncryptionPass());
+                    if (opt::STRAES)
+                      MPM.addPass(StringEncryptionAESPass());
+                    if (opt::AntiDebug)
+                      MPM.addPass(AntiDebugPass());
+                    if (opt::DWARFMode != "keep")
+                      MPM.addPass(DWARFControlPass());
+                    return;
+                  }
                   // Snapshot BEFORE obfuscation
                   if (opt::Metrics)
                     MPM.addPass(ObfuscationMetricsPass(/*Before=*/true));
@@ -215,6 +254,12 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   // Snapshot AFTER obfuscation → print report
                   if (opt::Metrics)
                     MPM.addPass(ObfuscationMetricsPass(/*Before=*/false));
+
+                  // --- 4.1.6: DWARF / debug-info control ---
+                  // Run after all obfuscation so that any synthetic debug
+                  // locations introduced by the passes above are also handled.
+                  if (opt::DWARFMode != "keep")
+                    MPM.addPass(DWARFControlPass());
                 });
           }};
 }

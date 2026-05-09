@@ -88,5 +88,22 @@ cl::opt<uint64_t> Seed("kagura-seed",
                        cl::desc("[Kagura] PRNG seed (0 = entropy)"),
                        cl::init(0));
 
+// ---- Phase 4.1 infrastructure flags ----
+
+cl::opt<bool> LTOSafe(
+    "kagura-lto-safe",
+    cl::desc("[Kagura] Run obfuscation passes during LTO/ThinLTO pipeline"),
+    cl::init(false));
+
+cl::opt<bool> O0Protect(
+    "kagura-o0-protect",
+    cl::desc("[Kagura] Enable lightweight protection at -O0 (debug builds)"),
+    cl::init(false));
+
+cl::opt<std::string> DWARFMode(
+    "kagura-dwarf",
+    cl::desc("[Kagura] Debug info handling: keep (default), strip, obfuscate"),
+    cl::init("keep"));
+
 } // namespace opt
 } // namespace kagura

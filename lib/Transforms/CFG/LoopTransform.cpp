@@ -296,6 +296,10 @@ PreservedAnalyses LoopTransformPass::run(Function &F,
     return PreservedAnalyses::all();
   if (F.isDeclaration())
     return PreservedAnalyses::all();
+  // 4.1.10: Loop transformations that insert new blocks or modify the
+  // preheader can break EH unwind tables if landing pads are present.
+  if (hasExceptionHandling(F))
+    return PreservedAnalyses::all();
 
   auto &LI  = FAM.getResult<LoopAnalysis>(F);
   auto &RNG = getModulePRNG();

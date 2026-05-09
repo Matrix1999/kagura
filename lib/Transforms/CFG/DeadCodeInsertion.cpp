@@ -66,6 +66,10 @@ PreservedAnalyses DeadCodeInsertionPass::run(Function &F,
     return PreservedAnalyses::all();
   if (F.isDeclaration() || F.size() < 2)
     return PreservedAnalyses::all();
+  // 4.1.10: Dead blocks inserted between an invoke and its landing pad would
+  // violate EH predecessor constraints.  Skip EH functions entirely.
+  if (hasExceptionHandling(F))
+    return PreservedAnalyses::all();
 
   PRNG &RNG = getModulePRNG();
   uint32_t Prob = kagura::opt::DCIProb;

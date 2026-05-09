@@ -1,9 +1,11 @@
 #include "kagura/Options.h"
 #include "kagura/Utils.h"
 
+#include "llvm/Config/llvm-config.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Local.h"
 
@@ -99,6 +101,73 @@ PRNG &getModulePRNG() {
     Seeded = true;
   }
   return GlobalPRNG;
+}
+
+// ---- Exception-handling safety ----
+
+bool hasExceptionHandling(const Function &F) {
+  for (const BasicBlock &BB : F)
+    for (const Instruction &I : BB)
+      if (isa<InvokeInst>(I) || isa<LandingPadInst>(I) ||
+          isa<ResumeInst>(I) || isa<CleanupPadInst>(I) ||
+          isa<CatchPadInst>(I) || isa<CatchReturnInst>(I) ||
+          isa<CleanupReturnInst>(I))
+        return true;
+  return false;
+}
+
+bool isEHBlock(const BasicBlock &BB) {
+  const Instruction *First = &BB.front();
+  if (isa<LandingPadInst>(First) || isa<CleanupPadInst>(First) ||
+      isa<CatchPadInst>(First))
+    return true;
+  for (const Instruction &I : BB)
+    if (isa<LandingPadInst>(I) || isa<CleanupPadInst>(I) ||
+        isa<CatchPadInst>(I) || isa<ResumeInst>(I))
+      return true;
+  return false;
+}
+
+// ---- Target triple helpers ----
+
+TargetArch getTargetArch(const Module &M) {
+  // getTargetTriple() return type changed across LLVM versions:
+  //   LLVM 17-19: const std::string &   (no .str() member)
+  //   LLVM 20+  : const Triple &        (.str() returns std::string)
+  // Use a helper lambda to produce a uniform std::string.
+#if LLVM_VERSION_MAJOR >= 20
+  std::string TripleStr = M.getTargetTriple().str();
+#else
+  std::string TripleStr = M.getTargetTriple();
+#endif
+  StringRef Triple(TripleStr);
+  // arm64e must be checked before generic aarch64 since it is a substring match.
+  if (Triple.contains("arm64e"))
+    return TargetArch::ARM64e;
+  if (Triple.starts_with("aarch64") || Triple.starts_with("arm64"))
+    return TargetArch::ARM64;
+  if (Triple.starts_with("armv7") || Triple.starts_with("thumbv7"))
+    return TargetArch::ARMv7;
+  if (Triple.starts_with("x86_64") || Triple.starts_with("amd64"))
+    return TargetArch::X86_64;
+  return TargetArch::Other;
+}
+
+bool isAArch64Target(const Module &M) {
+  TargetArch A = getTargetArch(M);
+  return A == TargetArch::ARM64 || A == TargetArch::ARM64e;
+}
+
+bool isArm64eTarget(const Module &M) {
+  return getTargetArch(M) == TargetArch::ARM64e;
+}
+
+bool isARMv7Target(const Module &M) {
+  return getTargetArch(M) == TargetArch::ARMv7;
+}
+
+bool isX86_64Target(const Module &M) {
+  return getTargetArch(M) == TargetArch::X86_64;
 }
 
 // ---- IR helpers ----

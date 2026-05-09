@@ -20,6 +20,7 @@
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
+#include "llvm/Config/llvm-config.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
@@ -188,6 +189,21 @@ static void buildOrPatchJNIOnLoad(Module &M,
 
 PreservedAnalyses JNIObfuscationPass::run(Module &M,
                                            ModuleAnalysisManager &) {
+  // 4.1.7: JNI obfuscation is Android-specific.  Skip on non-Android targets
+  // (iOS, macOS, Linux x86) to avoid accidentally mangling Java_ symbols that
+  // may appear in cross-platform test builds.
+  // getTargetTriple() returns const std::string & on LLVM 17-19 and
+  // const Triple & on LLVM 20+.  getTargetArch() already handles the
+  // version difference; use it instead of calling getTargetTriple() directly.
+#if LLVM_VERSION_MAJOR >= 20
+  std::string TripleStr = M.getTargetTriple().str();
+#else
+  std::string TripleStr = M.getTargetTriple();
+#endif
+  bool IsAndroid = llvm::StringRef(TripleStr).contains("android");
+  if (!IsAndroid && !TripleStr.empty())
+    return PreservedAnalyses::all();
+
   auto &RNG = getModulePRNG();
 
   SmallVector<Function *, 16> JNIFuncs;
