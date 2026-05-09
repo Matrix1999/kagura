@@ -294,6 +294,18 @@ PreservedAnalyses StringEncryptionPass::run(Module &M,
         continue;
       }
       if (auto *Inst = dyn_cast<Instruction>(U)) {
+        // PHI nodes cannot be split-points: splitBasicBlock at a PHI leaves
+        // the PHI in the wrong block with stale predecessor lists.  Skip PHI
+        // uses here; they are reached from a non-PHI use site where the guard
+        // will be inserted, or they are covered by the ConstantExpr path above.
+        if (isa<PHINode>(Inst)) {
+          for (unsigned I = 0; I < Inst->getNumOperands(); ++I) {
+            if (Inst->getOperand(I)->stripPointerCasts() == GV)
+              Inst->setOperand(I, EncGV);
+          }
+          continue;
+        }
+
         // 4.2.4: emit lazy guard — splits the block, so must come before
         // any operand replacement.
         emitLazyGuard(Inst, FlagGV, Stub);

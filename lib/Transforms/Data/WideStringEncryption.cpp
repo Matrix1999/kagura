@@ -278,6 +278,9 @@ PreservedAnalyses WideStringEncryptionPass::run(Module &M,
       auto *Inst = dyn_cast<Instruction>(U);
       if (!Inst)
         continue;
+      // PHI nodes cannot be split-points: skip them to avoid malformed IR.
+      if (isa<PHINode>(Inst))
+        continue;
       LLVMContext &Ctx = M.getContext();
       // Lazy guard: split block, check flag, call stub if 0, set flag.
       BasicBlock *CheckBB  = Inst->getParent();
