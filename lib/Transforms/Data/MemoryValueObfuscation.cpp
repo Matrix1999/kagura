@@ -1,0 +1,141 @@
+//===-- MemoryValueObfuscation.cpp - In-memory value XOR obfuscation ------===//
+//
+// 4.5.1: Obfuscates local (alloca'd) integer variables by wrapping every
+// store/load pair with a compile-time-chosen XOR key.
+//
+// Strategy:
+//   For each AllocaInst of an integer type (i8/i16/i32/i64) whose address does
+//   not escape the function:
+//     - At every StoreInst writing into the alloca, XOR the stored value with
+//       the key before storing (encrypt).
+//     - At every LoadInst reading from the alloca, XOR the loaded value with
+//       the same key after loading (decrypt).
+//
+// The key is a random 64-bit constant truncated to the alloca's element width,
+// generated fresh per function using the module PRNG.
+//
+// Preconditions / conservatism:
+//   - Only allocas with a single integer type element are transformed.
+//   - The alloca's address must not be taken and stored/passed to calls
+//     (isAddressTaken() check) to avoid breaking aliased access.
+//   - PHI / select uses of the alloca pointer are skipped (rare edge case).
+//
+// Pass key:   "kagura-mvo"
+// CLI flag:   -kagura-mvo
+//
+//===----------------------------------------------------------------------===//
+
+#include "kagura/Options.h"
+#include "kagura/Passes.h"
+#include "kagura/Utils.h"
+
+#include "llvm/IR/Function.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
+
+using namespace llvm;
+
+namespace kagura {
+
+// ---- Helpers ---------------------------------------------------------------
+
+static bool isSupportedWidth(unsigned Bits) {
+  return Bits == 8 || Bits == 16 || Bits == 32 || Bits == 64;
+}
+
+/// Returns true if the alloca pointer escapes the function (address taken).
+/// We consider an address "escaped" if it is passed to a Call/Invoke, stored
+/// into memory, or used in a PHI/Select.
+static bool allocaEscapes(const AllocaInst *AI) {
+  for (const auto *U : AI->users()) {
+    if (isa<LoadInst>(U) || isa<StoreInst>(U)) {
+      // A store WHERE AI is the VALUE operand (not the pointer) is an escape.
+      if (const auto *SI = dyn_cast<StoreInst>(U))
+        if (SI->getValueOperand() == AI)
+          return true;
+      continue;
+    }
+    // Any other use (call, GEP, bitcast, PHI, select) = escape
+    return true;
+  }
+  return false;
+}
+
+// ---- Pass entry point -------------------------------------------------------
+
+PreservedAnalyses MemoryValueObfuscationPass::run(Function &F,
+                                                   FunctionAnalysisManager &) {
+  if (!kagura::opt::MVO)
+    return PreservedAnalyses::all();
+  if (!shouldObfuscate(F, "mvo", true))
+    return PreservedAnalyses::all();
+  if (hasExceptionHandling(F))
+    return PreservedAnalyses::all();
+
+  PRNG &RNG    = getModulePRNG();
+  bool Changed = false;
+
+  // Collect eligible allocas upfront (avoid iterator invalidation).
+  SmallVector<AllocaInst *, 16> Targets;
+  for (auto &BB : F)
+    for (auto &I : BB)
+      if (auto *AI = dyn_cast<AllocaInst>(&I)) {
+        Type *Ty = AI->getAllocatedType();
+        if (!Ty->isIntegerTy())
+          continue;
+        if (!isSupportedWidth(Ty->getIntegerBitWidth()))
+          continue;
+        if (AI->isArrayAllocation())
+          continue; // variable-length alloca — skip
+        if (allocaEscapes(AI))
+          continue;
+        Targets.push_back(AI);
+      }
+
+  for (AllocaInst *AI : Targets) {
+    Type *IntTy    = AI->getAllocatedType();
+    unsigned Bits  = IntTy->getIntegerBitWidth();
+    uint64_t RawK  = RNG.next();
+    APInt Key(Bits, RawK);
+    auto *KeyConst = ConstantInt::get(IntTy, Key);
+
+    // Collect all stores/loads from this alloca.
+    SmallVector<StoreInst *, 8> Stores;
+    SmallVector<LoadInst  *, 8> Loads;
+    for (auto *U : AI->users()) {
+      if (auto *SI = dyn_cast<StoreInst>(U))
+        if (SI->getPointerOperand() == AI)
+          Stores.push_back(SI);
+      if (auto *LI = dyn_cast<LoadInst>(U))
+        Loads.push_back(LI);
+    }
+
+    if (Stores.empty() || Loads.empty())
+      continue;
+
+    // Encrypt: before each store, XOR the value with Key.
+    for (StoreInst *SI : Stores) {
+      IRBuilder<> B(SI);
+      Value *Plain = SI->getValueOperand();
+      Value *Enc   = B.CreateXor(Plain, KeyConst, Plain->getName() + ".mvo");
+      SI->setOperand(0, Enc); // replace value operand
+    }
+
+    // Decrypt: after each load, XOR the result with Key.
+    for (LoadInst *LI : Loads) {
+      IRBuilder<> B(LI->getNextNode());
+      Value *Enc   = LI;
+      Value *Plain = B.CreateXor(Enc, KeyConst, LI->getName() + ".mvo");
+      LI->replaceUsesWithIf(Plain, [&](Use &U) {
+        return U.getUser() != Plain;
+      });
+    }
+
+    Changed = true;
+  }
+
+  return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
+}
+
+} // namespace kagura

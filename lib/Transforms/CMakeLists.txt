@@ -17,6 +17,9 @@ add_llvm_pass_plugin(KaguraObfuscator
 
   # Phase 4.1 Infrastructure
   Infrastructure/DWARFControl.cpp
+  # Phase 4.6 Build System / DX
+  Infrastructure/ConfigLoader.cpp
+  Infrastructure/SymbolMap.cpp
 
   # CFG obfuscation
   CFG/ControlFlowFlattening.cpp
@@ -32,6 +35,7 @@ add_llvm_pass_plugin(KaguraObfuscator
   Data/StringEncryption.cpp
   Data/StringEncryptionAES.cpp
   Data/WideStringEncryption.cpp
+  Data/MemoryValueObfuscation.cpp
   Data/ConstantObfuscation.cpp
   Data/GlobalEncryption.cpp
   Data/Substitution.cpp
@@ -39,6 +43,7 @@ add_llvm_pass_plugin(KaguraObfuscator
   # Anti-analysis
   AntiAnalysis/AntiDebug.cpp
   AntiAnalysis/AntiTamper.cpp
+  AntiAnalysis/HoneyValue.cpp
   AntiAnalysis/CallIndirection.cpp
   AntiAnalysis/PointerAuth.cpp
   AntiAnalysis/SymbolVisibility.cpp

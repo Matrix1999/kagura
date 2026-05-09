@@ -72,6 +72,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     FPM.addPass(BasicBlockSplittingPass());
                     return true;
                   }
+                  if (Name == "kagura-mvo") {
+                    FPM.addPass(MemoryValueObfuscationPass());
+                    return true;
+                  }
                   if (Name == "kagura-anti-debug") {
                     // Handled at module level; no-op here
                     return true;
@@ -82,6 +86,18 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
             PB.registerPipelineParsingCallback(
                 [](StringRef Name, ModulePassManager &MPM,
                    ArrayRef<PassBuilder::PipelineElement>) -> bool {
+                  if (Name == "kagura-config") {
+                    MPM.addPass(ConfigLoaderPass());
+                    return true;
+                  }
+                  if (Name == "kagura-symmap") {
+                    MPM.addPass(SymbolMapPass());
+                    return true;
+                  }
+                  if (Name == "kagura-honey") {
+                    MPM.addPass(HoneyValuePass());
+                    return true;
+                  }
                   if (Name == "kagura-dwarf-control") {
                     MPM.addPass(DWARFControlPass());
                     return true;
@@ -147,6 +163,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
 #else
                 [](ModulePassManager &MPM, OptimizationLevel OL) {
 #endif
+                  // --- 4.6.1 + 4.6.2: Load JSON config / apply profile preset ---
+                  if (!opt::ConfigFile.empty())
+                    MPM.addPass(ConfigLoaderPass());
+
                   // --- 4.1.1: LTO / ThinLTO pipeline gating ---
                   // During link-time optimisation the IR is often an incomplete
                   // cross-module view.  Passes that inject new globals or rely on
@@ -211,6 +231,8 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(FunctionSplitPass());
                   if (opt::GENC)
                     MPM.addPass(GlobalEncryptionPass());
+                  if (opt::Honey)
+                    MPM.addPass(HoneyValuePass());
                   if (opt::SV)
                     MPM.addPass(SymbolVisibilityPass());
 
@@ -256,6 +278,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     FPM.addPass(BasicBlockSplittingPass());
                     HasFunctionPass = true;
                   }
+                  if (opt::MVO) {
+                    FPM.addPass(MemoryValueObfuscationPass());
+                    HasFunctionPass = true;
+                  }
                   if (HasFunctionPass)
                     MPM.addPass(createModuleToFunctionPassAdaptor(
                         std::move(FPM)));
@@ -268,6 +294,11 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   // locations introduced by the passes above are also handled.
                   if (opt::DWARFMode != "keep")
                     MPM.addPass(DWARFControlPass());
+
+                  // --- 4.6.5: Symbol map output ---
+                  // Run last so all obfuscated names are already in place.
+                  if (opt::SymMap)
+                    MPM.addPass(SymbolMapPass());
                 });
           }};
 }

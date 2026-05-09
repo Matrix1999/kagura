@@ -66,5 +66,24 @@ extern llvm::cl::opt<std::string> DWARFMode;
 /// literals and ObjC/CoreFoundation CFString backing buffers.
 extern llvm::cl::opt<bool> WSTR;
 
+// ---- Phase 4.5 game / anti-cheat flags ----
+
+/// 4.5.1: In-memory integer variable XOR obfuscation.
+extern llvm::cl::opt<bool> MVO;
+
+/// 4.5.3 / 4.5.4: Honey value / decoy variable and fake symbol injection.
+extern llvm::cl::opt<bool> Honey;
+
+// ---- Phase 4.6 build-system / DX flags ----
+
+/// 4.6.1: Path to the JSON policy configuration file.
+extern llvm::cl::opt<std::string> ConfigFile;
+
+/// 4.6.5: Enable symbol map output.
+extern llvm::cl::opt<bool> SymMap;
+
+/// 4.6.5: Output path for the symbol map JSON file.
+extern llvm::cl::opt<std::string> SymMapOut;
+
 } // namespace opt
 } // namespace kagura

@@ -219,6 +219,45 @@ struct DeadCodeInsertionPass
   static bool isRequired() { return false; }
 };
 
+// ---- Phase 4.5 Game / Anti-Cheat ----
+
+/// 4.5.1: XOR-encrypts local (alloca'd) integer variables at every store site
+/// and decrypts at every load site, protecting in-memory values from memory
+/// dump and debugger inspection.
+struct MemoryValueObfuscationPass
+    : public llvm::PassInfoMixin<MemoryValueObfuscationPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
+/// 4.5.3 / 4.5.4: Injects decoy global variables containing fake secrets and
+/// stub functions with plausible security-sounding names to mislead attackers.
+struct HoneyValuePass : public llvm::PassInfoMixin<HoneyValuePass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
+// ---- Phase 4.6 Build System / DX ----
+
+/// 4.6.1 + 4.6.2: Reads a JSON policy file and applies per-module protection
+/// settings, including profile presets (FAST / BALANCED / STRONG) and
+/// per-pass enable/disable overrides.  Run BEFORE other passes.
+struct ConfigLoaderPass : public llvm::PassInfoMixin<ConfigLoaderPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
+/// 4.6.5: Emits a JSON symbol map recording original and obfuscated names.
+/// Run AFTER all obfuscation passes.
+struct SymbolMapPass : public llvm::PassInfoMixin<SymbolMapPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Phase 4.2 Data Protection ----
 
 /// Encrypts wide-character string literals (wchar_t / char16_t / char32_t)
