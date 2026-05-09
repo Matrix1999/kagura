@@ -90,7 +90,9 @@ int kagura_check_inline_hooks(void) {
  */
 
 #ifdef __linux__
+#include <elf.h>
 #include <link.h>
+#include <dlfcn.h>
 #include <stdlib.h>
 
 /* Callback data for the GOT scan */
@@ -129,7 +131,11 @@ static int _kagura_got_phdr_cb(struct dl_phdr_info *info,
         if (!strtab || !symtab || !rela || rela_count == 0) continue;
 
         for (size_t j = 0; j < rela_count; ++j) {
-            unsigned sym_idx = ELFW(R_SYM)(rela[j].r_info);
+#if __SIZEOF_POINTER__ == 8
+            unsigned sym_idx = (unsigned)ELF64_R_SYM(rela[j].r_info);
+#else
+            unsigned sym_idx = (unsigned)ELF32_R_SYM(rela[j].r_info);
+#endif
             if (sym_idx == 0) continue;
 
             const char *sym_name = strtab + symtab[sym_idx].st_name;
