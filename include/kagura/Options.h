@@ -43,5 +43,22 @@ extern llvm::cl::opt<uint32_t> SUBIter;
 extern llvm::cl::opt<uint32_t> DCIProb;
 extern llvm::cl::opt<uint64_t> Seed;
 
+// ---- Phase 4.1 infrastructure flags ----
+
+/// 4.1.1 / 4.1.2: Enable protection during LTO/ThinLTO pipeline phases.
+/// When false (default), kagura skips module passes that are unsafe to run
+/// during link-time optimisation (e.g. passes that assume single-module IR).
+extern llvm::cl::opt<bool> LTOSafe;
+
+/// 4.1.2: Enable a lightweight pass subset at -O0 (debug builds).
+/// When false (default), all passes are skipped at O0 for build speed.
+extern llvm::cl::opt<bool> O0Protect;
+
+/// 4.1.6: DWARF / debug-info handling mode.
+///   "keep"  (default) — preserve all debug info unchanged.
+///   "strip" — remove all debug metadata from functions touched by kagura.
+///   "obfuscate" — remap source locations to synthetic coordinates.
+extern llvm::cl::opt<std::string> DWARFMode;
+
 } // namespace opt
 } // namespace kagura
