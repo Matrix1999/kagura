@@ -208,6 +208,7 @@ kagura-<version>-macos-arm64-llvm21.tar.gz
 kagura-<version>-macos-arm64-llvm22.tar.gz
 kagura-<version>-linux-x86_64-llvm19.tar.gz
 kagura-<version>-linux-x86_64-llvm21.tar.gz
+kagura-<version>-linux-x86_64-llvm22.tar.gz
 ```
 
 Each archive contains:

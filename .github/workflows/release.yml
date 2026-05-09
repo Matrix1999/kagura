@@ -51,6 +51,13 @@ jobs:
             runtime-prefix: lib
             runtime-ext: a
 
+          - runner: ubuntu-22.04
+            os-label: linux-x86_64
+            llvm: "22"
+            plugin-ext: so
+            runtime-prefix: lib
+            runtime-ext: a
+
     steps:
       - uses: actions/checkout@v4
 
@@ -98,7 +105,8 @@ jobs:
             -DLLVM_DIR="${LLVM_PREFIX}/lib/cmake/llvm" \
             -DCMAKE_C_COMPILER="${KAGURA_CC}" \
             -DCMAKE_CXX_COMPILER="${KAGURA_CXX}" \
-            -DKAGURA_BUILD_TESTS=OFF
+            -DKAGURA_BUILD_TESTS=OFF \
+            -DKAGURA_BITCODE_TOOLS=OFF
 
       # ── Build ──────────────────────────────────────────────────────────────
       - name: Build
