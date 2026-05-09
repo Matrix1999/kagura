@@ -18,7 +18,7 @@ cd build && ctest --output-on-failure
 5. Register in `lib/Transforms/Plugin.cpp`:
    - Named-pass callback via `registerPipelineParsingCallback`
    - Auto-injection via `registerOptimizerLastEPCallback` (if applicable)
-6. Add integration test input to `tests/inputs/`
+6. Add a C source to `tests/pass-inputs/`
 7. Add a `kagura_add_pass_test()` entry in `tests/CMakeLists.txt`
 8. Add a FileCheck test in `tests/lit/<your-pass>.ll`
 
@@ -38,7 +38,7 @@ If your pass needs runtime support, add a `.c` file under `runtime/` and registe
 
 ## Tests
 
-- **Integration tests** (`tests/inputs/` + `tests/CMakeLists.txt`): verify the pass compiles and runs without crashing on real C inputs
+- **Pass-level IR tests** (`tests/pass-inputs/` + `tests/CMakeLists.txt`): each file is compiled to bitcode and run through `opt` to verify the pass executes without crashing
 - **FileCheck lit tests** (`tests/lit/`): verify specific IR transformations using `.ll` inputs with `; CHECK:` directives
 
 All tests must pass across LLVM 17, 19, 21, and 22.

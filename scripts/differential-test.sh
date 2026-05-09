@@ -38,7 +38,7 @@ if [[ "${OS}" == "Darwin" ]]; then
 else
     PLUGIN="${1:-${REPO_ROOT}/build/lib/Transforms/KaguraObfuscator.so}"
 fi
-TEST_DIR="${2:-${REPO_ROOT}/tests/inputs}"
+TEST_DIR="${2:-${REPO_ROOT}/tests/pass-inputs}"
 SEED="${KAGURA_SEED:-42}"
 
 # Standard obfuscation pipeline used for differential testing.

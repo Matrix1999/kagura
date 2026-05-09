@@ -47,39 +47,60 @@ let package = Package(
             name: "KaguraRuntime",
             path: ".",
             sources: [
-                "runtime/anti_debug.c",
+                // --- Core crypto / shared utilities ---
                 "runtime/aes.c",
-                "runtime/il2cpp_protection.c",
-                "runtime/jailbreak_detection.c",
-                "runtime/vm_interpreter.c",
-                "runtime/hook_detection.c",
-                "runtime/breakpoint_detection.c",
-                "runtime/emulator_detection.c",
                 "runtime/zero_buf.c",
-                "runtime/macho_integrity.c",
-                "runtime/ios_integrity.c",
-                "runtime/ios_jailbreak_advanced.c",
+                "runtime/device_key.c",
+                "runtime/blob_integrity.c",
+
+                // --- Anti-debug / anti-analysis (cross-platform) ---
+                "runtime/anti_debug.c",
+                "runtime/breakpoint_detection.c",
+                "runtime/hook_detection.c",
+                "runtime/emulator_detection.c",
                 "runtime/loaded_library_scan.c",
                 "runtime/symbol_interposition.c",
-                "runtime/direct_syscall.c",
+                "runtime/anti_dump.c",
+                "runtime/soft_response.c",
+
+                // --- iOS / macOS integrity & jailbreak detection ---
+                "runtime/jailbreak_detection.c",
+                "runtime/ios_integrity.c",
+                "runtime/ios_jailbreak_advanced.c",
                 "runtime/ios_platform.c",
-                "runtime/blob_integrity.c",
+                "runtime/macho_integrity.c",
                 "runtime/fishhook_countermeasure.c",
                 "runtime/testflight_detect.c",
+                "runtime/swift_protection.c",
+                "runtime/objc_name_remap.c",
+
+                // --- Anti-cheat / game integrity ---
+                "runtime/il2cpp_protection.c",
+                "runtime/game_values.c",
                 "runtime/state_integrity.c",
                 "runtime/behavior_log.c",
-                "runtime/game_values.c",
-                "runtime/soft_response.c",
-                "runtime/device_key.c",
+                "runtime/integrity_report.c",
+
+                // --- Crash symbolication ---
                 "runtime/crash_symbolication.c",
-                // Android-guarded files below compile to empty TUs on Apple.
+
+                // --- VM interpreter ---
+                "runtime/vm_interpreter.c",
+
+                // --- Android / Linux files below compile to empty TUs on Apple ---
+                // (guarded internally with #ifdef __ANDROID__ / #ifdef __linux__)
+                "runtime/direct_syscall.c",
+                "runtime/proc_inspection.c",
+                "runtime/seccomp_checks.c",
+                "runtime/android_root_advanced.c",
                 "runtime/jni_hook_detection.c",
                 "runtime/play_integrity.c",
                 "runtime/safetynet_compat.c",
                 "runtime/art_environment.c",
-                "runtime/proc_inspection.c",
-                "runtime/seccomp_checks.c",
                 "runtime/load_order.c",
+                "runtime/apk_integrity.c",
+                "runtime/elf_integrity.c",
+                "runtime/split_apk.c",
             ],
             publicHeadersPath: "include",
             cSettings: [

@@ -22,7 +22,7 @@ macro(kagura_add_pass_test TEST_NAME PASS_PIPELINE SOURCE_FILE)
       -DOPT=${LLVM_BIN}/opt
       -DPLUGIN=${KAGURA_PLUGIN}
       -DPASSES=${PASS_PIPELINE}
-      -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/inputs/${SOURCE_FILE}
+      -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/pass-inputs/${SOURCE_FILE}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/run_pass_test.cmake
   )
 endmacro()
