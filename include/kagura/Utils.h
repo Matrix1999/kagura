@@ -73,6 +73,12 @@ enum class TargetArch {
   Other,
 };
 
+/// Return the module's target triple as a std::string.
+/// Handles the getTargetTriple() API difference between LLVM versions:
+///   LLVM 17-19: returns const std::string &
+///   LLVM 20+  : returns const Triple &
+std::string getModuleTriple(const llvm::Module &M);
+
 /// Return the architecture of the module's target triple.
 TargetArch getTargetArch(const llvm::Module &M);
 
