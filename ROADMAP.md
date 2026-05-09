@@ -75,19 +75,19 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | ID | Feature | Priority | Effort | Status |
 |:---|:--------|:---------|:-------|:-------|
 | 4.3.1 | Mach-O structure tampering detection (LC_LOAD_DYLIB, code signature blob) | High | M | ✅ Done |
-| 4.3.2 | ELF structure tampering detection (section hash, PHT verification) | High | M | — |
-| 4.3.3 | iOS code signing status verification (embedded.mobileprovision) | High | M | — |
+| 4.3.2 | ELF structure tampering detection (section hash, PHT verification) | High | M | ✅ Done |
+| 4.3.3 | iOS code signing status verification (embedded.mobileprovision) | High | M | ✅ Done |
 | 4.3.4 | Android APK signature verification (v2/v3/v4) | High | M | ✅ Done |
 | 4.3.5 | Dynamic library injection detection (DYLD_INSERT) | High | S | ✅ Done |
-| 4.3.6 | Loaded module inspection (suspicious dylib/so) | High | M | — |
+| 4.3.6 | Loaded module inspection (suspicious dylib/so) | High | M | ✅ Done |
 | 4.3.7 | GOT/PLT hook detection | High | M | ✅ Done |
 | 4.3.8 | Symbol interposition detection | Med | M | — |
-| 4.3.9 | ObjC method swizzling detection | High | M | — |
+| 4.3.9 | ObjC method swizzling detection | High | M | ✅ Done |
 | 4.3.10 | JNI table hook detection | Med | M | — |
 | 4.3.11 | Direct syscall invocation (hook bypass) | Med | M | — |
-| 4.3.12 | Hardware breakpoint detection | Med | S | — |
-| 4.3.13 | Memory page permission check (W+X detection) | Med | S | — |
-| 4.3.14 | App repackaging detection | High | M | — |
+| 4.3.12 | Hardware breakpoint detection | Med | S | ✅ Done |
+| 4.3.13 | Memory page permission check (W+X detection) | Med | S | ✅ Done |
+| 4.3.14 | App repackaging detection | High | M | ✅ Done |
 | 4.3.15 | Anti-dump / anti-memory-scan | Low | L | — |
 | 4.3.16 | Basic block level checksum (fine-grained integrity) | Low | L | — |
 
@@ -99,25 +99,25 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 
 #### iOS
 
-| ID | Feature | Priority | Effort |
-|:---|:--------|:---------|:-------|
-| 4.4.1 | Jailbreak filesystem artifact detection | High | M |
-| 4.4.2 | Cydia/Substrate/FridaGadget.dylib detection | High | S |
-| 4.4.3 | fishhook countermeasure (rebinding detection) | Med | M |
-| 4.4.4 | Swift metadata / demangling countermeasure | Med | L |
-| 4.4.5 | TestFlight vs. production differentiation | Low | S |
-| 4.4.6 | iOS simulator exclusion (TARGET_OS_SIMULATOR) | Med | S |
-| 4.4.7 | Entitlements verification | Med | S |
-| 4.4.8 | App Store review safety validation | High | M |
-| 4.4.9 | dyld image list runtime inspection | Med | S |
+| ID | Feature | Priority | Effort | Status |
+|:---|:--------|:---------|:-------|:-------|
+| 4.4.1 | Jailbreak filesystem artifact detection | High | M | ✅ Done |
+| 4.4.2 | Cydia/Substrate/FridaGadget.dylib detection | High | S | ✅ Done |
+| 4.4.3 | fishhook countermeasure (rebinding detection) | Med | M | — |
+| 4.4.4 | Swift metadata / demangling countermeasure | Med | L | — |
+| 4.4.5 | TestFlight vs. production differentiation | Low | S | — |
+| 4.4.6 | iOS simulator exclusion (TARGET_OS_SIMULATOR) | Med | S | — |
+| 4.4.7 | Entitlements verification | Med | S | — |
+| 4.4.8 | App Store review safety validation | High | M | — |
+| 4.4.9 | dyld image list runtime inspection | Med | S | — |
 
 #### Android
 
-| ID | Feature | Priority | Effort |
-|:---|:--------|:---------|:-------|
-| 4.4.10 | Magisk/Zygisk detection | High | M |
-| 4.4.11 | Xposed/LSPosed detection | High | M |
-| 4.4.12 | /proc inspection hardening (maps/status/mounts/fd) | Med | M |
+| ID | Feature | Priority | Effort | Status |
+|:---|:--------|:---------|:-------|:-------|
+| 4.4.10 | Magisk/Zygisk detection | High | M | ✅ Done |
+| 4.4.11 | Xposed/LSPosed detection | High | M | ✅ Done |
+| 4.4.12 | /proc inspection hardening (maps/status/mounts/fd) | Med | M | — |
 | 4.4.13 | Play Integrity API integration | High | M |
 | 4.4.14 | SafetyNet backward compatibility | Low | S |
 | 4.4.15 | ART/JIT environment considerations | Med | M |
