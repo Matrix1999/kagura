@@ -72,6 +72,9 @@ cl::opt<bool> GENC("kagura-genc",
 cl::opt<bool> PE("kagura-pe",
                  cl::desc("[Kagura] Pointer encryption (address obfuscation)"),
                  cl::init(false));
+cl::opt<bool> Telemetry("kagura-telemetry",
+                        cl::desc("[Kagura] Inject telemetry event probes"),
+                        cl::init(false));
 
 // ---- Pass tuning parameters ----
 

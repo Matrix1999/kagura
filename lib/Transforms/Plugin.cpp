@@ -80,6 +80,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     FPM.addPass(PointerEncryptionPass());
                     return true;
                   }
+                  if (Name == "kagura-telemetry") {
+                    FPM.addPass(TelemetryPass());
+                    return true;
+                  }
                   if (Name == "kagura-anti-debug") {
                     // Handled at module level; no-op here
                     return true;
@@ -292,6 +296,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (opt::PE) {
                     FPM.addPass(PointerEncryptionPass());
+                    HasFunctionPass = true;
+                  }
+                  if (opt::Telemetry) {
+                    FPM.addPass(TelemetryPass());
                     HasFunctionPass = true;
                   }
                   if (HasFunctionPass)

@@ -82,6 +82,16 @@ bool shouldObfuscate(Function &F, StringRef PassAttr, bool GlobalFlag) {
   if (F.getName().starts_with("kagura_"))
     return false;
 
+  // 4.1.9: Sanitizer compatibility — skip obfuscation when ASan, TSan, UBSan,
+  // or MSan function attributes are present to prevent false positives.
+  // Functions built with sanitizers have __sanitizer_* attributes or
+  // the "noinstrument" attribute set by the sanitizer runtime.
+  if (F.hasFnAttribute(Attribute::SanitizeAddress) ||
+      F.hasFnAttribute(Attribute::SanitizeThread)  ||
+      F.hasFnAttribute(Attribute::SanitizeMemory)  ||
+      F.hasFnAttribute(Attribute::SanitizeHWAddress))
+    return false;
+
   StringRef Name = F.getName();
 
   // 4.6.3: force-protect list — overrides everything except deny

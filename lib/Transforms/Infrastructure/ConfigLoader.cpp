@@ -141,6 +141,8 @@ static void applyPassesObject(const json::Object &Passes) {
   getBool("anti_debug", opt::AntiDebug);
   getBool("objc",   opt::ObjC);
   getBool("jni",    opt::JNI);
+  getBool("pe",     opt::PE);
+  getBool("telemetry", opt::Telemetry);
 
   if (auto DwarfVal = Passes.getString("dwarf"))
     opt::DWARFMode = DwarfVal->str();

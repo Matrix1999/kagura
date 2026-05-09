@@ -49,6 +49,7 @@ add_llvm_pass_plugin(KaguraObfuscator
   AntiAnalysis/CallIndirection.cpp
   AntiAnalysis/PointerAuth.cpp
   AntiAnalysis/SymbolVisibility.cpp
+  AntiAnalysis/Telemetry.cpp
 
   # Platform-specific
   Platform/ObjCObfuscation.cpp

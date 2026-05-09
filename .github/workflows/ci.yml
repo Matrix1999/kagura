@@ -9,12 +9,18 @@ on:
 jobs:
   build:
     name: Build & Test (LLVM ${{ matrix.llvm }})
-    runs-on: macos-14
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        llvm: ["19", "21", "22"]
+        include:
+          # macOS arm64 runners
+          - { os: macos-14, llvm: "17" }
+          - { os: macos-14, llvm: "18" }
+          - { os: macos-14, llvm: "19" }
+          - { os: macos-14, llvm: "21" }
+          - { os: macos-14, llvm: "22" }
 
     steps:
       - uses: actions/checkout@v4

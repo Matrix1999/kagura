@@ -32,12 +32,12 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.1.1 | LTO / ThinLTO pipeline support | High | M | ✅ Done |
 | 4.1.2 | O0 mode (lightweight protection for debug builds) | High | S | ✅ Done |
 | 4.1.3 | Legacy pass manager compatibility layer (LLVM 14-16) | Low | L | — |
-| 4.1.4 | Loop pass separation (move LoopTransform under LoopPassManager) | Med | S | — |
+| 4.1.4 | Loop pass separation (move LoopTransform under LoopPassManager) | Med | S | ✅ Done |
 | 4.1.5 | Bitcode input support (beyond opt workflows) | Med | S | — |
 | 4.1.6 | DWARF debug info stripping/transformation control | High | M | ✅ Done |
 | 4.1.7 | Target triple dispatch (ARM64 / ARMv7 / x86_64) | High | M | ✅ Done |
 | 4.1.8 | arm64e / hardware PAC integration | Med | M | — |
-| 4.1.9 | Sanitizer compatibility (ASan, TSan, UBSan) | Med | M | — |
+| 4.1.9 | Sanitizer compatibility (ASan, TSan, UBSan) | Med | M | ✅ Done |
 | 4.1.10 | Exception handling safety (C++ EH, ObjC @try) | High | M | ✅ Done |
 | 4.1.11 | RTTI / vtable protection | Med | L | — |
 | 4.1.12 | Reproducible build / deterministic output verification | High | S | ✅ Done |
@@ -60,7 +60,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.2.6 | Device-bound key derivation (UDID / Android ID) | Med | M | ✅ Done |
 | 4.2.7 | Build-time key rotation (unique keys per build) | Med | S | ✅ Done |
 | 4.2.8 | Per-customer / per-app variant generation | Low | L | — |
-| 4.2.9 | Native constant encryption (float/double included) | Med | M | — |
+| 4.2.9 | Native constant encryption (float/double included) | Med | M | ✅ Done |
 | 4.2.10 | Encrypted lookup table (table encoding) | Low | L | — |
 | 4.2.11 | White-box cryptography | Low | XL | — |
 | 4.2.12 | Network endpoint / API key / config blob protection | High | M | ✅ Done |
@@ -139,7 +139,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.5.3 | Honey value / decoy variable | High | M | ✅ Done |
 | 4.5.4 | Fake function / fake symbol (attacker misdirection) | Med | S | ✅ Done |
 | 4.5.5 | State integrity check (client-side invariant) | Med | M | ✅ Done |
-| 4.5.6 | Telemetry insertion (cheat signal collection) | Med | M | — |
+| 4.5.6 | Telemetry insertion (cheat signal collection) | Med | M | ✅ Done |
 | 4.5.7 | Suspicious behavior logging | Med | M | ✅ Done |
 | 4.5.8 | Delayed/soft response design (no immediate ban) | Low | S | ✅ Done |
 | 4.5.9 | Integrity report signing + replay prevention | Low | M | — |
@@ -181,7 +181,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 |:---|:--------|:---------|:-------|:-------|
 | 4.7.1 | FileCheck lit tests (per-pass IR verification) | High | L | ✅ Done |
 | 4.7.2 | Integration tests (real app smoke tests) | High | L | — |
-| 4.7.3 | LLVM version matrix expansion (add 17, 18) | Med | M | — |
+| 4.7.3 | LLVM version matrix expansion (add 17, 18) | Med | M | ✅ Done |
 | 4.7.4 | NDK version matrix | Med | M | — |
 | 4.7.5 | Fuzzing (crash detection on pass inputs) | Med | L | — |
 | 4.7.6 | Differential testing (obfuscated vs. plain behavior match) | High | L | ✅ Done |

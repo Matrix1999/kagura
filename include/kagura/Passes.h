@@ -247,6 +247,16 @@ struct HoneyValuePass : public llvm::PassInfoMixin<HoneyValuePass> {
   static bool isRequired() { return false; }
 };
 
+// ---- Phase 4.5 Game / Anti-Cheat (additional) ----
+
+/// 4.5.6: Injects a call to kagura_telemetry_event(uint32_t id) at the entry
+/// of instrumented functions to collect behavioral signals for cheat detection.
+struct TelemetryPass : public llvm::PassInfoMixin<TelemetryPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Phase 4.6 Build System / DX ----
 
 /// 4.6.10: Emits a JSON audit log recording all obfuscated functions and
