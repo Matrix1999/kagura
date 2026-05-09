@@ -53,6 +53,12 @@ add_library(kagura_runtime STATIC
   safetynet_compat.c
   # Phase 4.6.6 Crash symbolication support (dSYM / tombstone)
   crash_symbolication.c
+  # Phase 4.3.15 Anti-dump / anti-memory-scan
+  anti_dump.c
+  # Phase 4.5.9 + 4.5.10 Integrity report signing + nonce/challenge-response
+  integrity_report.c
+  # Phase 4.4.18 Split APK / AAB support (Android)
+  split_apk.c
 )
 
 target_include_directories(kagura_runtime PUBLIC

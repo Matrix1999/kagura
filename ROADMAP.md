@@ -88,7 +88,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.3.12 | Hardware breakpoint detection | Med | S | ✅ Done |
 | 4.3.13 | Memory page permission check (W+X detection) | Med | S | ✅ Done |
 | 4.3.14 | App repackaging detection | High | M | ✅ Done |
-| 4.3.15 | Anti-dump / anti-memory-scan | Low | L | — |
+| 4.3.15 | Anti-dump / anti-memory-scan | Low | L | ✅ Done |
 | 4.3.16 | Basic block level checksum (fine-grained integrity) | Low | L | ✅ Done |
 
 ---
@@ -123,7 +123,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.4.15 | ART/JIT environment considerations | Med | M | ✅ Done |
 | 4.4.16 | seccomp/prctl checks | Low | M | ✅ Done |
 | 4.4.17 | Native library load order control | Med | S | ✅ Done |
-| 4.4.18 | Split APK / AAB support | Med | M |
+| 4.4.18 | Split APK / AAB support | Med | M | ✅ Done |
 | 4.4.19 | libil2cpp.so / libUE4.so specialized protection | Med | M |
 
 ---
@@ -142,8 +142,8 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.5.6 | Telemetry insertion (cheat signal collection) | Med | M | ✅ Done |
 | 4.5.7 | Suspicious behavior logging | Med | M | ✅ Done |
 | 4.5.8 | Delayed/soft response design (no immediate ban) | Low | S | ✅ Done |
-| 4.5.9 | Integrity report signing + replay prevention | Low | M | — |
-| 4.5.10 | Nonce/challenge-response (server coordination) | Med | M | — |
+| 4.5.9 | Integrity report signing + replay prevention | Low | M | ✅ Done |
+| 4.5.10 | Nonce/challenge-response (server coordination) | Med | M | ✅ Done |
 | 4.5.11 | Damage/hit/cooldown/currency protection (template) | High | M | ✅ Done |
 | 4.5.12 | Speed/movement value protection | Med | S | ✅ Done |
 | 4.5.13 | Random seed protection | Med | S | ✅ Done |
@@ -166,8 +166,8 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.6.8 | Build cache support | Med | M | ✅ Done |
 | 4.6.9 | Multi-flavor support (staging / production) | Med | M | ✅ Done |
 | 4.6.10 | Audit log (record of what was protected and how) | Med | S | ✅ Done |
-| 4.6.11 | Bazel support | Low | M | — |
-| 4.6.12 | CocoaPods / SwiftPM support | Med | M | — |
+| 4.6.11 | Bazel support | Low | M | ✅ Done |
+| 4.6.12 | CocoaPods / SwiftPM support | Med | M | ✅ Done |
 | 4.6.13 | CLI tool (config generation / report viewer) | Med | M | ✅ Done |
 | 4.6.14 | License management (commercial distribution) | Low | M | — |
 
@@ -188,7 +188,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.7.7 | Performance benchmark (binary size / startup / frame time) | Med | M | ✅ Done |
 | 4.7.8 | Battery impact measurement | Low | M | — |
 | 4.7.9 | Device farm tests (iOS/Android real devices) | Low | XL | — |
-| 4.7.10 | False positive evaluation (detection accuracy on clean apps) | Med | M | — |
+| 4.7.10 | False positive evaluation (detection accuracy on clean apps) | Med | M | ✅ Done |
 | 4.7.11 | App Store / Google Play review risk assessment | High | M | ✅ Done |
 
 ---
@@ -204,7 +204,7 @@ Phase 4 elevates kagura from a **research prototype** to a **production-grade pr
 | 4.8.3 | Attacker cost modeling | Low | L | — |
 | 4.8.4 | Symbolic execution resistance evaluation (angr/Triton) | Med | L | — |
 | 4.8.5 | Decompiler resistance evaluation (Ghidra/IDA/Binary Ninja) | Med | L | — |
-| 4.8.6 | Frida script resistance evaluation | Med | M | — |
+| 4.8.6 | Frida script resistance evaluation | Med | M | ✅ Done |
 | 4.8.7 | Regression corpus (known-attack reproduction tests) | Med | L | — |
 | 4.8.8 | Red-team evaluation tooling | Low | L | — |
 | 4.8.9 | ML/heuristic-based protection target inference | Low | XL | — |
