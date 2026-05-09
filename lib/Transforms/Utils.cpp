@@ -243,6 +243,13 @@ bool isX86_64Target(const Module &M) {
 // ---- IR helpers ----
 
 void demotePhis(Function &F) {
+  // Full reg2mem: demote both PHI nodes and any non-PHI instruction whose
+  // uses cross a basic-block boundary.  FLA rewires the entire CFG into a
+  // switch dispatch, so the old dominator tree is invalidated — every
+  // cross-block SSA use would violate dominance in the new CFG.
+  //
+  // Process PHIs first (they must be demoted before the instructions that
+  // use their results, otherwise DemoteRegToStack trips on a PHI user).
   std::vector<PHINode *> Phis;
   for (auto &BB : F)
     for (auto &I : BB)
@@ -250,6 +257,24 @@ void demotePhis(Function &F) {
         Phis.push_back(Phi);
   for (auto *Phi : Phis)
     DemotePHIToStack(Phi);
+
+  // Now demote non-PHI instructions with cross-block uses.
+  std::vector<Instruction *> ToSpill;
+  for (auto &BB : F) {
+    for (auto &I : BB) {
+      if (isa<PHINode>(I) || I.isTerminator() || I.use_empty())
+        continue;
+      for (auto *U : I.users()) {
+        auto *UI = dyn_cast<Instruction>(U);
+        if (UI && UI->getParent() != &BB) {
+          ToSpill.push_back(&I);
+          break;
+        }
+      }
+    }
+  }
+  for (auto *I : ToSpill)
+    DemoteRegToStack(*I, /*VolatileLoads=*/false);
 }
 
 std::vector<BasicBlock *> getBlocks(Function &F) {
