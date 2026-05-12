@@ -82,12 +82,28 @@ static bool flattenFunction(Function &F, PRNG &RNG) {
   IRBuilder<>(DefaultBB).CreateUnreachable();
 
   // Replace OrigEntry's terminator with: store initVal; br PreLoop
+  // For conditional branches, use a select to pick the correct initial
+  // switch value so both paths are faithfully represented.
   {
-    uint32_t InitVal = (EntrySucc && CaseMap.count(EntrySucc))
-                           ? CaseMap[EntrySucc]
-                           : 0;
     IRBuilder<> B(EntryTerm);
-    B.CreateStore(ConstantInt::get(Int32Ty, InitVal), SwitchVar);
+    Value *InitVal = nullptr;
+    if (auto *CondBr = dyn_cast<BranchInst>(EntryTerm);
+        CondBr && CondBr->isConditional()) {
+      BasicBlock *TrueBB  = CondBr->getSuccessor(0);
+      BasicBlock *FalseBB = CondBr->getSuccessor(1);
+      uint32_t TV = CaseMap.count(TrueBB)  ? CaseMap[TrueBB]  : 0;
+      uint32_t FV = CaseMap.count(FalseBB) ? CaseMap[FalseBB] : 0;
+      InitVal = B.CreateSelect(CondBr->getCondition(),
+                               ConstantInt::get(Int32Ty, TV),
+                               ConstantInt::get(Int32Ty, FV),
+                               "kagura.init");
+    } else {
+      uint32_t IV = (EntrySucc && CaseMap.count(EntrySucc))
+                        ? CaseMap[EntrySucc]
+                        : 0;
+      InitVal = ConstantInt::get(Int32Ty, IV);
+    }
+    B.CreateStore(InitVal, SwitchVar);
     B.CreateBr(PreLoop);
     EntryTerm->eraseFromParent();
   }

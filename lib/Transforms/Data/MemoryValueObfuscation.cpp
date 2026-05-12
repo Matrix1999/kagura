@@ -62,6 +62,21 @@ static bool allocaEscapes(const AllocaInst *AI) {
   return false;
 }
 
+/// Returns true if this alloca is the dispatch variable injected by FLA.
+/// After optimization the alloca loses its name, so we detect it structurally:
+/// any load from the alloca feeds directly into a SwitchInst.
+static bool isFLADispatchAlloca(const AllocaInst *AI) {
+  for (const auto *U : AI->users()) {
+    const auto *LI = dyn_cast<LoadInst>(U);
+    if (!LI)
+      continue;
+    for (const auto *LU : LI->users())
+      if (isa<SwitchInst>(LU))
+        return true;
+  }
+  return false;
+}
+
 // ---- Pass entry point -------------------------------------------------------
 
 PreservedAnalyses MemoryValueObfuscationPass::run(Function &F,
@@ -81,6 +96,12 @@ PreservedAnalyses MemoryValueObfuscationPass::run(Function &F,
   for (auto &BB : F)
     for (auto &I : BB)
       if (auto *AI = dyn_cast<AllocaInst>(&I)) {
+        // Skip kagura's own injected allocas (e.g. FLA's dispatch variable).
+        // After optimization the name is stripped, so detect structurally.
+        if (AI->getName().starts_with("kagura."))
+          continue;
+        if (isFLADispatchAlloca(AI))
+          continue;
         Type *Ty = AI->getAllocatedType();
         if (!Ty->isIntegerTy())
           continue;
