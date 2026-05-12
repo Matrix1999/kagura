@@ -135,7 +135,7 @@ def main():
         description="kagura attacker cost model — estimate analyst effort"
     )
     parser.add_argument("--binary", help="Binary to analyze (optional)")
-    parser.add_argument("--passes", help="Comma-separated pass list (e.g. fla,bcf,sub)")
+    parser.add_argument("--passes", default=None, help="Comma-separated pass list (e.g. fla,bcf,sub); empty string = no passes")
     parser.add_argument("--profile", choices=list(PROFILES.keys()),
                         help="Use a predefined protection profile")
     parser.add_argument("--bb-count", type=int, default=0,
@@ -146,7 +146,8 @@ def main():
 
     if args.profile:
         passes = PROFILES[args.profile]
-    elif args.passes:
+    elif args.passes is not None:
+        # Accept explicit empty string for "no passes" (plain baseline)
         passes = [p.strip() for p in args.passes.split(",") if p.strip()]
     else:
         passes = PROFILES["BALANCED"]

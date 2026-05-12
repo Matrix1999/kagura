@@ -35,13 +35,13 @@ static Value *addSub0(BinaryOperator *I, IRBuilder<> &B, PRNG &) {
   return B.CreateSub(I->getOperand(0),
                      B.CreateNeg(I->getOperand(1)), "sub.add0");
 }
-static Value *addSub1(BinaryOperator *I, IRBuilder<> &B, PRNG &RNG) {
-  // a + b  =>  ((a ^ r) + b) ^ r    where r is a random constant
-  auto *T = I->getType();
-  auto *R = ConstantInt::get(T, RNG.next());
-  auto *XR = B.CreateXor(I->getOperand(0), R);
-  auto *Add = B.CreateAdd(XR, I->getOperand(1));
-  return B.CreateXor(Add, R, "sub.add1");
+static Value *addSub1(BinaryOperator *I, IRBuilder<> &B, PRNG &) {
+  // a + b  =>  (a ^ b) + 2*(a & b)   (correct carry-propagation identity)
+  auto *Xor = B.CreateXor(I->getOperand(0), I->getOperand(1));
+  auto *And = B.CreateAnd(I->getOperand(0), I->getOperand(1));
+  auto *Two = ConstantInt::get(I->getType(), 2);
+  auto *Shl = B.CreateMul(And, Two);
+  return B.CreateAdd(Xor, Shl, "sub.add1");
 }
 static Value *addSub2(BinaryOperator *I, IRBuilder<> &B, PRNG &) {
   // a + b  =>  (a | b) + (a & b)
@@ -57,13 +57,14 @@ static Value *subSub0(BinaryOperator *I, IRBuilder<> &B, PRNG &) {
   return B.CreateAdd(I->getOperand(0),
                      B.CreateNeg(I->getOperand(1)), "sub.sub0");
 }
-static Value *subSub1(BinaryOperator *I, IRBuilder<> &B, PRNG &RNG) {
-  // a - b  =>  ((a ^ r) - b) ^ r
-  auto *T = I->getType();
-  auto *R  = ConstantInt::get(T, RNG.next());
-  auto *XR = B.CreateXor(I->getOperand(0), R);
-  auto *Sub = B.CreateSub(XR, I->getOperand(1));
-  return B.CreateXor(Sub, R, "sub.sub1");
+static Value *subSub1(BinaryOperator *I, IRBuilder<> &B, PRNG &) {
+  // a - b  =>  (a ^ b) - 2*(~a & b)   (correct borrow-propagation identity)
+  auto *Xor  = B.CreateXor(I->getOperand(0), I->getOperand(1));
+  auto *NotA = B.CreateNot(I->getOperand(0));
+  auto *And  = B.CreateAnd(NotA, I->getOperand(1));
+  auto *Two  = ConstantInt::get(I->getType(), 2);
+  auto *Shl  = B.CreateMul(And, Two);
+  return B.CreateSub(Xor, Shl, "sub.sub1");
 }
 
 // ---- AND substitutions ----

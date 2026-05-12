@@ -259,10 +259,16 @@ void demotePhis(Function &F) {
     DemotePHIToStack(Phi);
 
   // Now demote non-PHI instructions with cross-block uses.
+  // Skip: terminators, instructions with no uses, allocas (already memory),
+  // and any instruction in the entry block whose only users are in the same
+  // block (avoids demoting entry-block stores/loads that reference args).
   std::vector<Instruction *> ToSpill;
   for (auto &BB : F) {
     for (auto &I : BB) {
       if (isa<PHINode>(I) || I.isTerminator() || I.use_empty())
+        continue;
+      // Never demote alloca instructions — they are already memory references.
+      if (isa<AllocaInst>(I))
         continue;
       for (auto *U : I.users()) {
         auto *UI = dyn_cast<Instruction>(U);
