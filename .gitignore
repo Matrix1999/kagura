@@ -6,3 +6,6 @@ build_*/
 *.so
 .cache/
 Testing/
+
+# Paper: LaTeX/PDF artifacts (not tracked)
+paper/
