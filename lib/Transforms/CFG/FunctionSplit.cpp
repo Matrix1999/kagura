@@ -156,14 +156,6 @@ static bool extractBlock(BasicBlock *BB, unsigned Index, PRNG &RNG) {
 
   BasicBlock *Succ = Term->getSuccessor(0);
 
-  // The successor must not start with PHI nodes that reference BB, because
-  // we are about to remove BB as a predecessor.
-  for (PHINode &Phi : Succ->phis()) {
-    // If Succ has PHIs referencing BB we'd need to fixup; skip for safety.
-    (void)Phi;
-    return false;
-  }
-
   // --- Live-in computation ---
 
   std::vector<Value *> LiveIns = collectLiveIns(BB);
@@ -244,6 +236,22 @@ static bool extractBlock(BasicBlock *BB, unsigned Index, PRNG &RNG) {
   // the original instructions that were doing the work.
   for (Instruction *I : ToErase)
     I->eraseFromParent();
+
+  // Fix up any PHI nodes in Succ that referenced values defined in BB.
+  // After extraction, those values no longer exist in BB; the helper computed
+  // them but returns void.  Replace such PHI incoming values with undef so
+  // the IR stays valid.  (In practice, collectLiveIns ensures that values
+  // defined inside BB are not used outside it — but Succ's PHIs might have
+  // been referencing BB as a predecessor for values defined *before* BB.)
+  for (PHINode &Phi : Succ->phis()) {
+    int Idx = Phi.getBasicBlockIndex(BB);
+    if (Idx < 0) continue;
+    Value *IncomingVal = Phi.getIncomingValue(Idx);
+    // If the incoming value is defined inside BB (now erased), replace with undef.
+    if (auto *DefInst = dyn_cast<Instruction>(IncomingVal))
+      if (DefInst->getParent() == BB)
+        Phi.setIncomingValue(Idx, UndefValue::get(Phi.getType()));
+  }
 
   return true;
 }
