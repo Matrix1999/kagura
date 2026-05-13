@@ -192,17 +192,17 @@ uint64_t kagura_vm_execute(const uint8_t *bytecode, uint32_t bc_size,
 
         /* ── Control flow ──────────────────────── */
         case OP_JMP: {
-            uint16_t off = bc_u16(&f);
+            uint32_t off = bc_u32(&f);
             f.pc = off;
             break;
         }
         case OP_JZ: {
-            uint16_t off = bc_u16(&f);
+            uint32_t off = bc_u32(&f);
             if (vm_pop(&f) == 0) f.pc = off;
             break;
         }
         case OP_JNZ: {
-            uint16_t off = bc_u16(&f);
+            uint32_t off = bc_u32(&f);
             if (vm_pop(&f) != 0) f.pc = off;
             break;
         }

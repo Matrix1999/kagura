@@ -69,8 +69,9 @@ PreservedAnalyses PointerEncryptionPass::run(Function &F,
     return PreservedAnalyses::all();
   if (!shouldObfuscate(F, "pe", true))
     return PreservedAnalyses::all();
-  if (hasExceptionHandling(F))
-    return PreservedAnalyses::all();
+  // EH functions are allowed: the pointerAllocaEscapes() check already rejects
+  // any alloca whose address flows into an invoke or otherwise escapes the
+  // function, so non-EH allocas are safe to transform.
 
   LLVMContext &Ctx = F.getContext();
   auto *I64Ty  = Type::getInt64Ty(Ctx);

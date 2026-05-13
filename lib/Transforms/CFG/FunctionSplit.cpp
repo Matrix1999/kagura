@@ -68,11 +68,30 @@ namespace kagura {
 // Helpers
 // --------------------------------------------------------------------------
 
-/// Returns true if BB contains any call or invoke instruction.
-static bool hasCallInsts(const BasicBlock &BB) {
-  for (const auto &I : BB)
-    if (isa<CallInst>(I) || isa<InvokeInst>(I))
-      return true;
+/// Returns true if a call instruction is safe to extract into a helper:
+///   - Direct call to a known function (not indirect)
+///   - Not an invoke (no EH edge)
+///   - Not a call to an intrinsic (they may have special semantics / sideband
+///     effects that break when moved to a different function frame)
+///   - Not a variadic call (ABI complexity)
+static bool isLeafSafeCall(const CallInst &CI) {
+  if (CI.isIndirectCall()) return false;
+  Function *Callee = CI.getCalledFunction();
+  if (!Callee) return false;
+  if (Callee->isIntrinsic()) return false;
+  if (Callee->isVarArg()) return false;
+  return true;
+}
+
+/// Returns true if BB contains any instruction that is unsafe to extract:
+///   - InvokeInst (EH edge into landing pad)
+///   - Unsafe CallInst (indirect, intrinsic, vararg)
+static bool hasUnsafeCallInsts(const BasicBlock &BB) {
+  for (const auto &I : BB) {
+    if (isa<InvokeInst>(I)) return true;
+    if (const auto *CI = dyn_cast<CallInst>(&I))
+      if (!isLeafSafeCall(*CI)) return true;
+  }
   return false;
 }
 
@@ -141,8 +160,9 @@ static bool extractBlock(BasicBlock *BB, unsigned Index, PRNG &RNG) {
   if (isa<PHINode>(BB->front()))
     return false;
 
-  // Skip if the block contains calls (ABI complexity).
-  if (hasCallInsts(*BB))
+  // Skip if the block contains unsafe calls (invoke, indirect, intrinsic, vararg).
+  // Simple direct calls to non-intrinsic functions are safe to extract.
+  if (hasUnsafeCallInsts(*BB))
     return false;
 
   // Skip exit blocks (return / unreachable).
