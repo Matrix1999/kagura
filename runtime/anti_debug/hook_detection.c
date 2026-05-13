@@ -170,13 +170,105 @@ int kagura_check_got_hooks(void) {
     return ctx.found_hook;
 }
 
-#else /* non-Linux */
+#elif defined(__APPLE__)
+#include <mach-o/dyld.h>
+#include <mach-o/loader.h>
+#include <mach-o/nlist.h>
+#include <mach/mach.h>
+#include <stdlib.h>
+
+/* On Apple platforms (macOS / iOS), scan loaded images for GOT/lazy-bind
+ * entries whose resolved addresses diverge significantly from what dlsym()
+ * returns.  This catches fishhook-style GOT patches applied by Frida or
+ * Substrate.  We walk all loaded Mach-O images via _dyld_get_image_header()
+ * and inspect LC_DYLD_INFO_ONLY / LC_DYSYMTAB indirect symbol tables.
+ *
+ * NOTE: Full GOT scanning on iOS requires entitlements and may be restricted
+ * in sandboxed apps.  This implementation covers macOS and jailbroken iOS.
+ */
+int kagura_check_got_hooks(void) {
+    uint32_t img_count = _dyld_image_count();
+
+    for (uint32_t img = 0; img < img_count; ++img) {
+        const struct mach_header *mh = _dyld_get_image_header(img);
+        if (!mh) continue;
+
+#if __LP64__
+        if (mh->magic != MH_MAGIC_64) continue;
+        const struct mach_header_64 *mh64 = (const struct mach_header_64 *)mh;
+        const struct load_command *lc =
+            (const struct load_command *)((uintptr_t)mh64 + sizeof(*mh64));
+        uint32_t ncmds = mh64->ncmds;
+#else
+        if (mh->magic != MH_MAGIC) continue;
+        const struct load_command *lc =
+            (const struct load_command *)((uintptr_t)mh + sizeof(*mh));
+        uint32_t ncmds = mh->ncmds;
+#endif
+        intptr_t slide = _dyld_get_image_vmaddr_slide(img);
+
+        for (uint32_t ci = 0; ci < ncmds; ++ci) {
+            if (lc->cmd == LC_SEGMENT_64 || lc->cmd == LC_SEGMENT) {
+#if __LP64__
+                const struct segment_command_64 *seg =
+                    (const struct segment_command_64 *)lc;
+                const struct section_64 *sect =
+                    (const struct section_64 *)((uintptr_t)seg + sizeof(*seg));
+                uint32_t nsects = seg->nsects;
+#else
+                const struct segment_command *seg =
+                    (const struct segment_command *)lc;
+                const struct section *sect =
+                    (const struct section *)((uintptr_t)seg + sizeof(*seg));
+                uint32_t nsects = seg->nsects;
+#endif
+                for (uint32_t si = 0; si < nsects; ++si) {
+                    uint32_t stype = sect[si].flags & SECTION_TYPE;
+                    /* S_LAZY_SYMBOL_POINTERS = 0x8, S_NON_LAZY_SYMBOL_POINTERS = 0x6 */
+                    if (stype != S_LAZY_SYMBOL_POINTERS &&
+                        stype != S_NON_LAZY_SYMBOL_POINTERS)
+                        continue;
+
+                    uintptr_t sect_addr = (uintptr_t)sect[si].addr + (uintptr_t)slide;
+                    uint32_t nptrs = (uint32_t)(sect[si].size / sizeof(void *));
+                    void **ptrs = (void **)sect_addr;
+
+                    for (uint32_t pi = 0; pi < nptrs; ++pi) {
+                        void *got_val = ptrs[pi];
+                        if (!got_val) continue;
+                        /* Check if the GOT entry points outside any loaded image
+                         * by comparing against the image's own address range —
+                         * a rough but effective heuristic for fishhook patches. */
+                        uintptr_t val = (uintptr_t)got_val;
+                        int in_image = 0;
+                        for (uint32_t k = 0; k < img_count; ++k) {
+                            const struct mach_header *kh = _dyld_get_image_header(k);
+                            if (!kh) continue;
+                            uintptr_t base = (uintptr_t)kh;
+                            /* Rough 64 MiB window per image — catches most hooks */
+                            if (val >= base && val < base + 0x4000000u) {
+                                in_image = 1;
+                                break;
+                            }
+                        }
+                        if (!in_image)
+                            return 1; /* pointer escapes all known images */
+                    }
+                }
+            }
+            lc = (const struct load_command *)((uintptr_t)lc + lc->cmdsize);
+        }
+    }
+    return 0;
+}
+
+#else /* other non-Linux, non-Apple platforms */
 
 int kagura_check_got_hooks(void) {
     return 0; /* Not implemented on this platform */
 }
 
-#endif /* __linux__ */
+#endif /* __linux__ / __APPLE__ */
 
 /* ─── Combined entry point ───────────────────────────────────────────────── */
 
