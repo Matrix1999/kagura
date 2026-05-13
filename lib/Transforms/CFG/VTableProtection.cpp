@@ -28,9 +28,11 @@
 // Pass key:   "kagura-vtp"    (module pass)
 // CLI flag:   -kagura-vtp
 //
-// NOTE: This pass is intentionally conservative.  It only touches RTTI/vtable
-// globals with the standard Itanium ABI naming convention (_ZTV, _ZTS, _ZTI).
-// MSVC ABI (??_7) is not yet handled.
+// ABI support:
+//   Itanium ABI (Linux / macOS / Android / iOS): _ZTV*, _ZTS*, _ZTI*
+//   MSVC ABI (Windows): ??_7* (vtables), ??_R0* – ??_R4* (RTTI descriptors)
+//     For MSVC TypeDescriptors (??_R0), the embedded class name field is
+//     XOR-encrypted in-place via a module constructor.
 //
 //===----------------------------------------------------------------------===//
 
@@ -54,12 +56,108 @@ namespace kagura {
 
 // ---- Helpers ---------------------------------------------------------------
 
+// Itanium ABI (Linux, macOS, Android, iOS)
 static bool isVTableGlobal(const GlobalVariable &GV) {
     return GV.getName().starts_with("_ZTV");
 }
 
 static bool isRTTINameGlobal(const GlobalVariable &GV) {
     return GV.getName().starts_with("_ZTS");
+}
+
+// MSVC ABI (Windows)
+// ??_7 <name> @@  — vtable for class <name>
+// ??_R0 / ??_R1 / ??_R2 / ??_R3 / ??_R4 — RTTI descriptors
+// ??_C@  — string literals (MSVC uses mangled names for string constants)
+static bool isMSVCVTableGlobal(const GlobalVariable &GV) {
+    StringRef N = GV.getName();
+    return N.starts_with("??_7");
+}
+
+static bool isMSVCRTTIGlobal(const GlobalVariable &GV) {
+    StringRef N = GV.getName();
+    // TypeDescriptor (??_R0), BaseClassDescriptor (??_R1), ClassHierarchyDescriptor
+    // (??_R2), CompleteObjectLocator (??_R3), BaseClassArray (??_R4)
+    return N.starts_with("??_R0") || N.starts_with("??_R1") ||
+           N.starts_with("??_R2") || N.starts_with("??_R3") ||
+           N.starts_with("??_R4");
+}
+
+/// Obfuscate an MSVC TypeDescriptor name field.
+/// The TypeDescriptor layout is: { ptr vftable, ptr spare, char name[] }
+/// The "name" field holds the decorated class name (e.g. ".?AVFoo@@").
+/// We XOR-encrypt it in-place using a module constructor.
+static bool obfuscateMSVCTypeName(GlobalVariable *GV, Module &M, PRNG &RNG) {
+    if (!GV->hasInitializer()) return false;
+    // TypeDescriptor is a struct; locate the name field (last element).
+    auto *ST = dyn_cast<ConstantStruct>(GV->getInitializer());
+    if (!ST || ST->getNumOperands() < 3) return false;
+
+    auto *NameConst = dyn_cast<ConstantDataArray>(ST->getOperand(2));
+    if (!NameConst || !NameConst->isString()) return false;
+
+    StringRef S = NameConst->getAsString();
+    if (S.size() < 4) return false;
+
+    LLVMContext &Ctx = M.getContext();
+    auto *Int8Ty  = Type::getInt8Ty(Ctx);
+    auto *Int64Ty = Type::getInt64Ty(Ctx);
+    auto *VoidTy  = Type::getVoidTy(Ctx);
+    auto *PtrTy   = PointerType::getUnqual(Ctx);
+
+    // Encrypt the name bytes (preserve NUL terminator)
+    uint8_t Key = static_cast<uint8_t>(RNG.next32() | 1);
+    std::vector<uint8_t> Enc(S.begin(), S.end());
+    for (size_t I = 0; I < Enc.size() - 1; ++I)
+        Enc[I] ^= Key;
+
+    // Rebuild the struct with the encrypted name
+    auto *EncNameInit = buildByteArrayConstant(Ctx, Enc);
+    SmallVector<Constant *, 3> Elems;
+    for (unsigned I = 0; I < ST->getNumOperands() - 1; ++I)
+        Elems.push_back(ST->getOperand(I));
+    Elems.push_back(EncNameInit);
+    GV->setInitializer(ConstantStruct::get(ST->getType(), Elems));
+    GV->setConstant(false);
+
+    // Build a constructor to decrypt in-place
+    // The name field is at a fixed offset = sizeof(ptr) * 2
+    auto *CtorFTy = FunctionType::get(VoidTy, false);
+    auto *Ctor = Function::Create(CtorFTy, Function::InternalLinkage,
+                                  GV->getName() + ".msvc_rtti_decrypt", M);
+    Ctor->addFnAttr(Attribute::NoInline);
+    Ctor->addFnAttr(Attribute::NoUnwind);
+
+    auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+    auto *Loop  = BasicBlock::Create(Ctx, "loop",  Ctor);
+    auto *Exit  = BasicBlock::Create(Ctx, "exit",  Ctor);
+
+    // Offset of name field = 2 * pointer size
+    uint64_t NameOffset = 2 * (M.getDataLayout().getPointerSize());
+    uint64_t NameLen    = Enc.size() - 1; // exclude NUL
+
+    IRBuilder<> EB(Entry);
+    Value *Base = EB.CreateBitCast(GV, PtrTy, "msvc.base");
+    Value *NamePtr = EB.CreateGEP(Int8Ty, Base,
+                                   ConstantInt::get(Int64Ty, NameOffset),
+                                   "msvc.name");
+    EB.CreateBr(Loop);
+
+    IRBuilder<> LB(Loop);
+    auto *Idx = LB.CreatePHI(Int64Ty, 2, "idx");
+    Idx->addIncoming(ConstantInt::get(Int64Ty, 0), Entry);
+    auto *Ptr  = LB.CreateGEP(Int8Ty, NamePtr, Idx, "elem");
+    auto *Orig = LB.CreateLoad(Int8Ty, Ptr, "byte");
+    auto *Dec  = LB.CreateXor(Orig, ConstantInt::get(Int8Ty, Key), "dec");
+    LB.CreateStore(Dec, Ptr);
+    auto *Next = LB.CreateAdd(Idx, ConstantInt::get(Int64Ty, 1), "next");
+    Idx->addIncoming(Next, Loop);
+    auto *Done = LB.CreateICmpEQ(Next, ConstantInt::get(Int64Ty, NameLen));
+    LB.CreateCondBr(Done, Exit, Loop);
+
+    IRBuilder<>(Exit).CreateRetVoid();
+    appendToGlobalCtors(M, Ctor, 100);
+    return true;
 }
 
 // ---- RTTI name obfuscation -------------------------------------------------
@@ -167,15 +265,26 @@ PreservedAnalyses VTableProtectionPass::run(Module &M, ModuleAnalysisManager &) 
 
     SmallVector<GlobalVariable *, 32> VTables;
     SmallVector<GlobalVariable *, 32> RTTINames;
+    SmallVector<GlobalVariable *, 32> MSVCRTTIs;
 
     for (auto &GV : M.globals()) {
+        // Itanium ABI
         if (isVTableGlobal(GV))    VTables.push_back(&GV);
         if (isRTTINameGlobal(GV))  RTTINames.push_back(&GV);
+        // MSVC ABI
+        if (isMSVCVTableGlobal(GV))  VTables.push_back(&GV);
+        if (isMSVCRTTIGlobal(GV))    MSVCRTTIs.push_back(&GV);
     }
 
     for (auto *GV : RTTINames)
         if (obfuscateRTTIName(GV, M, RNG))
             Changed = true;
+
+    // MSVC TypeDescriptor name obfuscation (??_R0 = TypeDescriptor has name field)
+    for (auto *GV : MSVCRTTIs)
+        if (GV->getName().starts_with("??_R0"))
+            if (obfuscateMSVCTypeName(GV, M, RNG))
+                Changed = true;
 
     for (auto *GV : VTables)
         if (tagVTable(GV, M, RNG))
