@@ -18,6 +18,8 @@ add_llvm_pass_plugin(KaguraObfuscator
 
   # Phase 4.1 Infrastructure
   Infrastructure/DWARFControl.cpp
+  # Phase 4.8 Automation
+  Infrastructure/AutoSelect.cpp
   # Phase 4.6 Build System / DX
   Infrastructure/ConfigLoader.cpp
   Infrastructure/SymbolMap.cpp

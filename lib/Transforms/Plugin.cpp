@@ -102,6 +102,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
             PB.registerPipelineParsingCallback(
                 [](StringRef Name, ModulePassManager &MPM,
                    ArrayRef<PassBuilder::PipelineElement>) -> bool {
+                  if (Name == "kagura-autoselect") {
+                    MPM.addPass(AutoSelectPass());
+                    return true;
+                  }
                   if (Name == "kagura-config") {
                     MPM.addPass(ConfigLoaderPass());
                     return true;
