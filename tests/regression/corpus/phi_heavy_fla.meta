@@ -1,0 +1,2 @@
+PASS=function(kagura-fla)
+DESCRIPTION=FLA on PHI-heavy function: demotePhis must eliminate all PHIs before flattening
