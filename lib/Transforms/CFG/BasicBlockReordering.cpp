@@ -21,7 +21,9 @@
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
 
+#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Instructions.h"
 
 #include <vector>
 
@@ -35,18 +37,29 @@ PreservedAnalyses BasicBlockReorderingPass::run(Function &F,
     return PreservedAnalyses::all();
   if (F.isDeclaration() || F.size() < 3)
     return PreservedAnalyses::all();
-  // 4.1.10: Moving EH landing-pad blocks away from their invoke predecessors
-  // produces invalid IR.  Skip the entire function if it uses exceptions.
-  if (hasExceptionHandling(F))
-    return PreservedAnalyses::all();
 
   PRNG &RNG = getModulePRNG();
 
-  // Collect non-entry blocks
+  // Collect non-entry, non-EH blocks.
+  // EH landing-pad blocks must stay adjacent to their invoke predecessors;
+  // moving them produces invalid IR.  We skip only those blocks, allowing
+  // the rest of the function to be reordered.
   std::vector<BasicBlock *> Blocks;
   Blocks.reserve(F.size() - 1);
   for (auto &BB : F) {
     if (&BB == &F.getEntryBlock())
+      continue;
+    if (isEHBlock(BB))
+      continue;
+    // Also skip blocks that are the unwind destination of an invoke —
+    // they must remain reachable from the invoke's unwind edge.
+    bool IsUnwindDest = false;
+    for (auto *Pred : predecessors(&BB)) {
+      if (auto *II = dyn_cast<InvokeInst>(Pred->getTerminator())) {
+        if (II->getUnwindDest() == &BB) { IsUnwindDest = true; break; }
+      }
+    }
+    if (IsUnwindDest)
       continue;
     Blocks.push_back(&BB);
   }

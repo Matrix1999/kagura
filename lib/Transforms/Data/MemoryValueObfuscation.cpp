@@ -85,8 +85,9 @@ PreservedAnalyses MemoryValueObfuscationPass::run(Function &F,
     return PreservedAnalyses::all();
   if (!shouldObfuscate(F, "mvo", true))
     return PreservedAnalyses::all();
-  if (hasExceptionHandling(F))
-    return PreservedAnalyses::all();
+  // EH functions are allowed: allocas in non-EH blocks are safe to transform.
+  // The allocaEscapes() check already rejects any alloca whose address is
+  // passed to an invoke or otherwise escapes.
 
   PRNG &RNG    = getModulePRNG();
   bool Changed = false;
