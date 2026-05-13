@@ -36,6 +36,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
 #include <vector>
@@ -177,7 +178,7 @@ static std::vector<GlobalVariable *> collectEncryptionTargets(Module &M) {
     if (!looksLikeApiKey(S))
       continue;
     // Avoid duplicates with the standard list
-    if (std::find(Result.begin(), Result.end(), &GV) == Result.end())
+    if (!llvm::is_contained(Result, &GV))
       Result.push_back(&GV);
   }
   return Result;
