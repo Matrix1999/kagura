@@ -76,18 +76,20 @@ public:
     }
   }
 
-  // Reserve a 16-bit jump target slot; returns offset of the slot
+  // Reserve a 32-bit jump target slot; returns offset of the slot
   uint32_t emitJmpPlaceholder(uint8_t jmpOp) {
     emit8(jmpOp);
     uint32_t off = BC.size();
-    emit16(0xFFFF); // placeholder
+    emit32(0xFFFFFFFF); // placeholder
     return off;
   }
 
   // Patch a previously reserved jump target
-  void patchJmp(uint32_t slotOffset, uint16_t target) {
-    BC[slotOffset]     = target & 0xFF;
-    BC[slotOffset + 1] = (target >> 8) & 0xFF;
+  void patchJmp(uint32_t slotOffset, uint32_t target) {
+    BC[slotOffset]     =  target        & 0xFF;
+    BC[slotOffset + 1] = (target >>  8) & 0xFF;
+    BC[slotOffset + 2] = (target >> 16) & 0xFF;
+    BC[slotOffset + 3] = (target >> 24) & 0xFF;
   }
 
   uint32_t size() const { return (uint32_t)BC.size(); }
@@ -207,7 +209,7 @@ static std::vector<uint8_t> virtualize(Function &F) {
 
   // Map basic blocks to bytecode offsets (two-pass: first collect, then patch)
   std::map<BasicBlock *, uint32_t> BBOffset;
-  std::vector<std::pair<uint32_t, BasicBlock *>> JmpPatches;
+  std::vector<std::pair<uint32_t, BasicBlock *>> JmpPatches; // {slot_offset, target_BB}
 
   // First pass: emit bytecode, record block offsets, leave jumps as placeholders
   for (auto &BB : F) {
@@ -320,7 +322,7 @@ static std::vector<uint8_t> virtualize(Function &F) {
   for (auto &[Slot, BB] : JmpPatches) {
     auto It = BBOffset.find(BB);
     if (It != BBOffset.end())
-      E.patchJmp(Slot, (uint16_t)It->second);
+      E.patchJmp(Slot, It->second);
   }
 
   return E.BC;

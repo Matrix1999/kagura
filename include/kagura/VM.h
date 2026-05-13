@@ -68,9 +68,9 @@ enum Opcode : uint8_t {
   OP_ICMP_SGE    = 0x39,
 
   // Control flow
-  OP_JMP         = 0x40, // unconditional jump (16-bit offset)
-  OP_JZ          = 0x41, // jump if top == 0
-  OP_JNZ         = 0x42, // jump if top != 0
+  OP_JMP         = 0x40, // unconditional jump (32-bit offset)
+  OP_JZ          = 0x41, // jump if top == 0 (32-bit offset)
+  OP_JNZ         = 0x42, // jump if top != 0 (32-bit offset)
   OP_CALL        = 0x43, // call native function pointer (from reg)
   OP_RET         = 0x44, // return top of stack (or void)
   OP_RET_VOID    = 0x45,
@@ -97,8 +97,8 @@ enum Opcode : uint8_t {
 
 // Maximum number of virtual registers per VM frame
 static constexpr unsigned kNumRegs   = 16;
-// Maximum bytecode size per function (bytes)
-static constexpr unsigned kMaxBCSize = 65536;
+// Maximum bytecode size per function (bytes) — limited only by uint32 address space
+static constexpr unsigned kMaxBCSize = 0xFFFFFFFFu;
 // VM stack depth limit
 static constexpr unsigned kStackSize = 256;
 
