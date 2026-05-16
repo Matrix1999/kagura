@@ -70,12 +70,13 @@ jobs:
 
       - name: Install LLVM ${{ matrix.llvm }}
         uses: KyleMayes/install-llvm-action@v2
+        id: install-llvm
         with:
           version: "${{ matrix.llvm }}"
 
       - name: Set LLVM_PREFIX
         shell: pwsh
-        run: echo "LLVM_PREFIX=$env:LLVM_PATH" >> $env:GITHUB_ENV
+        run: echo "LLVM_PREFIX=${{ steps.install-llvm.outputs.directory }}" >> $env:GITHUB_ENV
 
       - name: Configure (Clang-CL)
         shell: pwsh
