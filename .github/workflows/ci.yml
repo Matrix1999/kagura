@@ -53,6 +53,65 @@ jobs:
       - name: Test
         run: cd build && ctest --output-on-failure -j$(sysctl -n hw.logicalcpu)
 
+  # ---- A.1: Windows / MSVC build (Clang-CL + LLVM via winget/choco) -------
+  windows-msvc:
+    name: Build & Test (Windows LLVM ${{ matrix.llvm }})
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { llvm: "17" }
+          - { llvm: "19" }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM ${{ matrix.llvm }} (winget)
+        shell: pwsh
+        run: |
+          # Try winget first (available on windows-latest since 2023-10)
+          $ver = "${{ matrix.llvm }}"
+          winget install --id LLVM.LLVM --version "$ver" `
+            --accept-source-agreements --accept-package-agreements `
+            --silent 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            # Fallback: choco
+            choco install llvm --version "$ver" -y --no-progress
+          }
+          # Locate LLVM CMake dir and export to GITHUB_ENV
+          $llvmRoot = "C:\Program Files\LLVM"
+          if (-not (Test-Path $llvmRoot)) {
+            $llvmRoot = "C:\ProgramData\chocolatey\lib\llvm\tools\llvm"
+          }
+          echo "LLVM_PREFIX=$llvmRoot" >> $env:GITHUB_ENV
+
+      - name: Configure (Clang-CL)
+        shell: pwsh
+        run: |
+          $clang  = "$env:LLVM_PREFIX\bin\clang-cl.exe"
+          $clangxx= "$env:LLVM_PREFIX\bin\clang-cl.exe"
+          $llvmDir= "$env:LLVM_PREFIX\lib\cmake\llvm"
+          cmake -B build `
+            -G "Ninja" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_C_COMPILER="$clang" `
+            -DCMAKE_CXX_COMPILER="$clangxx" `
+            -DLLVM_DIR="$llvmDir" `
+            -DKAGURA_BUILD_TESTS=ON `
+            -DKAGURA_BITCODE_TOOLS=OFF
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build
+
+      - name: Test
+        shell: pwsh
+        run: |
+          cd build
+          ctest --output-on-failure
+
   # ---- 4.7.4 NDK version matrix (Android cross-compile, Ubuntu) --------
   ndk-matrix:
     name: NDK ${{ matrix.ndk }} / LLVM ${{ matrix.llvm }}

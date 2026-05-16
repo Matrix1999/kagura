@@ -5,6 +5,32 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# ---- A.1: MSVC / Clang-CL compiler flags ----------------------------------
+if(MSVC)
+  # /utf-8          : source and execution charset both UTF-8
+  # /W3             : warning level 3 (matches clang -Wall)
+  # /WX-            : warnings are not errors (LLVM headers trigger some)
+  # /EHsc           : standard C++ exception handling (required by LLVM)
+  # /Zc:__cplusplus : make _cplusplus reflect the actual standard
+  # /wd4624 /wd4244 : suppress common LLVM-generated warnings on MSVC
+  add_compile_options(
+    /utf-8
+    /W3
+    /WX-
+    /EHsc
+    /Zc:__cplusplus
+    /wd4624
+    /wd4244
+  )
+  # Suppress MSVC's min/max macros that conflict with std::min/std::max
+  add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+elseif(WIN32)
+  # Clang-CL or MinGW cross-compile targeting Windows
+  add_compile_options(-Wall -Wno-unused-parameter)
+  add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
+# ---------------------------------------------------------------------------
+
 # ---- 4.6.8 Build cache support -------------------------------------------
 # Enable ccache / sccache if available. Set KAGURA_USE_CACHE=OFF to disable.
 option(KAGURA_USE_CACHE "Use compiler cache (ccache/sccache) if available" ON)

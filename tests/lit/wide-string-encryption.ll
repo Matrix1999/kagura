@@ -3,13 +3,13 @@
 ; WideStringEncryptionPass encrypts wide-character (i16/i32) string globals.
 ; After the pass:
 ;   - The plaintext content of the wide string must not be present as-is.
-;   - An encrypted global (kagura_wenc_) must be emitted.
+;   - The original global is encrypted in-place (element values changed).
 ;   - A lazy-decrypt flag global (kagura_wflag_) must be emitted.
-;   - The original @wide_hello global must be gone or replaced.
+;   - A key global (kagura_wkey_) must be emitted.
 
 ; CHECK-NOT: i16 72, i16 101, i16 108
-; CHECK: @kagura_wenc_
 ; CHECK: @kagura_wflag_
+; CHECK: @kagura_wkey_
 
 ; Wide string: L"Hello" as i16 array
 @wide_hello = private unnamed_addr constant [6 x i16]
