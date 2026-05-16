@@ -6,9 +6,7 @@ llvm_map_components_to_libnames(LLVM_LIBS
   Passes
 )
 
-add_llvm_pass_plugin(KaguraObfuscator
-  PARTIAL_SOURCES_INTENDED
-
+set(KAGURA_SOURCES
   # Core / Infrastructure
   Options.cpp
   Plugin.cpp
@@ -63,10 +61,25 @@ add_llvm_pass_plugin(KaguraObfuscator
   Platform/ObjCObfuscation.cpp
   Platform/JNIObfuscation.cpp
   Platform/VMObfuscation.cpp
-
-  DEPENDS
-  intrinsics_gen
 )
+
+if(LLVM_ENABLE_PLUGINS)
+  # Normal path: build as a loadable MODULE (macOS .dylib / Linux .so)
+  add_llvm_pass_plugin(KaguraObfuscator
+    PARTIAL_SOURCES_INTENDED
+    ${KAGURA_SOURCES}
+    DEPENDS intrinsics_gen
+  )
+else()
+  # Fallback for platforms where loadable modules are unsupported (e.g. MSVC).
+  # add_llvm_pass_plugin() would create a non-compilable UTILITY target and
+  # then abort on subsequent target_* calls.  Build as a static library so
+  # the plugin can be linked directly into a driver tool instead.
+  message(STATUS "[kagura] Loadable modules unavailable — building KaguraObfuscator as STATIC")
+  add_library(KaguraObfuscator STATIC ${KAGURA_SOURCES})
+  llvm_update_compile_flags(KaguraObfuscator)
+  target_link_libraries(KaguraObfuscator PRIVATE ${LLVM_LIBS})
+endif()
 
 target_include_directories(KaguraObfuscator PRIVATE
   ${CMAKE_SOURCE_DIR}/include
@@ -79,7 +92,9 @@ if(KAGURA_LEGACY_PM)
 endif()
 
 # ---- 4.6.7 Incremental build: precompiled header ---------------------------
-if(KAGURA_PCH)
+# PCH is not supported on static libraries in all CMake versions; skip on
+# the fallback static build to keep the Windows build simple.
+if(KAGURA_PCH AND LLVM_ENABLE_PLUGINS)
   target_precompile_headers(KaguraObfuscator PRIVATE
     <llvm/IR/Function.h>
     <llvm/IR/Module.h>
