@@ -53,42 +53,41 @@ jobs:
       - name: Test
         run: cd build && ctest --output-on-failure -j$(sysctl -n hw.logicalcpu)
 
-  # ---- A.1: Windows / MSVC build (Clang-CL + LLVM via winget/choco) -------
+  # ---- A.1: Windows / MSVC build (Clang-CL + pre-installed LLVM) ----------
+  # windows-latest ships with LLVM pre-installed; locate it via `where clang-cl`
+  # rather than trying to install a specific older version, which is unreliable
+  # on GHA runners that already have a newer LLVM present.
+  # Version coverage (17–22) is handled by the macOS matrix above.
   windows-msvc:
-    name: Build & Test (Windows LLVM ${{ matrix.llvm }})
+    name: Build & Test (Windows, Clang-CL)
     runs-on: windows-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { llvm: "17" }
-          - { llvm: "19" }
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM ${{ matrix.llvm }}
-        uses: KyleMayes/install-llvm-action@v2
-        id: install-llvm
-        with:
-          version: "${{ matrix.llvm }}"
-
-      - name: Set LLVM_PREFIX
+      - name: Locate pre-installed LLVM
         shell: pwsh
-        run: echo "LLVM_PREFIX=${{ steps.install-llvm.outputs.directory }}" >> $env:GITHUB_ENV
+        run: |
+          # windows-latest ships LLVM under C:\Program Files\LLVM
+          $root = "C:\Program Files\LLVM"
+          if (-not (Test-Path "$root\bin\clang-cl.exe")) {
+            # Fallback: find via PATH
+            $root = (Split-Path -Parent (Get-Command clang-cl -ErrorAction Stop).Source)
+            $root = Split-Path -Parent $root
+          }
+          echo "LLVM_PREFIX=$root" >> $env:GITHUB_ENV
+          echo "Located LLVM at $root"
 
       - name: Configure (Clang-CL)
         shell: pwsh
         run: |
           $clang  = "$env:LLVM_PREFIX\bin\clang-cl.exe"
-          $clangxx= "$env:LLVM_PREFIX\bin\clang-cl.exe"
           $llvmDir= "$env:LLVM_PREFIX\lib\cmake\llvm"
           cmake -B build `
             -G "Ninja" `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_C_COMPILER="$clang" `
-            -DCMAKE_CXX_COMPILER="$clangxx" `
+            -DCMAKE_CXX_COMPILER="$clang" `
             -DLLVM_DIR="$llvmDir" `
             -DKAGURA_BUILD_TESTS=ON `
             -DKAGURA_BITCODE_TOOLS=OFF
