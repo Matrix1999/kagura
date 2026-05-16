@@ -20,6 +20,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <intrin.h>   /* __cpuid */
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN

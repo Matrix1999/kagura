@@ -205,9 +205,11 @@ int kagura_check_injected_dlls(void) {
     if (snap == INVALID_HANDLE_VALUE)
         return 0;
 
-    MODULEENTRY32 me;
+    /* Use the ANSI variant explicitly to avoid UNICODE macro remapping to
+     * MODULEENTRY32W whose szModule is WCHAR, incompatible with strlen/strstr. */
+    MODULEENTRY32A me;
     me.dwSize = sizeof(me);
-    if (!Module32First(snap, &me)) {
+    if (!Module32FirstA(snap, &me)) {
         CloseHandle(snap);
         return 0;
     }
@@ -229,7 +231,7 @@ int kagura_check_injected_dlls(void) {
                 goto done;
             }
         }
-    } while (Module32Next(snap, &me));
+    } while (Module32NextA(snap, &me));
 
 done:
     CloseHandle(snap);
