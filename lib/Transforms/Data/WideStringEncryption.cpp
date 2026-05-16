@@ -1,7 +1,7 @@
 //===-- WideStringEncryption.cpp - Wide / UTF-16 / CFString encryption ----===//
 //
-// 4.2.1: Extends string encryption coverage to three additional string types
-// that the narrow-char StringEncryption pass misses:
+// 4.2.1 / A.2: Extends string encryption coverage to five additional string
+// types that the narrow-char StringEncryption pass misses:
 //
 //   1. Wide character arrays (wchar_t / char16_t / char32_t)
 //      LLVM represents these as ConstantDataArray of i16 or i32.  Each
@@ -24,12 +24,26 @@
 //      backing i8 array using the same XOR scheme.  A module constructor
 //      decrypts all CFString backing buffers before ObjC code runs.
 //
+//   4. Swift string constant globals
+//      swiftc emits string literals as private/internal [N x i8] globals
+//      whose names are Swift-mangled (start with "$s" or contain ".str").
+//      We detect these by name pattern and apply the same XOR + module-
+//      constructor scheme.  A priority-(-1) ctor ensures decryption happens
+//      before Swift runtime initialisation.
+//
+//   5. Kotlin Native string constant globals
+//      kotlinc-native emits UTF-8 string literals as private/internal
+//      [N x i8] globals with Kotlin-specific mangling or section hints
+//      (names starting with "kfun:", ".kotlin_string_pool", or the
+//      kotlinx/kotlin namespace patterns in Itanium-style mangling).
+//      Same XOR + module-constructor scheme; priority 0.
+//
 // Pass key:   "kagura-wstr"
 // CLI flag:   -kagura-wstr
 //
 // Lazy-decrypt guards (4.2.4 style) are applied to wchar/UTF-16 strings.
-// CFString buffers are decrypted once in a module constructor to avoid
-// patching the ObjC runtime's internal string table.
+// CFString / Swift / Kotlin buffers are decrypted once in a module
+// constructor to avoid patching the runtime's internal string tables.
 //
 //===----------------------------------------------------------------------===//
 
@@ -60,7 +74,8 @@ namespace kagura {
 static bool isWideStringGlobal(const GlobalVariable &GV) {
   if (!GV.isConstant() || !GV.hasInitializer())
     return false;
-  if (GV.getName().starts_with("kagura_") || GV.getName().starts_with("llvm."))
+  if (GV.getName().starts_with("kagura_") || GV.getName().starts_with("llvm.") ||
+      GV.getName().starts_with("$kagura_"))
     return false;
   auto *CDA = dyn_cast<ConstantDataArray>(GV.getInitializer());
   if (!CDA)
@@ -77,6 +92,64 @@ static bool isWideStringGlobal(const GlobalVariable &GV) {
     }
   }
   return HasNonNull;
+}
+
+/// Returns true if GV looks like a Swift string literal constant emitted by
+/// swiftc.  Swift mangles globals with a "$s" prefix; string storage globals
+/// additionally carry ".str" or "Ss" (Swift.String) in their name.  We accept
+/// any private/internal [N x i8] global whose name starts with "$s" to catch
+/// the full range of Swift-generated string constants.
+static bool isSwiftStringGlobal(const GlobalVariable &GV) {
+  if (!GV.isConstant() || !GV.hasInitializer())
+    return false;
+  if (GV.getName().starts_with("kagura_") || GV.getName().starts_with("llvm."))
+    return false;
+  // Must be a byte array with printable content.
+  auto *CDA = dyn_cast<ConstantDataArray>(GV.getInitializer());
+  if (!CDA || !CDA->isString())
+    return false;
+  if (CDA->getAsString().size() < 2)
+    return false;
+  // Linkage guard: Swift string literals are always private or internal.
+  if (GV.getLinkage() != GlobalValue::PrivateLinkage &&
+      GV.getLinkage() != GlobalValue::InternalLinkage)
+    return false;
+  StringRef N = GV.getName();
+  // Swift mangled names start with "$s".
+  if (N.starts_with("$s"))
+    return true;
+  // swiftc also emits un-mangled ".str" helper globals in some IR modes.
+  if (N.contains(".str") && N.starts_with("_"))
+    return true;
+  return false;
+}
+
+/// Returns true if GV looks like a Kotlin Native string constant.
+/// kotlinc-native emits UTF-8 string storage as private [N x i8] globals.
+/// Identifiable patterns:
+///   - name starts with "kfun:" (Kotlin function-qualified name)
+///   - name starts with ".kotlin" (Kotlin internal section marker)
+///   - name contains "_kotlin_" (Kotlin stdlib symbol)
+///   - Itanium-mangled names containing "kotlin" namespace (N6kotlin)
+static bool isKotlinStringGlobal(const GlobalVariable &GV) {
+  if (!GV.isConstant() || !GV.hasInitializer())
+    return false;
+  if (GV.getName().starts_with("kagura_") || GV.getName().starts_with("llvm."))
+    return false;
+  auto *CDA = dyn_cast<ConstantDataArray>(GV.getInitializer());
+  if (!CDA || !CDA->isString())
+    return false;
+  if (CDA->getAsString().size() < 2)
+    return false;
+  if (GV.getLinkage() != GlobalValue::PrivateLinkage &&
+      GV.getLinkage() != GlobalValue::InternalLinkage)
+    return false;
+  StringRef N = GV.getName();
+  if (N.starts_with("kfun:") || N.starts_with(".kotlin"))
+    return true;
+  if (N.contains("_kotlin_") || N.contains("N6kotlin"))
+    return true;
+  return false;
 }
 
 /// Returns true if GV is a CFString struct (Apple __cfstring section).
@@ -215,6 +288,38 @@ static void buildCFStringDecryptCtor(
 }
 
 // ---------------------------------------------------------------------------
+// Swift / Kotlin string constructor injection
+// ---------------------------------------------------------------------------
+
+/// Build a single module constructor that calls all Swift or Kotlin string
+/// decrypt stubs in order.  Priority controls ordering relative to runtimes:
+///   Swift:  -1  (before Swift runtime init)
+///   Kotlin:  0  (same priority as CFString; before Kotlin runtime)
+static void buildRuntimeStringDecryptCtor(
+    Module &M,
+    const SmallVector<Function *, 8> &Stubs,
+    StringRef CtorName,
+    int Priority) {
+  if (Stubs.empty())
+    return;
+  LLVMContext &Ctx = M.getContext();
+  auto *VoidTy  = Type::getVoidTy(Ctx);
+  auto *CtorFTy = FunctionType::get(VoidTy, false);
+  auto *Ctor    = Function::Create(CtorFTy, Function::InternalLinkage,
+                                   CtorName, M);
+  Ctor->addFnAttr(Attribute::NoInline);
+  Ctor->addFnAttr(Attribute::NoUnwind);
+
+  auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+  IRBuilder<> B(Entry);
+  for (auto *Stub : Stubs)
+    B.CreateCall(Stub);
+  B.CreateRetVoid();
+
+  appendToGlobalCtors(M, Ctor, Priority);
+}
+
+// ---------------------------------------------------------------------------
 // Pass entry point
 // ---------------------------------------------------------------------------
 
@@ -263,6 +368,11 @@ PreservedAnalyses WideStringEncryptionPass::run(Module &M,
     GV->setConstant(false);
     GV->setInitializer(EncConst);
 
+    // Snapshot users BEFORE building the stub so that instructions inserted
+    // inside the decrypt stub (which also reference GV) are not processed
+    // by the lazy-guard loop below.
+    SmallVector<User *, 8> Users(GV->users());
+
     // 4.2.4: per-string flag
     auto *FlagGV = new GlobalVariable(M, Int8Ty, /*isConstant=*/false,
                                       GlobalValue::PrivateLinkage,
@@ -273,7 +383,6 @@ PreservedAnalyses WideStringEncryptionPass::run(Module &M,
     Function *Stub = buildWideDecryptStub(M, GV, N, ElemBits, Key, Suffix);
 
     // Inject lazy guard before every instruction that uses this global.
-    SmallVector<User *, 8> Users(GV->users());
     for (auto *U : Users) {
       auto *Inst = dyn_cast<Instruction>(U);
       if (!Inst)
@@ -346,6 +455,89 @@ PreservedAnalyses WideStringEncryptionPass::run(Module &M,
   }
 
   buildCFStringDecryptCtor(M, CFDecryptors);
+
+  // ---- Swift string constants ([N x i8] private globals, "$s" prefix) ------
+
+  SmallVector<Function *, 8> SwiftStubs;
+
+  for (auto &GV : M.globals()) {
+    if (!isSwiftStringGlobal(GV))
+      continue;
+    auto *CDA = dyn_cast<ConstantDataArray>(GV.getInitializer());
+    if (!CDA)
+      continue;
+    StringRef Raw = CDA->getAsString();
+    uint64_t Len  = Raw.size();
+
+    uint8_t Key[8];
+    uint64_t RandKey = RNG.next();
+    for (unsigned I = 0; I < 8; ++I)
+      Key[I] = static_cast<uint8_t>((RandKey >> (I * 8)) & 0xFF);
+
+    // Encrypt in-place.
+    std::vector<Constant *> EncBytes;
+    EncBytes.reserve(Len);
+    for (uint64_t I = 0; I < Len; ++I)
+      EncBytes.push_back(ConstantInt::get(Int8Ty,
+          static_cast<uint8_t>(Raw[I]) ^ Key[I % 8]));
+    auto *EncConst = ConstantArray::get(ArrayType::get(Int8Ty, Len), EncBytes);
+
+    const_cast<GlobalVariable &>(GV).setConstant(false);
+    const_cast<GlobalVariable &>(GV).setInitializer(EncConst);
+
+    std::string Suffix = std::to_string(RNG.next32());
+    Function *Stub = buildWideDecryptStub(
+        M, &const_cast<GlobalVariable &>(GV),
+        static_cast<unsigned>(Len), 8, Key, "swift_" + Suffix);
+    SwiftStubs.push_back(Stub);
+
+    Changed = true;
+  }
+
+  buildRuntimeStringDecryptCtor(M, SwiftStubs,
+                                 "kagura_swift_string_decrypt_ctor",
+                                 /*Priority=*/-1);
+
+  // ---- Kotlin Native string constants (private [N x i8], kotlin patterns) --
+
+  SmallVector<Function *, 8> KotlinStubs;
+
+  for (auto &GV : M.globals()) {
+    if (!isKotlinStringGlobal(GV))
+      continue;
+    auto *CDA = dyn_cast<ConstantDataArray>(GV.getInitializer());
+    if (!CDA)
+      continue;
+    StringRef Raw = CDA->getAsString();
+    uint64_t Len  = Raw.size();
+
+    uint8_t Key[8];
+    uint64_t RandKey = RNG.next();
+    for (unsigned I = 0; I < 8; ++I)
+      Key[I] = static_cast<uint8_t>((RandKey >> (I * 8)) & 0xFF);
+
+    std::vector<Constant *> EncBytes;
+    EncBytes.reserve(Len);
+    for (uint64_t I = 0; I < Len; ++I)
+      EncBytes.push_back(ConstantInt::get(Int8Ty,
+          static_cast<uint8_t>(Raw[I]) ^ Key[I % 8]));
+    auto *EncConst = ConstantArray::get(ArrayType::get(Int8Ty, Len), EncBytes);
+
+    const_cast<GlobalVariable &>(GV).setConstant(false);
+    const_cast<GlobalVariable &>(GV).setInitializer(EncConst);
+
+    std::string Suffix = std::to_string(RNG.next32());
+    Function *Stub = buildWideDecryptStub(
+        M, &const_cast<GlobalVariable &>(GV),
+        static_cast<unsigned>(Len), 8, Key, "kotlin_" + Suffix);
+    KotlinStubs.push_back(Stub);
+
+    Changed = true;
+  }
+
+  buildRuntimeStringDecryptCtor(M, KotlinStubs,
+                                 "kagura_kotlin_string_decrypt_ctor",
+                                 /*Priority=*/0);
 
   return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
 }
