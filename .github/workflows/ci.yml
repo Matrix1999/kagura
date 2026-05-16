@@ -53,11 +53,12 @@ jobs:
       - name: Test
         run: cd build && ctest --output-on-failure -j$(sysctl -n hw.logicalcpu)
 
-  # ---- A.1: Windows / MSVC build (Clang-CL + pre-installed LLVM) ----------
-  # windows-latest ships with LLVM pre-installed; locate it via `where clang-cl`
-  # rather than trying to install a specific older version, which is unreliable
-  # on GHA runners that already have a newer LLVM present.
-  # Version coverage (17–22) is handled by the macOS matrix above.
+  # ---- A.1: Windows / MSVC build (Clang-CL) --------------------------------
+  # Neither choco nor the pre-installed LLVM on windows-latest ships
+  # LLVMConfig.cmake.  Download the official LLVM Windows installer from
+  # GitHub releases, which includes the full dev tree (cmake files, headers,
+  # import libs).  Version coverage across 17-22 is provided by the macOS
+  # matrix; we use a recent stable version here.
   windows-msvc:
     name: Build & Test (Windows, Clang-CL)
     runs-on: windows-latest
@@ -65,31 +66,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM (with CMake dev files)
+      - name: Download & install LLVM with dev files
         shell: pwsh
         run: |
-          # The GHA runner's pre-installed LLVM lacks LLVMConfig.cmake.
-          # choco's LLVM package runs the official installer which includes
-          # the full dev tree. Use 'upgrade' so it doesn't fail if already installed.
-          choco upgrade llvm --no-progress -y
-
-      - name: Locate LLVMConfig.cmake
-        shell: pwsh
-        run: |
-          # Search under the standard install root; the cmake subdir layout
-          # varies between LLVM versions so we locate it dynamically.
+          $ver = "19.1.7"
+          $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-${ver}/LLVM-${ver}-win64.exe"
+          $installer = "$env:TEMP\LLVM-installer.exe"
+          Write-Host "Downloading LLVM $ver from $url"
+          Invoke-WebRequest -Uri $url -OutFile $installer -UseBasicParsing
+          Write-Host "Installing..."
+          Start-Process -FilePath $installer -ArgumentList "/S" -Wait
           $root = "C:\Program Files\LLVM"
-          $cfg = Get-ChildItem $root -Recurse -Filter LLVMConfig.cmake -ErrorAction SilentlyContinue |
+          $cfg = Get-ChildItem $root -Recurse -Filter LLVMConfig.cmake |
                  Select-Object -First 1
           if (-not $cfg) {
             Write-Error "LLVMConfig.cmake not found under $root"
             exit 1
           }
-          $clangCl = Join-Path $root "bin\clang-cl.exe"
-          echo "LLVM_PREFIX=$root"             >> $env:GITHUB_ENV
-          echo "LLVM_CMAKE_DIR=$($cfg.DirectoryName)" >> $env:GITHUB_ENV
-          echo "CLANG_CL=$clangCl"             >> $env:GITHUB_ENV
-          echo "Found cmake dir: $($cfg.DirectoryName)"
+          echo "LLVM_PREFIX=$root"                      >> $env:GITHUB_ENV
+          echo "LLVM_CMAKE_DIR=$($cfg.DirectoryName)"   >> $env:GITHUB_ENV
+          echo "CLANG_CL=$root\bin\clang-cl.exe"        >> $env:GITHUB_ENV
+          Write-Host "cmake dir: $($cfg.DirectoryName)"
 
       - name: Configure (Clang-CL)
         shell: pwsh
