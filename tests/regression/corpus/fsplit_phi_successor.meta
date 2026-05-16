@@ -1,0 +1,2 @@
+PASS=module(kagura-fsplit)
+DESCRIPTION=FunctionSplit with PHI nodes in successor blocks: stale PHI incoming values must be replaced with UndefValue

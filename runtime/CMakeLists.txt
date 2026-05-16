@@ -45,6 +45,7 @@ add_library(kagura_runtime STATIC
 
   # ---- Game / anti-cheat ------------------------------------------------------
   game/il2cpp_protection.c
+  game/ue4_protection.c
   game/game_values.c
   game/state_integrity.c
   game/behavior_log.c

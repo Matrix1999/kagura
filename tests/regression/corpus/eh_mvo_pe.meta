@@ -1,0 +1,2 @@
+PASS=function(kagura-mvo,kagura-pe)
+DESCRIPTION=MVO and PE on EH functions: non-EH allocas must be transformed without corrupting invoke edges

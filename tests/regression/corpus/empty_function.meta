@@ -1,0 +1,2 @@
+PASS=function(kagura-fla,kagura-bcf,kagura-sub,kagura-bbr,kagura-mvo,kagura-pe)
+DESCRIPTION=Trivial/empty functions: all passes must return cleanly without crashing

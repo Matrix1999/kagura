@@ -278,6 +278,16 @@ struct AuditLogPass : public llvm::PassInfoMixin<AuditLogPass> {
   static bool isRequired() { return false; }
 };
 
+/// 4.8.1: Analyzes each function's IR characteristics (cyclomatic complexity,
+/// instruction count, alloca types, string refs) and annotates functions with
+/// the appropriate kagura pass set. Run BEFORE other obfuscation passes.
+/// Respects existing per-function annotations and globally-disabled passes.
+struct AutoSelectPass : public llvm::PassInfoMixin<AutoSelectPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
 /// 4.6.1 + 4.6.2: Reads a JSON policy file and applies per-module protection
 /// settings, including profile presets (FAST / BALANCED / STRONG) and
 /// per-pass enable/disable overrides.  Run BEFORE other passes.

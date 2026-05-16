@@ -87,6 +87,9 @@ extern llvm::cl::opt<bool> Honey;
 
 // ---- Phase 4.6 build-system / DX flags ----
 
+/// 4.8.1: Auto-select obfuscation passes per function based on risk score.
+extern llvm::cl::opt<bool> AutoSelect;
+
 /// 4.6.1: Path to the JSON policy configuration file.
 extern llvm::cl::opt<std::string> ConfigFile;
 

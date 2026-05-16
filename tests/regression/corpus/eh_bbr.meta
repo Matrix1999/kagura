@@ -1,0 +1,2 @@
+PASS=function(kagura-bbr)
+DESCRIPTION=BBR on EH function: landing-pad blocks must be skipped, non-EH blocks reordered safely

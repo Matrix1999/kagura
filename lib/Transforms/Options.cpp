@@ -136,6 +136,13 @@ cl::opt<bool> Honey("kagura-honey",
                     cl::desc("[Kagura] Honey value / fake symbol injection"),
                     cl::init(false));
 
+// ---- Phase 4.8 automation flags ----
+
+cl::opt<bool> AutoSelect(
+    "kagura-autoselect",
+    cl::desc("[Kagura] 4.8.1: Auto-select passes per function based on risk score"),
+    cl::init(false));
+
 // ---- Phase 4.6 build-system / DX flags ----
 
 cl::opt<std::string> ConfigFile(
