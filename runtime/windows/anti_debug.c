@@ -22,15 +22,16 @@
 #include <stdint.h>
 #include <string.h>
 
-/* winsock2.h must come before windows.h to avoid redefinition errors. */
+/* winsock2.h must precede windows.h. */
 #include <winsock2.h>
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
+/* Do NOT define WIN32_LEAN_AND_MEAN here: it excludes tlhelp32.h content
+ * (MODULEENTRY32, Module32First, etc.) when included indirectly.
+ * The CMake build already defines it via -DWIN32_LEAN_AND_MEAN, so we
+ * explicitly undo that before the tlhelp32 include. */
+#ifdef WIN32_LEAN_AND_MEAN
+#undef WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
-/* tlhelp32.h defines MODULEENTRY32A/Module32FirstA/Module32NextA.
- * Include it after windows.h with UNICODE defined so the A-suffix
- * variants remain available regardless of the macro environment. */
 #include <tlhelp32.h>
 
 /* NtQueryInformationProcess — not in standard headers */
@@ -187,47 +188,48 @@ void kagura_frida_port_check(void) {
  * analysis / instrumentation DLL names.
  */
 int kagura_check_injected_dlls(void) {
-    /* All declarations at the top of the function to satisfy C11 and avoid
-     * jumping over initializations with goto. */
-    static const char *kPatterns[] = {
-        "frida", "frida-gadget", "frida-agent",
-        "x64dbg", "x32dbg", "ollydbg",
-        "cheatengine", "winspy", "injector",
-        "minhook", "detours", NULL
+    /* Wide-character patterns: Module32First/Next use WCHAR names when
+     * UNICODE is defined (which LLVM's CMake does via -DUNICODE). */
+    static const wchar_t *kPatterns[] = {
+        L"frida", L"frida-gadget", L"frida-agent",
+        L"x64dbg", L"x32dbg", L"ollydbg",
+        L"cheatengine", L"winspy", L"injector",
+        L"minhook", L"detours", NULL
     };
-    /* Use the ANSI variant explicitly: UNICODE macro would remap MODULEENTRY32
-     * to MODULEENTRY32W whose szModule is WCHAR, incompatible with strlen. */
-    MODULEENTRY32A me;
+    /* All declarations at block start to satisfy C11 (no jumping over
+     * declarations with goto). */
+    MODULEENTRY32W me;
     HANDLE snap;
     int found = 0;
+    size_t i;
 
     snap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, 0);
     if (snap == INVALID_HANDLE_VALUE)
         return 0;
 
     me.dwSize = sizeof(me);
-    if (!Module32FirstA(snap, &me)) {
+    if (!Module32FirstW(snap, &me)) {
         CloseHandle(snap);
         return 0;
     }
 
     do {
-        char lower[MAX_MODULE_NAME32 + 1];
-        size_t len = strlen(me.szModule);
-        size_t i;
+        /* Convert wide module name to lowercase in a wide buffer. */
+        wchar_t lower[MAX_MODULE_NAME32 + 1];
+        size_t len = wcslen(me.szModule);
         if (len > MAX_MODULE_NAME32) len = MAX_MODULE_NAME32;
         for (i = 0; i < len; ++i)
-            lower[i] = (char)(me.szModule[i] >= 'A' && me.szModule[i] <= 'Z'
-                              ? me.szModule[i] + 32 : me.szModule[i]);
-        lower[len] = '\0';
+            lower[i] = (me.szModule[i] >= L'A' && me.szModule[i] <= L'Z')
+                        ? (wchar_t)(me.szModule[i] + 32) : me.szModule[i];
+        lower[len] = L'\0';
 
         for (i = 0; kPatterns[i]; ++i) {
-            if (strstr(lower, kPatterns[i])) {
+            if (wcsstr(lower, kPatterns[i])) {
                 found = 1;
                 goto done;
             }
         }
-    } while (Module32NextA(snap, &me));
+    } while (Module32NextW(snap, &me));
 
 done:
     CloseHandle(snap);
