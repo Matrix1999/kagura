@@ -136,6 +136,12 @@ PreservedAnalyses AutoSelectPass::run(Module &M, ModuleAnalysisManager &) {
   if (!kagura::opt::AutoSelect)
     return PreservedAnalyses::all();
 
+  // C.1: On Wasm, FLA and VM passes are disabled (structured control flow
+  // requirement).  AutoSelect must not annotate these passes on Wasm targets
+  // even when the global flags are on — the per-function annotation would
+  // bypass the guard inside each pass.
+  const bool IsWasm = kagura::isWasmTarget(M);
+
   for (auto &F : M) {
     if (F.isDeclaration() || F.isVarArg()) continue;
 
@@ -173,7 +179,8 @@ PreservedAnalyses AutoSelectPass::run(Module &M, ModuleAnalysisManager &) {
       // Heavy: FLA + BCF + BBR + BBS + MVO + PE + SUB
       // Skip FLA and VM for very large functions (> 200 instructions)
       // to avoid excessive code size blowup.
-      if (kagura::opt::FLA && Features.Insts <= 200)
+      // Skip FLA on Wasm (structured control flow requirement).
+      if (kagura::opt::FLA && Features.Insts <= 200 && !IsWasm)
         annotateIfAbsent(F, "fla");
       if (kagura::opt::BCF) annotateIfAbsent(F, "bcf");
       if (kagura::opt::BBR) annotateIfAbsent(F, "bbr");

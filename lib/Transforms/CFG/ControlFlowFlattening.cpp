@@ -162,6 +162,12 @@ static bool flattenFunction(Function &F, PRNG &RNG) {
 
 PreservedAnalyses
 ControlFlowFlatteningPass::run(Function &F, FunctionAnalysisManager &) {
+  // C.1: FLA rewires the entire CFG into a switch dispatch and relies on
+  // reg2mem (DemotePHIToStack / DemoteRegToStack).  The Wasm target requires
+  // structured control flow and does not support arbitrary CFG reshaping.
+  if (kagura::isWasmTarget(*F.getParent()))
+    return PreservedAnalyses::all();
+
   if (!shouldObfuscate(F, "fla", true))
     return PreservedAnalyses::all();
   auto &RNG    = getModulePRNG();

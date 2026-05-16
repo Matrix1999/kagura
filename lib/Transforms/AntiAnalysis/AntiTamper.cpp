@@ -216,6 +216,11 @@ static bool isTamperEligible(Function &F, bool GlobalFlag) {
 //===----------------------------------------------------------------------===//
 
 PreservedAnalyses AntiTamperPass::run(Module &M, ModuleAnalysisManager &) {
+  // C.1: Integrity checks call platform runtime functions (jailbreak detection,
+  // kagura_self_check) that are not available in the WebAssembly sandbox.
+  if (kagura::isWasmTarget(M))
+    return PreservedAnalyses::all();
+
   bool Changed = false;
 
   // Pre-declare all runtime symbols once so that every injection below can

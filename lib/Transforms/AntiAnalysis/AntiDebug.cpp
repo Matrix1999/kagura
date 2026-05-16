@@ -149,6 +149,11 @@ static Function *buildAntiDebugConstructor(Module &M, bool AntiFramework,
 }
 
 PreservedAnalyses AntiDebugPass::run(Module &M, ModuleAnalysisManager &) {
+  // C.1: Anti-debug checks rely on platform syscalls (ptrace, /proc, Mach-O
+  // dylib introspection) that do not exist in WebAssembly sandboxes.
+  if (kagura::isWasmTarget(M))
+    return PreservedAnalyses::all();
+
   auto *Ctor = buildAntiDebugConstructor(M, AntiFramework, AntiPtrace);
   // Register as module constructor (priority 0 = runs first)
   appendToGlobalCtors(M, Ctor, 0);
