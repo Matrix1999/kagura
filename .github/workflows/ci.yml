@@ -65,18 +65,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Locate pre-installed LLVM
+      - name: Install LLVM (with CMake dev files)
         shell: pwsh
         run: |
-          # windows-latest ships LLVM under C:\Program Files\LLVM
-          $root = "C:\Program Files\LLVM"
-          if (-not (Test-Path "$root\bin\clang-cl.exe")) {
-            # Fallback: find via PATH
-            $root = (Split-Path -Parent (Get-Command clang-cl -ErrorAction Stop).Source)
-            $root = Split-Path -Parent $root
-          }
-          echo "LLVM_PREFIX=$root" >> $env:GITHUB_ENV
-          echo "Located LLVM at $root"
+          # The GHA runner's pre-installed LLVM binary lacks LLVMConfig.cmake.
+          # choco's LLVM package ships the full dev tree including cmake files.
+          choco upgrade llvm --no-progress -y
+          echo "LLVM_PREFIX=C:\Program Files\LLVM" >> $env:GITHUB_ENV
 
       - name: Configure (Clang-CL)
         shell: pwsh
