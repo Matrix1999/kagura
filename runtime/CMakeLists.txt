@@ -52,6 +52,20 @@ add_library(kagura_runtime STATIC
   game/integrity_report.c
 )
 
+# ---- A.1: Windows runtime stubs --------------------------------------------
+if(WIN32)
+  target_sources(kagura_runtime PRIVATE
+    windows/anti_debug.c
+    windows/integrity.c
+    windows/tamper_response.c
+    windows/device_key.c
+  )
+  target_link_libraries(kagura_runtime PRIVATE
+    ws2_32      # WinSock2  (anti_debug: Frida port check)
+    imagehlp    # MapFileAndCheckSum (integrity: PE checksum)
+  )
+endif()
+
 target_include_directories(kagura_runtime PUBLIC
   ${CMAKE_SOURCE_DIR}/include
 )
