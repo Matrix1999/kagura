@@ -66,26 +66,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download & install LLVM with dev files
+      - name: Download LLVM dev tarball
         shell: pwsh
         run: |
+          # The win64.exe installer is binaries-only; the full dev tree
+          # (headers, cmake configs, import libs) is in the MSVC tarball.
           $ver = "19.1.7"
-          $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-${ver}/LLVM-${ver}-win64.exe"
-          $installer = "$env:TEMP\LLVM-installer.exe"
-          Write-Host "Downloading LLVM $ver from $url"
-          Invoke-WebRequest -Uri $url -OutFile $installer -UseBasicParsing
-          Write-Host "Installing..."
-          Start-Process -FilePath $installer -ArgumentList "/S" -Wait
-          $root = "C:\Program Files\LLVM"
-          $cfg = Get-ChildItem $root -Recurse -Filter LLVMConfig.cmake |
-                 Select-Object -First 1
-          if (-not $cfg) {
-            Write-Error "LLVMConfig.cmake not found under $root"
-            exit 1
-          }
-          echo "LLVM_PREFIX=$root"                      >> $env:GITHUB_ENV
-          echo "LLVM_CMAKE_DIR=$($cfg.DirectoryName)"   >> $env:GITHUB_ENV
-          echo "CLANG_CL=$root\bin\clang-cl.exe"        >> $env:GITHUB_ENV
+          $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-${ver}/clang+llvm-${ver}-x86_64-pc-windows-msvc.tar.xz"
+          $archive = "$env:TEMP\llvm-dev.tar.xz"
+          $dest    = "C:\llvm-dev"
+          Write-Host "Downloading $url"
+          Invoke-WebRequest -Uri $url -OutFile $archive -UseBasicParsing
+          Write-Host "Extracting to $dest ..."
+          # Use 7-Zip (pre-installed on windows-latest) to unpack .tar.xz
+          & "C:\Program Files\7-Zip\7z.exe" x $archive -o"$env:TEMP" -y | Out-Null
+          $tarFile = "$env:TEMP\llvm-dev.tar"
+          & "C:\Program Files\7-Zip\7z.exe" x $tarFile -o"C:\" -y | Out-Null
+          # Rename the extracted directory to a stable path
+          $extracted = Get-ChildItem "C:\" -Directory | Where-Object { $_.Name -like "clang+llvm-*" } | Select-Object -First 1
+          if ($extracted) { Rename-Item $extracted.FullName $dest }
+          $cfg = Get-ChildItem $dest -Recurse -Filter LLVMConfig.cmake | Select-Object -First 1
+          if (-not $cfg) { Write-Error "LLVMConfig.cmake not found"; exit 1 }
+          echo "LLVM_PREFIX=$dest"                    >> $env:GITHUB_ENV
+          echo "LLVM_CMAKE_DIR=$($cfg.DirectoryName)" >> $env:GITHUB_ENV
+          echo "CLANG_CL=$dest\bin\clang-cl.exe"      >> $env:GITHUB_ENV
           Write-Host "cmake dir: $($cfg.DirectoryName)"
 
       - name: Configure (Clang-CL)
