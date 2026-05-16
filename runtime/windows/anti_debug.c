@@ -22,13 +22,15 @@
 #include <stdint.h>
 #include <string.h>
 
-/* Avoid pulling in the full Windows SDK in LLVM pass-plugin builds.
- * We forward-declare the minimal Win32 surface we need. */
+/* winsock2.h must come before windows.h to avoid redefinition errors. */
+#include <winsock2.h>
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
-#include <winsock2.h>
+/* tlhelp32.h defines MODULEENTRY32A/Module32FirstA/Module32NextA.
+ * Include it after windows.h with UNICODE defined so the A-suffix
+ * variants remain available regardless of the macro environment. */
 #include <tlhelp32.h>
 
 /* NtQueryInformationProcess — not in standard headers */
@@ -185,47 +187,41 @@ void kagura_frida_port_check(void) {
  * analysis / instrumentation DLL names.
  */
 int kagura_check_injected_dlls(void) {
+    /* All declarations at the top of the function to satisfy C11 and avoid
+     * jumping over initializations with goto. */
     static const char *kPatterns[] = {
-        "frida",
-        "frida-gadget",
-        "frida-agent",
-        "x64dbg",
-        "x32dbg",
-        "ollydbg",
-        "cheatengine",
-        "winspy",
-        "injector",
-        "minhook",
-        "detours",
-        NULL
+        "frida", "frida-gadget", "frida-agent",
+        "x64dbg", "x32dbg", "ollydbg",
+        "cheatengine", "winspy", "injector",
+        "minhook", "detours", NULL
     };
+    /* Use the ANSI variant explicitly: UNICODE macro would remap MODULEENTRY32
+     * to MODULEENTRY32W whose szModule is WCHAR, incompatible with strlen. */
+    MODULEENTRY32A me;
+    HANDLE snap;
+    int found = 0;
 
-    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE |
-                                            TH32CS_SNAPMODULE32, 0);
+    snap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, 0);
     if (snap == INVALID_HANDLE_VALUE)
         return 0;
 
-    /* Use the ANSI variant explicitly to avoid UNICODE macro remapping to
-     * MODULEENTRY32W whose szModule is WCHAR, incompatible with strlen/strstr. */
-    MODULEENTRY32A me;
     me.dwSize = sizeof(me);
     if (!Module32FirstA(snap, &me)) {
         CloseHandle(snap);
         return 0;
     }
 
-    int found = 0;
     do {
-        /* Convert module name to lowercase for case-insensitive match */
         char lower[MAX_MODULE_NAME32 + 1];
         size_t len = strlen(me.szModule);
+        size_t i;
         if (len > MAX_MODULE_NAME32) len = MAX_MODULE_NAME32;
-        for (size_t i = 0; i < len; ++i)
+        for (i = 0; i < len; ++i)
             lower[i] = (char)(me.szModule[i] >= 'A' && me.szModule[i] <= 'Z'
                               ? me.szModule[i] + 32 : me.szModule[i]);
         lower[len] = '\0';
 
-        for (int i = 0; kPatterns[i]; ++i) {
+        for (i = 0; kPatterns[i]; ++i) {
             if (strstr(lower, kPatterns[i])) {
                 found = 1;
                 goto done;
