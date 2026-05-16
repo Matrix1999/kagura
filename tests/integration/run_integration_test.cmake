@@ -22,10 +22,16 @@
 cmake_minimum_required(VERSION 3.14)
 
 # ---- Unique temp paths -------------------------------------------------------
-set(BASELINE_IR  "/tmp/kagura_int_${TEST_NAME}_base.ll")
-set(OBF_IR       "/tmp/kagura_int_${TEST_NAME}_obf.ll")
-set(BASELINE_BIN "/tmp/kagura_int_${TEST_NAME}_base")
-set(OBF_BIN      "/tmp/kagura_int_${TEST_NAME}_obf")
+# Use TEMP env var on Windows; /tmp everywhere else.
+if(WIN32 OR CMAKE_HOST_WIN32 OR "$ENV{TEMP}" MATCHES "\\\\")
+  set(_TMPDIR "$ENV{TEMP}")
+else()
+  set(_TMPDIR "/tmp")
+endif()
+set(BASELINE_IR  "${_TMPDIR}/kagura_int_${TEST_NAME}_base.ll")
+set(OBF_IR       "${_TMPDIR}/kagura_int_${TEST_NAME}_obf.ll")
+set(BASELINE_BIN "${_TMPDIR}/kagura_int_${TEST_NAME}_base")
+set(OBF_BIN      "${_TMPDIR}/kagura_int_${TEST_NAME}_obf")
 
 # ---- Compile baseline binary ------------------------------------------------
 execute_process(
