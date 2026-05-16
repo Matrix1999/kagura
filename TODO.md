@@ -16,5 +16,5 @@ Features that were not implemented in Phase 4 and are candidates for future work
 | B.1 | Decompiler resistance scoring | Medium | Automate Binary Ninja / Ghidra analysis to produce a quantitative resilience score; feed back into AutoSelectPass |
 | B.2 | CallIndirection hot-path cache | Medium | Resolution happens on every call; a per-site cache would reduce overhead on hot paths |
 | B.3 | Deterministic obfuscation sessions | Medium | Given the same seed key and IR, produce a bit-identical output binary to ensure CI reproducibility |
-| C.1 | WebAssembly backend support | Low | Unity WebGL and other Wasm targets are growing; needs a Wasm-aware pass pipeline |
+| ~~C.1~~ | ~~WebAssembly backend support~~ | ~~Low~~ | ~~Implemented: `isWasmTarget()` helper + early-exit guards in AntiDebug, PointerAuth, AntiTamper, VMObfuscation, ControlFlowFlattening; AutoSelect skips FLA on Wasm; LIT test wasm-pass-filter.ll~~ |
 | C.2 | Automated MBA expression generation | Low | Current SUB uses fixed patterns; auto-generate Z3-verified equivalent expressions for richer MBA substitution |

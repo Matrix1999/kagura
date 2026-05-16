@@ -76,6 +76,8 @@ enum class TargetArch {
   ARM64e,  // AArch64 with hardware PAC (apple-arm64e)
   ARMv7,   // 32-bit ARM
   X86_64,  // x86-64
+  Wasm32,  // WebAssembly (32-bit linear memory)
+  Wasm64,  // WebAssembly (64-bit linear memory)
   Other,
 };
 
@@ -99,6 +101,11 @@ bool isARMv7Target(const llvm::Module &M);
 
 /// Returns true if the module targets x86-64.
 bool isX86_64Target(const llvm::Module &M);
+
+/// Returns true if the module targets WebAssembly (wasm32 or wasm64).
+/// Passes that use platform-specific syscalls, Mach-O sections, ELF/PE
+/// structure, or hardware PAC must skip themselves on Wasm targets.
+bool isWasmTarget(const llvm::Module &M);
 
 // ---- String global collection ----
 

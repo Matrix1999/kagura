@@ -409,6 +409,12 @@ PreservedAnalyses PointerAuthPass::run(Module &M, ModuleAnalysisManager &) {
   if (!kagura::opt::PAC)
     return PreservedAnalyses::all();
 
+  // C.1: Pointer authentication uses hardware PAC (arm64e) or XOR tagging.
+  // WebAssembly has neither native PAC nor mutable function-pointer globals
+  // that benefit from software tagging — skip to avoid invalid lowering.
+  if (kagura::isWasmTarget(M))
+    return PreservedAnalyses::all();
+
   // 4.1.8: On arm64e, prefer hardware PAC (pacia/autia intrinsics).
   const bool UseHardwarePAC = kagura::isArm64eTarget(M);
   if (UseHardwarePAC) {

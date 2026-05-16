@@ -456,6 +456,11 @@ static bool buildTrampoline(Function &F, ArrayRef<uint8_t> Bytecode,
 
 PreservedAnalyses VMObfuscationPass::run(Function &F,
                                           FunctionAnalysisManager &) {
+  // C.1: The VM interpreter uses platform-specific indirect dispatch and
+  // function pointer manipulation that does not lower correctly on Wasm.
+  if (kagura::isWasmTarget(*F.getParent()))
+    return PreservedAnalyses::all();
+
   if (!shouldObfuscate(F, "vm", true)) return PreservedAnalyses::all();
   if (!canVirtualize(F)) return PreservedAnalyses::all();
 

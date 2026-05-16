@@ -220,6 +220,10 @@ TargetArch getTargetArch(const Module &M) {
     return TargetArch::ARMv7;
   if (Triple.starts_with("x86_64") || Triple.starts_with("amd64"))
     return TargetArch::X86_64;
+  if (Triple.starts_with("wasm64"))
+    return TargetArch::Wasm64;
+  if (Triple.starts_with("wasm32"))
+    return TargetArch::Wasm32;
   return TargetArch::Other;
 }
 
@@ -238,6 +242,11 @@ bool isARMv7Target(const Module &M) {
 
 bool isX86_64Target(const Module &M) {
   return getTargetArch(M) == TargetArch::X86_64;
+}
+
+bool isWasmTarget(const Module &M) {
+  TargetArch A = getTargetArch(M);
+  return A == TargetArch::Wasm32 || A == TargetArch::Wasm64;
 }
 
 // ---- IR helpers ----
