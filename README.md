@@ -11,15 +11,17 @@
   </a>
   <img src="https://img.shields.io/badge/LLVM-17%E2%80%9322-blue?style=flat-square" alt="LLVM 17-22">
   <img src="https://img.shields.io/badge/C%2B%2B-17-orange?style=flat-square" alt="C++17">
-  <img src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Linux-green?style=flat-square" alt="Platforms">
+  <img src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Wasm-green?style=flat-square" alt="Platforms">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square" alt="MIT License">
 </p>
 
 # Kagura
 
-> LLVM-based code obfuscation and anti-tamper toolkit for iOS and Android native binaries.
+> LLVM-based code obfuscation and anti-tamper toolkit for mobile, desktop, and WebAssembly targets.
 
 Built on the **New Pass Manager** (LLVM 17+). Loaded as a pass plugin via `-fpass-plugin` — no LLVM source tree modification required.
+
+**Supported platforms:** iOS · Android · macOS · Windows (MSVC/Clang-CL) · Linux · WebAssembly
 
 ---
 
@@ -39,9 +41,10 @@ kagura/
 │   └── Utils.cpp           # Shared IR helpers & PRNG
 ├── runtime/
 │   ├── core/               # AES, VM interpreter, crash symbolication, device key
-│   ├── anti_debug/         # Anti-debug / anti-Frida (cross-platform)
+│   ├── anti_debug/         # Anti-debug / anti-Frida (cross-platform POSIX)
 │   ├── android/            # Android + Linux: root detection, attestation, proc/syscall
 │   ├── ios/                # iOS / macOS: jailbreak detection, Mach-O integrity
+│   ├── windows/            # Windows: IsDebuggerPresent, NtQueryInformationProcess, PE integrity
 │   └── game/               # Anti-cheat, IL2CPP protection, telemetry
 ├── integration/            # Xcode, Gradle, Unity, Unreal, CMake, Bazel, CocoaPods, SPM
 ├── scripts/                # CLI tools, verification, differential testing, review risk assessment
@@ -56,7 +59,7 @@ kagura/
 
 | Flag | Pass | Effect |
 |:-----|:-----|:-------|
-| `-kagura-fla` | ControlFlowFlattening | Converts CFG into a switch-based state machine |
+| `-kagura-fla` | ControlFlowFlattening | Converts CFG into a switch-based state machine (skipped on Wasm — requires unstructured CFG) |
 | `-kagura-bcf` | BogusControlFlow | Injects dead blocks guarded by MBA opaque predicates |
 | `-kagura-ibr` | IndirectBranch | Replaces direct calls with loads from function pointer globals |
 | `-kagura-ci` | CallIndirection | Routes external calls through a runtime-resolved thunk table |
@@ -85,7 +88,7 @@ kagura/
 
 | Flag | Pass | Effect |
 |:-----|:-----|:-------|
-| `-kagura-anti-debug` | AntiDebug | ptrace, Frida port, `/proc/maps`, hook, breakpoint, emulator checks |
+| `-kagura-anti-debug` | AntiDebug | ptrace, Frida port, `/proc/maps`, hook, breakpoint, emulator checks (iOS/Android); IsDebuggerPresent, NtQueryInformationProcess, PEB heap flags (Windows); skipped on Wasm |
 | `-kagura-tamper` | AntiTamper | FNV-1a function checksums + jailbreak/root detection at startup |
 | `-kagura-pac` | PointerAuth | Software CFI via XOR-tagged function pointer globals |
 | `-kagura-sv` | SymbolVisibility | Sets non-public symbols to hidden; strips from dynamic symtab |
@@ -219,6 +222,7 @@ Convenience aliases: `ProtectedInt`, `ProtectedFloat`, `ProtectedDouble`, `Prote
 - **LLVM 17 – 22** (tested on 17, 18, 19, 21, 22)
 - CMake 3.20+
 - C++17
+- **Windows**: Clang-CL (LLVM for Windows); builds as a static library (`KaguraObfuscator.lib`) since MSVC does not support loadable pass modules
 
 ---
 
@@ -248,16 +252,27 @@ Each archive contains:
 brew install llvm
 bash build.sh
 
-# Custom LLVM
+# Custom LLVM (macOS / Linux)
 cmake -B build \
   -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm \
   -DCMAKE_C_COMPILER=/path/to/clang \
   -DCMAKE_CXX_COMPILER=/path/to/clang++ \
   .
 cmake --build build -j$(nproc)
+
+# Windows (Clang-CL, LLVM dev tree required for LLVMConfig.cmake)
+cmake -B build -G Ninja ^
+  -DLLVM_DIR=C:\llvm-dev\lib\cmake\llvm ^
+  -DCMAKE_C_COMPILER=C:\llvm-dev\bin\clang-cl.exe ^
+  -DCMAKE_CXX_COMPILER=C:\llvm-dev\bin\clang-cl.exe ^
+  -DKAGURA_BUILD_TESTS=ON
+cmake --build build
 ```
 
-Output: `build/lib/Transforms/KaguraObfuscator.dylib` (or `.so` on Linux).
+Output:
+- macOS: `build/lib/Transforms/KaguraObfuscator.dylib`
+- Linux: `build/lib/Transforms/KaguraObfuscator.so`
+- Windows: `build/lib/Transforms/KaguraObfuscator.lib` (static; link directly into your driver tool)
 
 ### Usage with clang
 
