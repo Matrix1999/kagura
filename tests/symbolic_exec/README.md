@@ -1,4 +1,4 @@
-# Symbolic Execution Resistance Evaluation (4.8.4)
+# Symbolic Execution Resistance Evaluation
 
 Evaluates kagura's effectiveness against symbolic execution tools
 (angr, Triton, KLEE) by measuring analysis coverage on obfuscated vs.
