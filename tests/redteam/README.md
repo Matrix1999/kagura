@@ -1,4 +1,4 @@
-# Red-Team Evaluation Tooling (4.8.8)
+# Red-Team Evaluation Tooling
 
 This directory contains tooling for red-team assessments of kagura-protected
 binaries.  Use this to verify that kagura's protections are effective before

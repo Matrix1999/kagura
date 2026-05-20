@@ -1,4 +1,4 @@
-# Decompiler Resistance Evaluation (4.8.5)
+# Decompiler Resistance Evaluation
 
 Evaluates kagura's effectiveness against decompilers (Ghidra, IDA Pro,
 Binary Ninja) by measuring the quality of decompiled output on obfuscated

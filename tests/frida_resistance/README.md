@@ -1,4 +1,4 @@
-# Frida Script Resistance Evaluation (4.8.6)
+# Frida Script Resistance Evaluation
 
 This directory contains Frida scripts and evaluation tooling to test kagura's
 resistance against common Frida-based dynamic instrumentation attacks.
