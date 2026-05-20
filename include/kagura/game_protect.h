@@ -1,6 +1,6 @@
 /*===-- kagura/game_protect.h - Game logic value protection template ------===
  *
- * 4.5.11: Provides C++ template wrappers for protecting game-critical values
+ * Provides C++ template wrappers for protecting game-critical values
  * (HP, damage, currency, speed, etc.) from memory scanners and freeze tools
  * such as GameGuardian, Cheat Engine, and memory editors.
  *

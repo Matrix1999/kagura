@@ -1,6 +1,6 @@
 /*===-- runtime/art_environment.c - ART/JIT environment checks ------------===
  *
- * 4.4.15: Detect ART/JIT environment indicators on Android that may signal
+ * Detect ART/JIT environment indicators on Android that may signal
  *         a dynamic analysis or instrumentation environment.
  *
  * Checks:

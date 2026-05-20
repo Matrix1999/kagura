@@ -1,6 +1,6 @@
 /*===-- runtime/split_apk.c - Split APK / AAB support --------------------===
  *
- * 4.4.18: Split APK and Android App Bundle (AAB) support.
+ * Split APK and Android App Bundle (AAB) support.
  *
  * When an app is delivered as a split APK or AAB, the APK file that
  * contains native libraries may be different from the base APK that holds

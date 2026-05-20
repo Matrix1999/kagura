@@ -31,7 +31,7 @@ elseif(WIN32)
 endif()
 # ---------------------------------------------------------------------------
 
-# ---- 4.6.8 Build cache support -------------------------------------------
+# ---- Build cache support ----------------------------------------------------
 # Enable ccache / sccache if available. Set KAGURA_USE_CACHE=OFF to disable.
 option(KAGURA_USE_CACHE "Use compiler cache (ccache/sccache) if available" ON)
 if(KAGURA_USE_CACHE)
@@ -68,7 +68,7 @@ include(AddLLVM)
 # Kagura includes
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-# ---- 4.6.7 Incremental build support ------------------------------------
+# ---- Incremental build support ----------------------------------------------
 # kagura-opt and the pass plugin both support incremental builds naturally
 # via CMake's dependency tracking.  The following options control additional
 # incremental-build optimisations:
@@ -87,7 +87,7 @@ if(KAGURA_PCH)
 endif()
 # --------------------------------------------------------------------------
 
-# ---- 4.1.3 Legacy pass manager compatibility ----------------------------
+# ---- Legacy pass manager compatibility --------------------------------------
 # When KAGURA_LEGACY_PM=ON, LegacyPlugin.cpp is compiled into the shared
 # library and registers all kagura passes with LLVM 14-16's legacy PM via
 # PassManagerBuilder extension points and RegisterPass<>.
@@ -104,7 +104,7 @@ if(KAGURA_LEGACY_PM)
 endif()
 # --------------------------------------------------------------------------
 
-# ---- 4.1.5 Bitcode input support -----------------------------------------
+# ---- Bitcode input support --------------------------------------------------
 # When KAGURA_BITCODE_TOOLS=ON, build a small standalone tool (kagura-opt)
 # that wraps `opt` and auto-loads the kagura plugin, so users can run kagura
 # passes on .bc / .ll files without needing a full clang invocation.

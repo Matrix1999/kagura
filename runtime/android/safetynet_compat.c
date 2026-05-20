@@ -1,6 +1,6 @@
 /*===-- runtime/safetynet_compat.c - SafetyNet backward compatibility -----===
  *
- * 4.4.14: SafetyNet backward compatibility shim.
+ * SafetyNet backward compatibility shim.
  *
  * Google deprecated the SafetyNet Attestation API in June 2024 and announced
  * shutdown in June 2025.  This module provides:

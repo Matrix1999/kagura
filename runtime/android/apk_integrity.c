@@ -1,6 +1,6 @@
 /*===-- runtime/apk_integrity.c - Android APK signature verification ------===
  *
- * 4.3.4: Verifies that the APK has a valid Android v2/v3 signature block at
+ * Verifies that the APK has a valid Android v2/v3 signature block at
  * runtime on Android devices.  The check detects:
  *
  *   a. Missing APK Signing Block — the 16-byte magic "APK Sig Block 42" must

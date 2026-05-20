@@ -1,6 +1,6 @@
 /*===-- runtime/anti_dump.c - Anti-dump / anti-memory-scan ---------------===
  *
- * 4.3.15: Anti-dump and anti-memory-scan countermeasures.
+ * Anti-dump and anti-memory-scan countermeasures.
  *
  * Memory dumping tools (dumpdecrypted, Fridump, mem-dump) extract the full
  * contents of a process's address space.  This module provides:

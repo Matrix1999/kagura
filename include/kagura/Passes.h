@@ -219,9 +219,9 @@ struct DeadCodeInsertionPass
   static bool isRequired() { return false; }
 };
 
-// ---- Phase 4.5 Game / Anti-Cheat ----
+// ---- Game / Anti-Cheat ----
 
-/// 4.5.2: XOR-encrypts alloca'd pointer variables to defeat memory dump
+/// XOR-encrypts alloca'd pointer variables to defeat memory dump
 /// analysis by obscuring raw pointer addresses in game object fields.
 struct PointerEncryptionPass : public llvm::PassInfoMixin<PointerEncryptionPass> {
   llvm::PreservedAnalyses run(llvm::Function &F,
@@ -229,7 +229,7 @@ struct PointerEncryptionPass : public llvm::PassInfoMixin<PointerEncryptionPass>
   static bool isRequired() { return false; }
 };
 
-/// 4.5.1: XOR-encrypts local (alloca'd) integer variables at every store site
+/// XOR-encrypts local (alloca'd) integer variables at every store site
 /// and decrypts at every load site, protecting in-memory values from memory
 /// dump and debugger inspection.
 struct MemoryValueObfuscationPass
@@ -239,7 +239,7 @@ struct MemoryValueObfuscationPass
   static bool isRequired() { return false; }
 };
 
-/// 4.5.3 / 4.5.4: Injects decoy global variables containing fake secrets and
+/// Injects decoy global variables containing fake secrets and
 /// stub functions with plausible security-sounding names to mislead attackers.
 struct HoneyValuePass : public llvm::PassInfoMixin<HoneyValuePass> {
   llvm::PreservedAnalyses run(llvm::Module &M,
@@ -247,9 +247,9 @@ struct HoneyValuePass : public llvm::PassInfoMixin<HoneyValuePass> {
   static bool isRequired() { return false; }
 };
 
-// ---- Phase 4.3 Anti-Tamper (additional) ----
+// ---- Anti-Tamper (additional) ----
 
-/// 4.3.16: Injects compile-time opcode checksums and runtime verification
+/// Injects compile-time opcode checksums and runtime verification
 /// calls into a random subset of basic blocks to detect binary patching.
 struct BasicBlockChecksumPass
     : public llvm::PassInfoMixin<BasicBlockChecksumPass> {
@@ -258,9 +258,9 @@ struct BasicBlockChecksumPass
   static bool isRequired() { return false; }
 };
 
-// ---- Phase 4.5 Game / Anti-Cheat (additional) ----
+// ---- Game / Anti-Cheat (additional) ----
 
-/// 4.5.6: Injects a call to kagura_telemetry_event(uint32_t id) at the entry
+/// Injects a call to kagura_telemetry_event(uint32_t id) at the entry
 /// of instrumented functions to collect behavioral signals for cheat detection.
 struct TelemetryPass : public llvm::PassInfoMixin<TelemetryPass> {
   llvm::PreservedAnalyses run(llvm::Function &F,
@@ -268,9 +268,9 @@ struct TelemetryPass : public llvm::PassInfoMixin<TelemetryPass> {
   static bool isRequired() { return false; }
 };
 
-// ---- Phase 4.6 Build System / DX ----
+// ---- Build System / DX ----
 
-/// 4.6.10: Emits a JSON audit log recording all obfuscated functions and
+/// Emits a JSON audit log recording all obfuscated functions and
 /// which passes were applied.  Run AFTER all obfuscation passes.
 struct AuditLogPass : public llvm::PassInfoMixin<AuditLogPass> {
   llvm::PreservedAnalyses run(llvm::Module &M,
@@ -278,7 +278,7 @@ struct AuditLogPass : public llvm::PassInfoMixin<AuditLogPass> {
   static bool isRequired() { return false; }
 };
 
-/// 4.8.1: Analyzes each function's IR characteristics (cyclomatic complexity,
+/// Analyzes each function's IR characteristics (cyclomatic complexity,
 /// instruction count, alloca types, string refs) and annotates functions with
 /// the appropriate kagura pass set. Run BEFORE other obfuscation passes.
 /// Respects existing per-function annotations and globally-disabled passes.
@@ -288,7 +288,7 @@ struct AutoSelectPass : public llvm::PassInfoMixin<AutoSelectPass> {
   static bool isRequired() { return false; }
 };
 
-/// 4.6.1 + 4.6.2: Reads a JSON policy file and applies per-module protection
+/// Reads a JSON policy file and applies per-module protection
 /// settings, including profile presets (FAST / BALANCED / STRONG) and
 /// per-pass enable/disable overrides.  Run BEFORE other passes.
 struct ConfigLoaderPass : public llvm::PassInfoMixin<ConfigLoaderPass> {
@@ -297,7 +297,7 @@ struct ConfigLoaderPass : public llvm::PassInfoMixin<ConfigLoaderPass> {
   static bool isRequired() { return false; }
 };
 
-/// 4.6.5: Emits a JSON symbol map recording original and obfuscated names.
+/// Emits a JSON symbol map recording original and obfuscated names.
 /// Run AFTER all obfuscation passes.
 struct SymbolMapPass : public llvm::PassInfoMixin<SymbolMapPass> {
   llvm::PreservedAnalyses run(llvm::Module &M,
@@ -305,7 +305,7 @@ struct SymbolMapPass : public llvm::PassInfoMixin<SymbolMapPass> {
   static bool isRequired() { return false; }
 };
 
-// ---- Phase 4.2 Data Protection ----
+// ---- Data Protection ----
 
 /// Encrypts wide-character string literals (wchar_t / char16_t / char32_t)
 /// and ObjC/CoreFoundation CFString backing buffers using XOR with a
@@ -318,9 +318,9 @@ struct WideStringEncryptionPass
   static bool isRequired() { return false; }
 };
 
-// ---- Phase 4.2 Encrypted lookup table ----
+// ---- Encrypted lookup table ----
 
-/// 4.2.10: Transforms eligible switch statements into XOR-encrypted lookup
+/// Transforms eligible switch statements into XOR-encrypted lookup
 /// tables.  Contiguous constant-return switches with N <= 64 cases and 8-bit
 /// output values are replaced with a bounds-checked table load + XOR decrypt.
 struct EncryptedLookupTablePass
@@ -330,9 +330,9 @@ struct EncryptedLookupTablePass
   static bool isRequired() { return false; }
 };
 
-// ---- Phase 4.1 RTTI / vtable protection ----
+// ---- RTTI / vtable protection ----
 
-/// 4.1.11: Obfuscates C++ RTTI typeinfo name strings (_ZTS) using XOR
+/// Obfuscates C++ RTTI typeinfo name strings (_ZTS) using XOR
 /// encryption with a per-string key, and records vtable metadata for
 /// runtime integrity checking via kagura_vtable_check().
 struct VTableProtectionPass
@@ -342,7 +342,7 @@ struct VTableProtectionPass
   static bool isRequired() { return false; }
 };
 
-// ---- Phase 4.1 Infrastructure ----
+// ---- Infrastructure ----
 
 /// Controls DWARF / debug-info metadata on functions touched by kagura.
 ///

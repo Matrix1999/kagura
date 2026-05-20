@@ -1,11 +1,11 @@
 /*===-- runtime/game_values.c - Game value protection helpers -------------===
  *
- * 4.5.12: Speed/movement value protection.
+ * Speed/movement value protection.
  *   Protect speed, velocity, and position values from memory manipulation
  *   by storing them as XOR-obfuscated pairs (value ^ key, key) and
  *   detecting tampering on each access.
  *
- * 4.5.13: Random seed protection.
+ * Random seed protection.
  *   Wrap the game's PRNG seed in an XOR-encrypted struct that detects when
  *   the seed has been patched to produce predictable outcomes (e.g. loot
  *   manipulation, aim randomness reduction).
@@ -16,13 +16,13 @@
  *
  * Public API
  * ----------
- * 4.5.12 — Speed protection:
+ * Speed protection:
  *   void    kagura_speed_init(kagura_speed_t *s, float value);
  *   float   kagura_speed_get(const kagura_speed_t *s);
  *   void    kagura_speed_set(kagura_speed_t *s, float value);
  *   int     kagura_speed_valid(const kagura_speed_t *s, float min, float max);
  *
- * 4.5.13 — Seed protection:
+ * Seed protection:
  *   void     kagura_seed_init(kagura_seed_t *s, uint64_t seed);
  *   uint64_t kagura_seed_get(const kagura_seed_t *s);
  *   void     kagura_seed_set(kagura_seed_t *s, uint64_t seed);
@@ -35,7 +35,7 @@
 
 extern void kagura_on_tamper_detected(void);
 
-/* ── 4.5.12: Protected floating-point value (speed / position / velocity) ─ */
+/* ── Protected floating-point value (speed / position / velocity) ─────── */
 
 typedef struct {
     uint32_t enc;   /* float bits XOR key */
@@ -82,7 +82,7 @@ int kagura_speed_valid(const kagura_speed_t *s, float min, float max) {
     return (v >= min && v <= max) ? 1 : 0;
 }
 
-/* ── 4.5.13: Protected PRNG seed ────────────────────────────────────────── */
+/* ── Protected PRNG seed ─────────────────────────────────────────────── */
 
 typedef struct {
     uint64_t enc;     /* seed ^ key */

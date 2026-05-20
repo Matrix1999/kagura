@@ -1,6 +1,6 @@
 /*===-- runtime/proc_inspection.c - /proc filesystem hardening ------------===
  *
- * 4.4.12: Harden /proc/self/{maps,status,mounts,fd} inspection.
+ * Harden /proc/self/{maps,status,mounts,fd} inspection.
  *
  * On Android, security researchers use /proc/self/maps to enumerate loaded
  * libraries, /proc/self/status to detect ptrace attachment, and

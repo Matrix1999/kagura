@@ -1,6 +1,6 @@
 /*===-- runtime/load_order.c - Native library load order control ----------===
  *
- * 4.4.17: Control native library load order on Android to ensure that
+ * Control native library load order on Android to ensure that
  *         kagura_runtime.so loads before third-party SDKs or game engines,
  *         and to verify that the expected set of libraries is present in the
  *         expected order.

@@ -1,6 +1,6 @@
 /*===-- runtime/jni_hook_detection.c - JNI table hook detection -----------===
  *
- * 4.3.10: Detect JNI function table (JavaVM / JNIEnv) hooking.
+ * Detect JNI function table (JavaVM / JNIEnv) hooking.
  *
  * Hooking frameworks (e.g. YAHFA, SandHook, Epic) intercept JNI calls by
  * replacing function pointers in the JNIEnv or JavaVM vtables.  This module

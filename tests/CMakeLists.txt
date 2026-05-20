@@ -58,7 +58,7 @@ kagura_add_pass_test(test_all_passes
   "kagura-str,kagura-fsplit,kagura-sv,function(kagura-bcf,kagura-sub,kagura-co,kagura-ibr,kagura-lt,kagura-bbr,kagura-bbs,kagura-dci)"
   combined_test.c)
 
-# ── New pass tests (Sprint 5 / 4.7.1) ────────────────────────────────────────
+# ── New pass tests ───────────────────────────────────────────────────────────
 kagura_add_pass_test(test_mvo
   "function(kagura-mvo)"
   arithmetic_test.c)
@@ -93,13 +93,13 @@ find_program(FILECHECK_EXECUTABLE NAMES FileCheck
   DOC "LLVM FileCheck"
 )
 
-# ---- 4.7.2 Integration tests ------------------------------------------------
+# ---- Integration tests ------------------------------------------------------
 add_subdirectory(integration)
 
-# ---- 4.7.5 Fuzz targets (only when KAGURA_BUILD_FUZZ=ON) -------------------
+# ---- Fuzz targets (only when KAGURA_BUILD_FUZZ=ON) --------------------------
 add_subdirectory(fuzz)
 
-# ---- 4.8.7 Regression corpus -----------------------------------------------
+# ---- Regression corpus ------------------------------------------------------
 add_subdirectory(regression)
 
 if(LIT_EXECUTABLE AND FILECHECK_EXECUTABLE)

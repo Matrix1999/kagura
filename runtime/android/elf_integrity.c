@@ -1,13 +1,13 @@
 /*===-- runtime/elf_integrity.c - ELF structure tampering detection --------===
  *
- * 4.3.2: Detects runtime ELF structure tampering on Android and Linux.
- * 4.3.13: Memory page permission check — detects W+X mapped pages.
+ * Detects runtime ELF structure tampering on Android and Linux.
+ * Memory page permission check — detects W+X mapped pages.
  *
  * Checks:
  *   1. Main executable ELF header magic / e_type sanity via /proc/self/exe.
  *   2. PT_LOAD segment flags via dl_iterate_phdr: any segment with both
  *      PF_W (write) and PF_X (execute) is a sign of runtime code injection.
- *   3. /proc/self/maps scan for rwx pages (4.3.13).
+ *   3. /proc/self/maps scan for rwx pages.
  *
  * Public API
  * ----------
@@ -89,7 +89,7 @@ void kagura_elf_integrity_check(void) {
 }
 
 /* -------------------------------------------------------------------------
- * Check 3 (4.3.13): /proc/self/maps scan for rwx pages
+ * Check 3: /proc/self/maps scan for rwx pages
  * ---------------------------------------------------------------------- */
 
 int kagura_wx_pages_present(void) {

@@ -1,6 +1,6 @@
 /*===-- runtime/crash_symbolication.c - Crash symbolication support -------===
  *
- * 4.6.6: Crash symbolication support (dSYM / tombstone).
+ * Crash symbolication support (dSYM / tombstone).
  *
  * When kagura renames or moves functions/variables, stack traces in crash
  * reports become unreadable.  This module provides:

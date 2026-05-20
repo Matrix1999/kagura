@@ -1,6 +1,6 @@
 /*===-- runtime/testflight_detect.c - TestFlight vs App Store detection ---===
  *
- * 4.4.5: Differentiate between TestFlight and production App Store builds.
+ * Differentiate between TestFlight and production App Store builds.
  *
  * TestFlight builds have a sandboxReceipt file under the app bundle path,
  * while App Store builds have a regular receipt.  Security-sensitive code

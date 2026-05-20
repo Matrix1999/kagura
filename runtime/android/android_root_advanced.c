@@ -1,7 +1,7 @@
 /*===-- runtime/android_root_advanced.c - Magisk/Zygisk/Xposed detection --===
  *
- * 4.4.10: Magisk and Zygisk detection.
- * 4.4.11: Xposed / LSPosed detection.
+ * Magisk and Zygisk detection.
+ * Xposed / LSPosed detection.
  *
  * These checks complement the basic root detection in jailbreak_detection.c
  * with framework-specific indicators that survive Magisk Hide / DenyList and
@@ -68,7 +68,7 @@ static int _maps_contain(const char *fragment) {
 }
 
 /* -------------------------------------------------------------------------
- * 4.4.10: Magisk / Zygisk detection
+ * Magisk / Zygisk detection
  * ---------------------------------------------------------------------- */
 
 /* Known Magisk artifact paths that survive MagiskHide at the native layer */
@@ -113,7 +113,7 @@ void kagura_magisk_check(void) {
 }
 
 /* -------------------------------------------------------------------------
- * 4.4.11: Xposed / LSPosed detection
+ * Xposed / LSPosed detection
  * ---------------------------------------------------------------------- */
 
 static const char *kXposedPaths[] = {

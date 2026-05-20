@@ -1,6 +1,6 @@
 /*===-- runtime/soft_response.c - Delayed/soft anti-cheat response --------===
  *
- * 4.5.8: Delayed and graduated response to detected tampering.
+ * Delayed and graduated response to detected tampering.
  *
  * An immediate crash or ban on first detection:
  *   1. Teaches the attacker what triggers the protection.

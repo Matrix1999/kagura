@@ -1,6 +1,6 @@
 /*===-- runtime/seccomp_checks.c - seccomp/prctl environment checks -------===
  *
- * 4.4.16: Detect seccomp/prctl sandbox environment indicators that may signal
+ * Detect seccomp/prctl sandbox environment indicators that may signal
  *         a security research or analysis environment on Android/Linux.
  *
  * Checks performed:

@@ -1,6 +1,6 @@
 /*===-- runtime/symbol_interposition.c - Symbol interposition detection ---===
  *
- * 4.3.8: Detect LD_PRELOAD / DYLD_INSERT_LIBRARIES symbol interposition.
+ * Detect LD_PRELOAD / DYLD_INSERT_LIBRARIES symbol interposition.
  *
  * When an attacker uses LD_PRELOAD (Linux/Android) or DYLD_INSERT_LIBRARIES
  * (Apple) to interpose symbols, the resolved address of a known function will

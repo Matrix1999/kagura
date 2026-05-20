@@ -1,6 +1,6 @@
 /*===-- runtime/device_key.c - Device-bound key derivation ----------------===
  *
- * 4.2.6: Derive encryption keys that are bound to the specific device,
+ * Derive encryption keys that are bound to the specific device,
  *        so that a string blob extracted from one device cannot be decrypted
  *        on a different device (e.g. by an attacker who dumped the APK/IPA).
  *

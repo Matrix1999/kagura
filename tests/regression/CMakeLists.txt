@@ -1,4 +1,4 @@
-# 4.8.7: Regression corpus — run each known-crash .ll file through the
+# Regression corpus — run each known-crash .ll file through the
 # relevant pass and verify it does NOT crash (exit 0).
 #
 # Each corpus entry is named crash_NNNNN.ll and has a companion
