@@ -1,4 +1,4 @@
-# Regression Corpus (4.8.7)
+# Regression Corpus
 
 This directory contains a regression corpus of known-attack reproduction tests.
 Each test verifies that a specific past vulnerability or crash has been fixed

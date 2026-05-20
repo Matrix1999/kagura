@@ -1,10 +1,10 @@
 /*===-- runtime/ios_integrity.c - iOS code signing & ObjC swizzle detection ===
  *
- * 4.3.3: iOS code signing status verification.
- * 4.3.9: ObjC method swizzling detection.
- * 4.3.12: Hardware breakpoint detection (iOS/macOS side, moved here for grouping;
+ * iOS code signing status verification.
+ * ObjC method swizzling detection.
+ * Hardware breakpoint detection (iOS/macOS side, moved here for grouping;
  *          Linux side is in breakpoint_detection.c).
- * 4.3.13: Memory page W+X check on Apple platforms via vm_region_recurse_64.
+ * Memory page W+X check on Apple platforms via vm_region_recurse_64.
  *
  * Public API
  * ----------
@@ -30,7 +30,7 @@
 extern void kagura_tamper_detected(void);
 
 /* -------------------------------------------------------------------------
- * 4.3.3: Code signing status verification
+ * Code signing status verification
  *
  * Uses the csops(2) syscall (available on iOS and macOS) to query the
  * current process's code signing flags.  The CS_VALID flag (0x1) must be
@@ -76,7 +76,7 @@ void kagura_codesign_check(void) { }
 #endif /* TARGET_OS_IOS */
 
 /* -------------------------------------------------------------------------
- * 4.3.9: ObjC method swizzling detection
+ * ObjC method swizzling detection
  *
  * Uses the ObjC runtime to resolve the current IMP for (cls, sel) and
  * compares it against the expected_imp recorded at startup.  A mismatch
@@ -123,7 +123,7 @@ void kagura_objc_swizzle_check(void *cls, void *sel, void *imp)
 #endif /* TARGET_OS_IOS || TARGET_OS_OSX */
 
 /* -------------------------------------------------------------------------
- * 4.3.13 (Apple): W+X memory page detection via vm_region_recurse_64
+ * W+X memory page detection via vm_region_recurse_64
  *
  * Iterates the process's VM map looking for regions that are both writable
  * and executable.  This catches Substrate / libhooker style memory patches

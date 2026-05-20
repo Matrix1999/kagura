@@ -1,4 +1,4 @@
-# 4.7.2: Integration tests — compile a realistic "app" through kagura passes
+# Integration tests — compile a realistic "app" through kagura passes
 # and verify semantic correctness (output matches baseline) and binary size.
 #
 # Each integration test:

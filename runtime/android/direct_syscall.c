@@ -1,6 +1,6 @@
 /*===-- runtime/direct_syscall.c - Direct syscall invocation for hook bypass
  *
- * 4.3.11: Issue security-sensitive syscalls directly (bypassing libc/libdl
+ * Issue security-sensitive syscalls directly (bypassing libc/libdl
  *         hooks) to ensure that hook-based countermeasures cannot suppress
  *         detection results.
  *

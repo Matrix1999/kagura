@@ -1,6 +1,6 @@
 /*===-- runtime/state_integrity.c - Client-side state invariant checks ----===
  *
- * 4.5.5: State integrity check — verify that game-critical values satisfy
+ * State integrity check — verify that game-critical values satisfy
  *        compile-time-defined invariants at runtime.
  *
  * This module provides a generic invariant-check framework.  The game

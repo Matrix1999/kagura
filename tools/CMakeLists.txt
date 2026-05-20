@@ -1,4 +1,4 @@
-# kagura-opt: standalone bitcode processing tool (4.1.5 Bitcode input support)
+# kagura-opt: standalone bitcode processing tool
 #
 # Loads libKaguraObfuscator at runtime via PassPlugin::Load() — no static link
 # against the MODULE.  This avoids the MODULE_LIBRARY linkage restriction.

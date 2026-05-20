@@ -14,16 +14,14 @@ set(KAGURA_SOURCES
   ObfuscationMetrics.cpp
   $<$<BOOL:${KAGURA_LEGACY_PM}>:LegacyPlugin.cpp>
 
-  # Phase 4.1 Infrastructure
+  # Infrastructure
   Infrastructure/DWARFControl.cpp
-  # Phase 4.8 Automation
   Infrastructure/AutoSelect.cpp
-  # Phase 4.6 Build System / DX
   Infrastructure/ConfigLoader.cpp
   Infrastructure/SymbolMap.cpp
   Infrastructure/AuditLog.cpp
 
-  # Phase 4.1.11 RTTI / vtable protection
+  # RTTI / vtable protection
   CFG/VTableProtection.cpp
 
   # CFG obfuscation
@@ -86,12 +84,12 @@ target_include_directories(KaguraObfuscator PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# ---- 4.1.3 Legacy PM compile definition ------------------------------------
+# ---- Legacy PM compile definition ------------------------------------------
 if(KAGURA_LEGACY_PM)
   target_compile_definitions(KaguraObfuscator PRIVATE KAGURA_LEGACY_PM=1)
 endif()
 
-# ---- 4.6.7 Incremental build: precompiled header ---------------------------
+# ---- Incremental build: precompiled header ----------------------------------
 # PCH is not supported on static libraries in all CMake versions; skip on
 # the fallback static build to keep the Windows build simple.
 if(KAGURA_PCH AND LLVM_ENABLE_PLUGINS)
@@ -106,7 +104,7 @@ if(KAGURA_PCH AND LLVM_ENABLE_PLUGINS)
   )
 endif()
 
-# ---- 4.6.7 Incremental build: unity build ----------------------------------
+# ---- Incremental build: unity build ----------------------------------------
 if(KAGURA_UNITY_BUILD)
   set_target_properties(KaguraObfuscator PROPERTIES UNITY_BUILD ON)
   set_source_files_properties(

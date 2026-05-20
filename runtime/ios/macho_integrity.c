@@ -1,6 +1,6 @@
 /*===-- runtime/macho_integrity.c - Mach-O structure tampering detection --===
  *
- * 4.3.1: Detects runtime Mach-O header / load-command tampering on iOS and
+ * Detects runtime Mach-O header / load-command tampering on iOS and
  * macOS.  The following indicators are checked:
  *
  *   1. Load-command count mismatch — compare the ncmds field of the in-memory

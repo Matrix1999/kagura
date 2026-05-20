@@ -1,6 +1,6 @@
 /*===-- runtime/blob_integrity.c - Checksum-guarded decryption ------------===
  *
- * 4.2.13: Compute and verify FNV-1a-32 checksums over encrypted blobs before
+ * Compute and verify FNV-1a-32 checksums over encrypted blobs before
  *         decryption to detect tampering with the binary at rest.
  *
  * If the checksum of the encrypted blob no longer matches the compile-time

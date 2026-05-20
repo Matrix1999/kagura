@@ -1,6 +1,6 @@
 /*===-- runtime/play_integrity.c - Play Integrity API integration ---------===
  *
- * 4.4.13: Android Play Integrity API integration.
+ * Android Play Integrity API integration.
  *
  * The Play Integrity API replaces the deprecated SafetyNet Attestation API
  * (deprecated June 2024, shutdown June 2025).  This module provides:

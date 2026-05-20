@@ -1,6 +1,6 @@
 /*===-- runtime/loaded_library_scan.c - Suspicious loaded module detection -===
  *
- * 4.3.6: Scans the loaded dynamic libraries for known analysis / hooking
+ * Scans the loaded dynamic libraries for known analysis / hooking
  *         framework names on both iOS (Mach-O dyld image list) and Android
  *         (ELF dl_iterate_phdr).
  *

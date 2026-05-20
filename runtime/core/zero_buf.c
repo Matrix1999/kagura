@@ -1,6 +1,6 @@
 /*===-- runtime/zero_buf.c - Volatile memory zeroing helper ---------------===
  *
- * 4.2.5: Provides kagura_zero_buf(), called by decryption stubs injected by
+ * Provides kagura_zero_buf(), called by decryption stubs injected by
  * the StringEncryptionAES LLVM pass to clear the decrypted plaintext buffer
  * immediately after use.
  *

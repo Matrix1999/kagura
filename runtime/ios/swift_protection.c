@@ -1,6 +1,6 @@
 /*===-- runtime/swift_protection.c - Swift metadata countermeasures -------===
  *
- * 4.4.4: Swift metadata / demangling countermeasure.
+ * Swift metadata / demangling countermeasure.
  *
  * Swift's runtime exports extensive type metadata that reverse-engineering
  * tools (Ghidra, Hopper, class-dump-swift) use to reconstruct class

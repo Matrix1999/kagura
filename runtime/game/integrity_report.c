@@ -1,6 +1,6 @@
 /*===-- runtime/integrity_report.c - Integrity report signing + nonce ----===
  *
- * 4.5.9 + 4.5.10: Integrity report signing with replay prevention and
+ * Integrity report signing with replay prevention and
  *                  nonce / challenge-response for server coordination.
  *
  * Architecture

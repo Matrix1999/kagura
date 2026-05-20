@@ -1,4 +1,4 @@
-# 4.7.5: Fuzzing — libFuzzer-based crash detection for kagura passes.
+# Fuzzing — libFuzzer-based crash detection for kagura passes.
 #
 # Each fuzzer takes arbitrary bytes as input, interprets them as LLVM bitcode
 # (or a simplified IR representation), runs a kagura pass, and checks:

@@ -1,8 +1,8 @@
 /*===-- runtime/ios_platform.c - iOS platform-specific protections --------===
  *
- * 4.4.6: iOS simulator exclusion (TARGET_OS_SIMULATOR).
- * 4.4.7: Entitlements verification (csops-based).
- * 4.4.9: dyld image list runtime inspection.
+ * iOS simulator exclusion (TARGET_OS_SIMULATOR).
+ * Entitlements verification (csops-based).
+ * dyld image list runtime inspection.
  *
  * Public API
  * ----------
@@ -24,7 +24,7 @@
 
 extern void kagura_on_tamper_detected(void);
 
-/* ── 4.4.6: Simulator detection ─────────────────────────────────────────── */
+/* ── Simulator detection ─────────────────────────────────────────────── */
 
 int kagura_is_simulator(void) {
 #if TARGET_OS_SIMULATOR
@@ -39,7 +39,7 @@ void kagura_simulator_check(void) {
         kagura_on_tamper_detected();
 }
 
-/* ── 4.4.7: Entitlements verification ──────────────────────────────────── */
+/* ── Entitlements verification ──────────────────────────────────────── */
 
 #if TARGET_OS_IOS && !TARGET_OS_SIMULATOR
 
@@ -75,7 +75,7 @@ void kagura_entitlements_check(void) {}
 
 #endif /* TARGET_OS_IOS */
 
-/* ── 4.4.9: dyld image list inspection ─────────────────────────────────── */
+/* ── dyld image list inspection ─────────────────────────────────────── */
 
 static const char *const kSuspiciousDylibs[] = {
     "FridaGadget",

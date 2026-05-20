@@ -1,6 +1,6 @@
 /*===-- runtime/objc_name_remap.c - ObjC class/method name remap table ---===
  *
- * 4.2.3: ObjC class/method name obfuscation runtime support.
+ * ObjC class/method name obfuscation runtime support.
  *
  * The ObjCObfuscationPass obfuscates selector, class, property, and ivar
  * names at compile time.  However, code that performs dynamic lookups using

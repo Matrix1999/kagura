@@ -1,6 +1,6 @@
 /*===-- runtime/behavior_log.c - Suspicious behavior logging --------------===
  *
- * 4.5.7: Collect and report suspicious cheat-indicative behaviors.
+ * Collect and report suspicious cheat-indicative behaviors.
  *
  * Rather than immediately banning on first detection, this module accumulates
  * suspicious event signals into a circular ring buffer.  The game can

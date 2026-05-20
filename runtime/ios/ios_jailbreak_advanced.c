@@ -1,9 +1,9 @@
 /*===-- runtime/ios_jailbreak_advanced.c - Advanced iOS jailbreak detection ===
  *
- * 4.4.1: Jailbreak filesystem artifact detection (expanded path list).
- * 4.4.2: Cydia / Substrate / FridaGadget.dylib detection (dyld image scan
+ * Jailbreak filesystem artifact detection (expanded path list).
+ * Cydia / Substrate / FridaGadget.dylib detection (dyld image scan
  *         + path probes combined).
- * 4.3.14: App repackaging detection — checks that the bundle ID and code
+ * App repackaging detection — checks that the bundle ID and code
  *          signing team match the values baked in at compile time.
  *
  * These functions extend the basic checks in jailbreak_detection.c with
@@ -49,7 +49,7 @@ static int _ios_path_exists(const char *path) {
 }
 
 /* -------------------------------------------------------------------------
- * 4.4.1: Expanded jailbreak filesystem artifact detection
+ * Expanded jailbreak filesystem artifact detection
  *
  * Covers Cydia, Sileo, Zebra, Checkra1n, Unc0ver, Palera1n, Dopamine,
  * and the common tool-chain artifacts they install.
@@ -112,7 +112,7 @@ void kagura_jailbreak_fs_check(void) {
 }
 
 /* -------------------------------------------------------------------------
- * 4.4.2: Cydia / Substrate / FridaGadget detection
+ * Cydia / Substrate / FridaGadget detection
  *
  * Three-layer check:
  *   1. dyld image list scan (same as kagura_check_substrate_dylib in
@@ -180,7 +180,7 @@ void kagura_cydia_substrate_check(void) {
 }
 
 /* -------------------------------------------------------------------------
- * 4.3.14: App repackaging detection
+ * App repackaging detection
  *
  * Reads the bundle ID and team ID from the embedded mobile provision (or
  * from the Info.plist CF bundle identifier) at runtime and compares against

@@ -1,6 +1,6 @@
 /*===-- runtime/fishhook_countermeasure.c - fishhook rebinding detection --===
  *
- * 4.4.3: Detect fishhook-style GOT rebinding on Apple platforms.
+ * Detect fishhook-style GOT rebinding on Apple platforms.
  *
  * fishhook (and similar tools) walk the Mach-O __DATA,__got and
  * __DATA,__la_symbol_ptr sections and overwrite function pointer slots.
