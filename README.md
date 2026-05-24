@@ -13,6 +13,9 @@
   <img src="https://img.shields.io/badge/C%2B%2B-17-orange?style=flat-square" alt="C++17">
   <img src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Wasm-green?style=flat-square" alt="Platforms">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square" alt="MIT License">
+  <a href="https://doi.org/10.5281/zenodo.20361447">
+    <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.20361447.svg" alt="DOI">
+  </a>
 </p>
 
 # Kagura
@@ -650,6 +653,23 @@ cd tests/frida_resistance && for s in probes/F*.js; do frida -l "$s" -f /tmp/my_
 
 # Full red-team report
 cd tests/redteam && python3 run_redteam.py --binary /tmp/my_binary --report report.json
+```
+
+---
+
+## Citation
+
+If you use Kagura in your research or build on it, please cite:
+
+```bibtex
+@software{kagura,
+  author    = {yotti},
+  title     = {Kagura: LLVM-based Code Obfuscation and Anti-Tamper Toolkit},
+  year      = {2025},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.20361447},
+  url       = {https://doi.org/10.5281/zenodo.20361447}
+}
 ```
 
 ---
