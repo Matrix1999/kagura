@@ -659,7 +659,7 @@ cd tests/redteam && python3 run_redteam.py --binary /tmp/my_binary --report repo
 
 ## Citation
 
-If you use Kagura in your research or build on it, please cite:
+If you use Kagura in your research or build on it, please cite the [paper](https://zenodo.org/records/20361447):
 
 ```bibtex
 @software{kagura,
