@@ -7,11 +7,10 @@
 //   3. Replaces uses of the original global with a call to a per-string
 //      decryption stub that calls kagura_aes128_ctr_decrypt() at runtime.
 //
-// 4.2.5: Short-lived decrypted buffer (zero after use)
-//   The output buffer (kagura_aesbuf_<suffix>) is zeroed by injecting a call
-//   to kagura_zero_buf(ptr, len) immediately after the last use of the
-//   decrypted pointer in each basic block.  This minimises the window during
-//   which the plaintext is resident in memory.
+// 4.2.5: Short-lived decrypted buffer
+//   Each use site allocates a stack buffer and passes it to the per-string
+//   decrypt stub.  This avoids a shared mutable plaintext buffer and keeps the
+//   decrypted bytes scoped to the consuming function call frame.
 //
 // Registered as: -kagura-str-aes
 //
@@ -45,19 +44,6 @@ namespace kagura {
 //                                   const uint8_t nonce[8],
 //                                   uint8_t *out);
 //===----------------------------------------------------------------------===//
-
-// ---- 4.2.5: Zero-after-use runtime helper declaration ---------------------
-
-/// Declare kagura_zero_buf(void *ptr, uint32_t len) — provided by the runtime.
-/// Uses volatile semantics so the compiler cannot elide the zeroing.
-static FunctionCallee getOrDeclareZeroBuf(Module &M) {
-  LLVMContext &Ctx = M.getContext();
-  auto *VoidTy  = Type::getVoidTy(Ctx);
-  auto *PtrTy   = PointerType::getUnqual(Ctx);
-  auto *Int32Ty = Type::getInt32Ty(Ctx);
-  auto *FTy     = FunctionType::get(VoidTy, {PtrTy, Int32Ty}, false);
-  return M.getOrInsertFunction("kagura_zero_buf", FTy);
-}
 
 // ---- 4.2.13: Blob integrity check runtime declaration -------------------
 
@@ -105,7 +91,6 @@ static Function *buildAESDecryptStub(Module &M,
                                       GlobalVariable *EncGV,
                                       GlobalVariable *KeyGV,
                                       GlobalVariable *NonceGV,
-                                      GlobalVariable *OutBuf,
                                       uint64_t Len,
                                       uint32_t BlobChecksum,
                                       StringRef Suffix,
@@ -117,12 +102,13 @@ static Function *buildAESDecryptStub(Module &M,
   auto *Int32Ty = Type::getInt32Ty(Ctx);
   auto *PtrTy   = PointerType::getUnqual(Ctx);
 
-  // i8* kagura_aesdec_<suffix>()
-  auto *FTy = FunctionType::get(PtrTy, false);
+  // i8* kagura_aesdec_<suffix>(i8* out)
+  auto *FTy = FunctionType::get(PtrTy, {PtrTy}, false);
   auto *F   = Function::Create(FTy, Function::InternalLinkage,
                                "kagura_aesdec_" + Suffix, M);
   F->addFnAttr(Attribute::NoInline);
   F->addFnAttr(Attribute::NoUnwind);
+  F->getArg(0)->setName("out");
 
   auto *Entry = BasicBlock::Create(Ctx, "entry", F);
   B.SetInsertPoint(Entry);
@@ -130,7 +116,7 @@ static Function *buildAESDecryptStub(Module &M,
   auto *EncPtr   = B.CreateBitCast(EncGV,  PtrTy, "enc");
   auto *KeyPtr   = B.CreateBitCast(KeyGV,  PtrTy, "key");
   auto *NoncePtr = B.CreateBitCast(NonceGV, PtrTy, "nonce");
-  auto *OutPtr   = B.CreateBitCast(OutBuf,  PtrTy, "out");
+  auto *OutPtr   = F->getArg(0);
 
   // 4.2.13: Verify blob integrity before decrypting.
   B.CreateCall(BlobIntegrityCheck,
@@ -147,6 +133,32 @@ static Function *buildAESDecryptStub(Module &M,
 
   B.CreateRet(OutPtr);
   return F;
+}
+
+static Value *emitAESDecryptCall(IRBuilder<> &B, Function *Stub,
+                                 ArrayType *OutArrTy) {
+  auto *OutBuf = B.CreateAlloca(OutArrTy, nullptr, "kagura.aesbuf");
+  auto *PtrTy = PointerType::getUnqual(B.getContext());
+  Value *OutPtr = B.CreateBitCast(OutBuf, PtrTy);
+  return B.CreateCall(Stub, {OutPtr}, "aesdec");
+}
+
+static bool hasOnlyGuardableUses(const GlobalVariable *GV) {
+  for (const User *U : GV->users()) {
+    if (isa<PHINode>(U))
+      return false;
+    if (isa<Instruction>(U))
+      continue;
+    if (isa<ConstantExpr>(U)) {
+      for (const User *Nested : U->users()) {
+        if (!isa<Instruction>(Nested) || isa<PHINode>(Nested))
+          return false;
+      }
+      continue;
+    }
+    return false;
+  }
+  return true;
 }
 
 //===----------------------------------------------------------------------===//
@@ -169,6 +181,9 @@ PreservedAnalyses StringEncryptionAESPass::run(Module &M,
   auto *Int8Ty = Type::getInt8Ty(Ctx);
 
   for (auto *GV : Strings) {
+    if (!hasOnlyGuardableUses(GV))
+      continue;
+
     auto *CDA = cast<ConstantDataArray>(GV->getInitializer());
     StringRef Raw = CDA->getRawDataValues();
     uint64_t Len  = Raw.size();
@@ -208,25 +223,17 @@ PreservedAnalyses StringEncryptionAESPass::run(Module &M,
       auto *NonceGV = createPrivateByteGlobal(
           M, ArrayRef<uint8_t>(Nonce, 8), "kagura_aesnonce_" + Suffix);
 
-      // 4.2.5: Static output buffer — declared here so we can zero it later.
       auto *OutArrTy = ArrayType::get(Int8Ty, Len);
-      auto *OutBuf   = new GlobalVariable(
-          M, OutArrTy, /*isConstant=*/false, GlobalValue::PrivateLinkage,
-          ConstantAggregateZero::get(OutArrTy),
-          "kagura_aesbuf_" + Suffix);
 
       // Build per-string decryption stub
-      Function *Stub = buildAESDecryptStub(M, EncGV, KeyGV, NonceGV, OutBuf,
+      Function *Stub = buildAESDecryptStub(M, EncGV, KeyGV, NonceGV,
                                            Len, BlobChecksum, Suffix,
                                            RuntimeDecrypt, BlobIntegrity);
 
-      // 4.2.5: Declare zero helper once per module.
-      FunctionCallee ZeroBuf = getOrDeclareZeroBuf(M);
-      auto *Int32Ty = Type::getInt32Ty(Ctx);
-      auto *PtrTy   = PointerType::getUnqual(Ctx);
-
       // Replace uses of the original global.
-      // Track all call results so we can insert zero-after-use.
+      // Each use gets a per-call stack buffer.  This avoids the static shared
+      // buffer races and the incorrect immediate zeroing that broke stored or
+      // returned decrypted pointers.
       SmallVector<User *, 8> Users(GV->users());
       for (auto *U : Users) {
         if (auto *CE = dyn_cast<ConstantExpr>(U)) {
@@ -234,28 +241,21 @@ PreservedAnalyses StringEncryptionAESPass::run(Module &M,
           for (auto *CU : CEUsers) {
             if (auto *Inst = dyn_cast<Instruction>(CU)) {
               IRBuilder<> IB(Inst);
-              Value *DecPtr = IB.CreateCall(Stub, {}, "aesdec");
+              Value *DecPtr = emitAESDecryptCall(IB, Stub, OutArrTy);
               Value *Replacement = DecPtr;
               if (CE->getType() != DecPtr->getType())
                 Replacement = IB.CreateBitCast(DecPtr, CE->getType());
               Inst->replaceUsesOfWith(CE, Replacement);
-
-              // 4.2.5: zero immediately after the instruction that consumed
-              // the decrypted pointer (best-effort; covers the common case).
-              if (Instruction *NextI = Inst->getNextNode()) {
-                IRBuilder<> ZB(NextI);
-                ZB.CreateCall(ZeroBuf, {
-                    ZB.CreateBitCast(OutBuf, PtrTy),
-                    ConstantInt::get(Int32Ty, static_cast<uint32_t>(Len))});
-              }
             }
           }
           continue;
         }
 
         if (auto *Inst = dyn_cast<Instruction>(U)) {
+          if (isa<PHINode>(Inst))
+            continue;
           IRBuilder<> IB(Inst);
-          Value *DecPtr = IB.CreateCall(Stub, {}, "aesdec");
+          Value *DecPtr = emitAESDecryptCall(IB, Stub, OutArrTy);
           for (unsigned I = 0; I < Inst->getNumOperands(); ++I) {
             if (Inst->getOperand(I)->stripPointerCasts() == GV) {
               Value *Replacement = DecPtr;
@@ -264,13 +264,6 @@ PreservedAnalyses StringEncryptionAESPass::run(Module &M,
                     IB.CreateBitCast(DecPtr, Inst->getOperand(I)->getType());
               Inst->setOperand(I, Replacement);
             }
-          }
-          // 4.2.5: zero buffer right after the use-site instruction.
-          if (Instruction *NextI = Inst->getNextNode()) {
-            IRBuilder<> ZB(NextI);
-            ZB.CreateCall(ZeroBuf, {
-                ZB.CreateBitCast(OutBuf, PtrTy),
-                ConstantInt::get(Int32Ty, static_cast<uint32_t>(Len))});
           }
         }
       }

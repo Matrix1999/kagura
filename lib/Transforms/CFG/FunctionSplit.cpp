@@ -42,6 +42,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#define DEBUG_TYPE "kagura-fsplit"
+
 #include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
@@ -54,6 +56,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/ValueMap.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
@@ -340,3 +343,5 @@ PreservedAnalyses FunctionSplitPass::run(Module &M,
 }
 
 } // namespace kagura
+
+#undef DEBUG_TYPE
