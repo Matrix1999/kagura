@@ -184,6 +184,29 @@ static std::vector<GlobalVariable *> collectEncryptionTargets(Module &M) {
   return Result;
 }
 
+/// Return true when every use of GV can be rewritten at an instruction use
+/// site where the lazy-decrypt guard can be emitted.  Globals referenced from
+/// other global initializers are intentionally left alone: there is no runtime
+/// insertion point that can guarantee the encrypted bytes have been decrypted
+/// before the initializer-derived pointer is consumed.
+static bool hasOnlyGuardableUses(const GlobalVariable *GV) {
+  for (const User *U : GV->users()) {
+    if (isa<PHINode>(U))
+      return false;
+    if (isa<Instruction>(U))
+      continue;
+    if (isa<ConstantExpr>(U)) {
+      for (const User *Nested : U->users()) {
+        if (!isa<Instruction>(Nested) || isa<PHINode>(Nested))
+          return false;
+      }
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
 // ---- 4.2.4: Lazy decryption guard injection --------------------------------
 
 /// Emit the lazy-decrypt guard inline before Inst.
@@ -242,6 +265,9 @@ PreservedAnalyses StringEncryptionPass::run(Module &M,
   auto *Int8Ty = Type::getInt8Ty(Ctx);
 
   for (auto *GV : Strings) {
+    if (!hasOnlyGuardableUses(GV))
+      continue;
+
     auto *CDA = dyn_cast<ConstantDataArray>(GV->getInitializer());
     if (!CDA)
       continue;
@@ -290,8 +316,20 @@ PreservedAnalyses StringEncryptionPass::run(Module &M,
     SmallVector<User *, 8> Users(GV->users());
     for (auto *U : Users) {
       if (auto *CE = dyn_cast<ConstantExpr>(U)) {
-        CE->replaceAllUsesWith(
-            ConstantExpr::getBitCast(EncGV, CE->getType()));
+        SmallVector<User *, 8> CEUsers(CE->users());
+        for (auto *CU : CEUsers) {
+          auto *Inst = dyn_cast<Instruction>(CU);
+          if (!Inst || isa<PHINode>(Inst))
+            continue;
+
+          emitLazyGuard(Inst, FlagGV, Stub);
+
+          Value *Replacement = EncGV;
+          IRBuilder<> IB(Inst);
+          if (CE->getType() != EncGV->getType())
+            Replacement = IB.CreateBitCast(EncGV, CE->getType());
+          Inst->replaceUsesOfWith(CE, Replacement);
+        }
         continue;
       }
       if (auto *Inst = dyn_cast<Instruction>(U)) {
@@ -300,10 +338,6 @@ PreservedAnalyses StringEncryptionPass::run(Module &M,
         // uses here; they are reached from a non-PHI use site where the guard
         // will be inserted, or they are covered by the ConstantExpr path above.
         if (isa<PHINode>(Inst)) {
-          for (unsigned I = 0; I < Inst->getNumOperands(); ++I) {
-            if (Inst->getOperand(I)->stripPointerCasts() == GV)
-              Inst->setOperand(I, EncGV);
-          }
           continue;
         }
 

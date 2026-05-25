@@ -38,6 +38,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#define DEBUG_TYPE "kagura-pac"
+
 #include "kagura/Options.h"
 #include "kagura/Passes.h"
 #include "kagura/Utils.h"
@@ -512,3 +514,5 @@ PreservedAnalyses PointerAuthPass::run(Module &M, ModuleAnalysisManager &) {
 }
 
 } // namespace kagura
+
+#undef DEBUG_TYPE

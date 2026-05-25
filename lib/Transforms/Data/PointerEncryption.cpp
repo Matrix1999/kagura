@@ -7,9 +7,8 @@
 //   For each AllocaInst of a pointer type whose address does not escape the
 //   function:
 //     - At every StoreInst writing a pointer value, ptrtoint the pointer,
-//       XOR with the key, and store as i64.  (The alloca type is changed from
-//       ptr to i64.)
-//     - At every LoadInst reading from the alloca, load the i64, XOR with the
+//       XOR with the key, and store as the target's intptr width.
+//     - At every LoadInst reading from the alloca, load intptr, XOR with the
 //       key, and inttoptr back to the original pointer type.
 //
 // This makes it hard for memory dump analysis to follow raw pointer values from
@@ -34,6 +33,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
+#include "llvm/IR/DataLayout.h"
 
 using namespace llvm;
 
@@ -74,8 +74,12 @@ PreservedAnalyses PointerEncryptionPass::run(Function &F,
   // function, so non-EH allocas are safe to transform.
 
   LLVMContext &Ctx = F.getContext();
-  auto *I64Ty  = Type::getInt64Ty(Ctx);
   auto *PtrTy  = PointerType::getUnqual(Ctx);
+  const DataLayout &DL = F.getParent()->getDataLayout();
+  unsigned PtrBits = DL.getPointerSizeInBits();
+  if (PtrBits == 0)
+    return PreservedAnalyses::all();
+  auto *IntPtrTy = Type::getIntNTy(Ctx, PtrBits);
 
   PRNG &RNG    = getModulePRNG();
   bool Changed = false;
@@ -97,9 +101,10 @@ PreservedAnalyses PointerEncryptionPass::run(Function &F,
   }
 
   for (auto *AI : Targets) {
-    uint64_t Key = RNG.next();
+    APInt Key(PtrBits, RNG.next());
 
-    // Change the alloca type to i64 (to store the XOR'd integer).
+    // The alloca remains a pointer-sized slot; loads/stores are rewritten to
+    // use the target's intptr width.
     AI->mutateType(PtrTy);          // alloca ptr type stays ptr (opaque)
     // We'll insert ptrtoint/xor/store and load/xor/inttoptr around uses.
 
@@ -114,16 +119,16 @@ PreservedAnalyses PointerEncryptionPass::run(Function &F,
         Loads.push_back(LI);
     }
 
-    auto *KeyConst = ConstantInt::get(I64Ty, Key);
+    auto *KeyConst = ConstantInt::get(IntPtrTy, Key);
 
-    // Rewrite stores: ptr -> ptrtoint -> xor -> store i64
+    // Rewrite stores: ptr -> ptrtoint -> xor -> store intptr
     for (auto *SI : Stores) {
       Value *Ptr = SI->getValueOperand();
       IRBuilder<> B(SI);
-      Value *AsInt    = B.CreatePtrToInt(Ptr, I64Ty, "pe.p2i");
+      Value *AsInt    = B.CreatePtrToInt(Ptr, IntPtrTy, "pe.p2i");
       Value *Encrypted = B.CreateXor(AsInt, KeyConst, "pe.enc");
       // Replace the store value with the encrypted integer.
-      // We need to store i64 — change the alloca to i64 for this alloca.
+      // We store the target's intptr width into the pointer-sized alloca slot.
       // Since the alloca stays opaque-ptr, just bitcast:
       auto *NewStore = B.CreateStore(Encrypted,
           B.CreateBitCast(AI, PointerType::getUnqual(Ctx)));
@@ -132,13 +137,13 @@ PreservedAnalyses PointerEncryptionPass::run(Function &F,
       Changed = true;
     }
 
-    // Rewrite loads: load i64 -> xor -> inttoptr
+    // Rewrite loads: load intptr -> xor -> inttoptr
     for (auto *LI : Loads) {
       Type *OrigTy = LI->getType();
       IRBuilder<> B(LI);
-      auto *LoadI64  = B.CreateLoad(I64Ty,
+      auto *LoadInt  = B.CreateLoad(IntPtrTy,
           B.CreateBitCast(AI, PointerType::getUnqual(Ctx)), "pe.raw");
-      Value *Decrypted = B.CreateXor(LoadI64, KeyConst, "pe.dec");
+      Value *Decrypted = B.CreateXor(LoadInt, KeyConst, "pe.dec");
       Value *AsPtr     = B.CreateIntToPtr(Decrypted, OrigTy, "pe.ptr");
       LI->replaceAllUsesWith(AsPtr);
       LI->eraseFromParent();
