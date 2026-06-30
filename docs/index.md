@@ -30,7 +30,7 @@ Kagura addresses this at the IR level — before the compiler turns IR into mach
 
 <div class="grid cards" markdown>
 
-- :material-rocket-launch: **[Getting Started](getting-started/quick-start.md)**
+- :material-rocket-launch: **[Getting Started](getting-started/index.md)**
 
     Install, build, and run your first obfuscated binary in under five minutes.
 
@@ -38,29 +38,21 @@ Kagura addresses this at the IR level — before the compiler turns IR into mach
 
     Reference for every IR pass — flags, effects, code-size and runtime overhead.
 
-- :material-cog: **[Configuration](configuration.md)**
-
-    JSON policy DSL, strength profiles, tuning parameters, per-function annotations.
-
-- :material-shield-lock: **[Game Protection](game-protection.md)**
-
-    `Protected<T>` template for HP, currency, and other anti-cheat-sensitive values.
-
 - :material-toolbox: **[Integration](integration/index.md)**
 
     Xcode, Gradle/NDK, Unity, Unreal, CMake, Bazel, CocoaPods, SPM.
 
-- :material-test-tube: **[Testing & Evaluation](testing.md)**
+- :material-cog: **[Configuration](configuration.md)**
 
-    Differential testing, reproducible builds, angr / Ghidra / Frida resistance.
+    JSON policy DSL, strength profiles, CLI tuning parameters, deterministic pass order.
 
-- :material-server: **[Runtime Library](runtime.md)**
+- :material-shield-lock: **[Runtime](runtime.md)**
 
-    Symbols required by each pass, anti-tamper API, callable checks.
+    Anti-tamper API and `Protected<T>` for HP / currency / game-state values.
 
-- :material-format-list-numbered: **[Pass Order](pass-order.md)**
+- :material-test-tube: **[Project](testing.md)**
 
-    The deterministic pipeline the plugin registers with `OptimizerLast`.
+    Testing & evaluation, architecture, contributor workflow.
 
 </div>
 
