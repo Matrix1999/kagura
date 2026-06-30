@@ -1,0 +1,1 @@
+--8<-- "integration/android/README.md"

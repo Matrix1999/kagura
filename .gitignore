@@ -9,3 +9,6 @@ Testing/
 
 # Paper: LaTeX/PDF artifacts (not tracked)
 paper/
+
+# MkDocs build output
+site/
