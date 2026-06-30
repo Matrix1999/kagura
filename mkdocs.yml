@@ -84,6 +84,13 @@ nav:
       - Bazel: integration/bazel.md
       - CocoaPods: integration/cocoapods.md
       - Swift Package Manager: integration/swiftpm.md
+  - Cookbook:
+      - cookbook/index.md
+      - Banking / FinTech: cookbook/banking.md
+      - Mobile game / anti-cheat: cookbook/mobile-game.md
+      - SDK / library vendor: cookbook/sdk-vendor.md
+      - DRM / license enforcement: cookbook/drm.md
+  - Security Model: security-model.md
   - Configuration:
       - Overview: configuration.md
       - Tuning Parameters: tuning.md
