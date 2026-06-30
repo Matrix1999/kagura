@@ -20,6 +20,9 @@ cl::opt<bool> BCF("kagura-bcf",
                   cl::desc("[Kagura] Bogus control flow"), cl::init(false));
 cl::opt<bool> SUB("kagura-sub",
                   cl::desc("[Kagura] Instruction substitution"), cl::init(false));
+cl::opt<bool> CSEBreak("kagura-cse-break",
+                       cl::desc("[Kagura] Common-subexpression breaker"),
+                       cl::init(false));
 cl::opt<bool> STR("kagura-str",
                   cl::desc("[Kagura] String encryption"), cl::init(false));
 cl::opt<bool> STRAES("kagura-str-aes",

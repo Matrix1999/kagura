@@ -12,6 +12,7 @@ Source: `lib/Transforms/Data/`
 | `-kagura-genc` | GlobalEncryption | Encrypts private integer globals; inline XOR at load sites |
 | `-kagura-mvo` | MemoryValueObfuscation | XOR-encrypts alloca'd integer locals at every store/load site |
 | `-kagura-pe` | PointerEncryption | XOR-encrypts alloca'd pointer variables to defeat memory-dump analysis |
+| `-kagura-cse-break` | CSEBreak | Duplicates shared SSA expressions so decompilers cannot re-fold them via CSE recovery |
 
 See [Before / After Examples](before-after.md) for `kagura-str` and `kagura-sub` walkthroughs.
 

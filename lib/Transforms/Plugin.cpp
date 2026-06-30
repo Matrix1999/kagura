@@ -44,6 +44,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     FPM.addPass(SubstitutionPass(opt::SUBIter));
                     return true;
                   }
+                  if (Name == "kagura-cse-break") {
+                    FPM.addPass(CSEBreakPass());
+                    return true;
+                  }
                   if (Name == "kagura-co") {
                     FPM.addPass(ConstantObfuscationPass());
                     return true;
@@ -276,6 +280,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                   }
                   if (opt::SUB) {
                     FPM.addPass(SubstitutionPass(opt::SUBIter));
+                    HasFunctionPass = true;
+                  }
+                  if (opt::CSEBreak) {
+                    FPM.addPass(CSEBreakPass());
                     HasFunctionPass = true;
                   }
                   if (opt::CO) {

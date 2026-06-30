@@ -72,6 +72,33 @@ int classify(int x) {
 
 ---
 
+## CSE Break (`-kagura-cse-break`)
+
+**Before** — clang `-O2` shares a common subexpression across users:
+
+```llvm
+%t = add i32 %a, %b
+%x = mul i32 %t, 2
+%y = sub i32 %t, 3
+```
+
+Decompilers easily re-fold this back to readable `t = a + b; x = t*2; y = t - 3`.
+
+**After** — each user gets its own private copy:
+
+```llvm
+%t = add i32 %a, %b           ; original — first use keeps it
+%x = mul i32 %t, 2
+%cse.break = add i32 %a, %b   ; fresh clone for the second use
+%y = sub i32 %cse.break, 3
+```
+
+Functionally identical, but Ghidra / IDA hex-rays / Binary Ninja MLIL all
+report this as **two separate computations** during decompilation, hurting
+readability of the recovered C.
+
+---
+
 ## Arithmetic Substitution (`-kagura-sub`)
 
 **Before:**

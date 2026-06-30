@@ -16,6 +16,7 @@ namespace opt {
 extern llvm::cl::opt<bool> FLA;
 extern llvm::cl::opt<bool> BCF;
 extern llvm::cl::opt<bool> SUB;
+extern llvm::cl::opt<bool> CSEBreak;
 extern llvm::cl::opt<bool> STR;
 extern llvm::cl::opt<bool> STRAES;
 extern llvm::cl::opt<bool> AntiDebug;
