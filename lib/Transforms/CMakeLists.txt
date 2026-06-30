@@ -43,6 +43,7 @@ set(KAGURA_SOURCES
   Data/ConstantObfuscation.cpp
   Data/GlobalEncryption.cpp
   Data/Substitution.cpp
+  Data/CSEBreak.cpp
   Data/PointerEncryption.cpp
 
   # Anti-analysis

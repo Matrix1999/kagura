@@ -26,7 +26,8 @@ CFG-mutating passes change the IR.
  17. kagura-bbr              → BB reordering         │
  18. kagura-dci              → dead code insertion   │
  19. kagura-sub              → instruction subst.    │ function passes
- 20. kagura-co               → constant obfuscation  │
+ 20. kagura-cse-break        → break CSE re-folding  │
+ 21. kagura-co               → constant obfuscation  │
  21. kagura-mvo              → memory value XOR      │
  22. kagura-pe               → pointer encryption    │
  23. kagura-telemetry        → telemetry probes      │

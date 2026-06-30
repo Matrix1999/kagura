@@ -41,6 +41,13 @@ struct SubstitutionPass : public llvm::PassInfoMixin<SubstitutionPass> {
   static bool isRequired() { return false; }
 };
 
+/// Duplicates shared SSA expressions so decompilers cannot re-fold a CSE.
+struct CSEBreakPass : public llvm::PassInfoMixin<CSEBreakPass> {
+  llvm::PreservedAnalyses run(llvm::Function &F,
+                               llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Data ----
 
 /// Encrypts string literals at compile time; injects runtime decryption stubs.
