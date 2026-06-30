@@ -1,0 +1,56 @@
+name: Feature request
+description: Propose a new pass, runtime check, integration, or tooling improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: |
+        What real-world threat / use case is currently uncovered? Examples:
+        "Frida bypasses my anti-debug check via X", "compile times explode at -O3",
+        "Unity IL2CPP builds need…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: |
+        How should it work from a user's perspective? CLI flag, JSON config option,
+        new pass, runtime API, etc.
+      placeholder: |
+        Add `-kagura-foo` that does X.
+        Config DSL: `"passes": { "foo": true }`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing passes / tools you tried, and why they didn't fit.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - New pass (control flow)
+        - New pass (data obfuscation)
+        - New pass (anti-analysis)
+        - Runtime library
+        - Build-system integration
+        - Tooling / CLI
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Related papers, references, prior art, security advisories.

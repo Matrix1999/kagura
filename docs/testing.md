@@ -74,7 +74,36 @@ Each subdirectory has its own README — see
 | Script | Purpose |
 |:-------|:--------|
 | `scripts/kagura-cli.py` | Config generator, audit log viewer, symbol map analyzer |
+| `scripts/kagura-diff.py` | Section / symbol / string diff between baseline and obfuscated binary (text or HTML report) |
+| `scripts/kagura-strip.py` | Post-build hygiene — zero out `LC_UUID` (Mach-O) / `.note.gnu.build-id` (ELF) so binaries don't leak rebuild fingerprints |
 | `scripts/variant_generator.py` | Per-customer / per-app variant generation with custom keys |
 | `scripts/attacker_cost_model.py` | Estimate attacker reverse-engineering cost (analyst-hours) |
 | `scripts/battery_impact.py` | Model battery / CPU impact of runtime passes |
 | `scripts/license_manager.py` | Generate, validate, and revoke time-limited license tokens |
+
+### `kagura-diff` — what passes actually changed
+
+Compare a baseline binary to an obfuscated one and show section growth,
+symbol counts, and string-count delta. Useful for validating that a release
+build really did strip plaintext API keys, hide non-public symbols, etc.
+
+```bash
+scripts/kagura-diff.py baseline.dylib obfuscated.dylib
+scripts/kagura-diff.py baseline.dylib obfuscated.dylib --html report.html
+```
+
+### `kagura-strip` — scrub residual build metadata
+
+The IR-level passes can't reach metadata the linker writes after them
+(`LC_UUID`, `.note.gnu.build-id`, embedded build paths). Run `kagura-strip`
+after `strip` to remove those:
+
+```bash
+# macOS / iOS
+strip MyApp.dylib                       # remove debug symbols first
+scripts/kagura-strip.py MyApp.dylib     # zero out LC_UUID
+
+# Linux / Android
+llvm-strip MyApp.so
+scripts/kagura-strip.py MyApp.so        # remove .note.gnu.build-id + .comment
+```
