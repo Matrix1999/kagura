@@ -59,6 +59,10 @@ jobs:
   # GitHub releases, which includes the full dev tree (cmake files, headers,
   # import libs).  Version coverage across 17-22 is provided by the macOS
   # matrix; we use a recent stable version here.
+  #
+  # Note: the MSVC STL on windows-latest now requires Clang >= 20 (`error
+  # STL1000: Unexpected compiler version, expected Clang 20 or newer`), so we
+  # use LLVM 21.x rather than 19.x here.
   windows-msvc:
     name: Build & Test (Windows, Clang-CL)
     runs-on: windows-latest
@@ -71,7 +75,7 @@ jobs:
         run: |
           # The win64.exe installer is binaries-only; the full dev tree
           # (headers, cmake configs, import libs) is in the MSVC tarball.
-          $ver = "19.1.7"
+          $ver = "21.1.5"
           $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-${ver}/clang+llvm-${ver}-x86_64-pc-windows-msvc.tar.xz"
           $archive = "$env:TEMP\llvm-dev.tar.xz"
           $dest    = "C:\llvm-dev"
