@@ -60,6 +60,15 @@ struct StringEncryptionAESPass
   static bool isRequired() { return false; }
 };
 
+/// Splits long string literals into multiple smaller globals; recombines them
+/// at runtime on first access. Defeats contiguous-blob assumptions (no
+/// single offset holds the secret) and `strings -n <large>` cutoffs.
+struct StringSplitPass : public llvm::PassInfoMixin<StringSplitPass> {
+  llvm::PreservedAnalyses run(llvm::Module &M,
+                               llvm::ModuleAnalysisManager &MAM);
+  static bool isRequired() { return false; }
+};
+
 // ---- Mobile Anti-Analysis ----
 
 /// Injects anti-debug / anti-Frida checks (ptrace, port 27042, maps scan).

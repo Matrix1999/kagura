@@ -34,6 +34,52 @@ value.
 
 ---
 
+## String Splitting (`-kagura-string-split`)
+
+**Before** — a single string global at a contiguous offset, easy to spot:
+
+```llvm
+@api_key = private constant [29 x i8] c"this is a long secret API key"
+```
+
+A binary scan immediately reveals the secret as a contiguous span — even if
+encrypted by `kagura-str` first, the *ciphertext* is still contiguous.
+
+**After** — the literal is sliced into N random-length fragments stored in
+separate globals; a flag-guarded init stub reassembles them on first use:
+
+```llvm
+@kagura_str_frag_0_0 = private constant [6 x i8] c"this i"
+@kagura_str_frag_0_1 = private constant [5 x i8] c"s a l"
+@kagura_str_frag_0_2 = private constant [6 x i8] c"ong se"
+@kagura_str_frag_0_3 = private constant [7 x i8] c"cret AP"
+@kagura_str_frag_0_4 = private constant [3 x i8] c"I k"
+@kagura_str_frag_0_5 = private constant [1 x i8] c"e"
+@kagura_str_frag_0_6 = private constant [1 x i8] c"y"
+@kagura_str_recombined_0 = private global [29 x i8] zeroinitializer
+
+define internal void @__kagura_strsplit_0() {
+entry:
+  %f = load i8, ptr @kagura_str_flag_0
+  %g = icmp ne i8 %f, 0
+  br i1 %g, label %done, label %init
+init:
+  memcpy(@kagura_str_recombined_0[0], @kagura_str_frag_0_0, 6)
+  memcpy(@kagura_str_recombined_0[6], @kagura_str_frag_0_1, 5)
+  ...
+  store i8 1, ptr @kagura_str_flag_0
+  br label %done
+done:
+  ret void
+}
+```
+
+Compose with `kagura-str` (or `kagura-str-aes`) — the string is encrypted
+first, then the ciphertext is fragmented. The binary has neither a
+contiguous plaintext nor a contiguous ciphertext.
+
+---
+
 ## CFG Flattening (`-kagura-fla`)
 
 **Before** — readable if/else chain:

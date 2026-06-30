@@ -6,6 +6,7 @@ Source: `lib/Transforms/Data/`
 |:-----|:-----|:-------|
 | `-kagura-str` | StringEncryption | XOR-encrypts narrow string literals; lazy decrypt on first access |
 | `-kagura-str-aes` | StringEncryptionAES | AES-128-CTR string encryption (requires runtime) |
+| `-kagura-string-split` | StringSplit | Fragments long string literals (≥16 bytes) into multiple smaller globals; recombines at runtime on first use |
 | `-kagura-wstr` | WideStringEncryption | XOR-encrypts wide strings (wchar_t / char16_t / char32_t) and CFString buffers |
 | `-kagura-co` | ConstantObfuscation | Replaces integer constants with MBA expressions |
 | `-kagura-sub` | Substitution | Replaces arithmetic/bitwise ops with equivalent MBA |
