@@ -73,12 +73,6 @@ nav:
       - Infrastructure: passes/infrastructure.md
       - Before / After Examples: passes/before-after.md
       - Performance & Size Impact: passes/performance.md
-  - Configuration:
-      - configuration.md
-      - Pass Order: pass-order.md
-      - Tuning Parameters: tuning.md
-  - Game Protection: game-protection.md
-  - Runtime Library: runtime.md
   - Integration:
       - integration/index.md
       - Xcode: integration/xcode.md
@@ -89,7 +83,12 @@ nav:
       - Bazel: integration/bazel.md
       - CocoaPods: integration/cocoapods.md
       - Swift Package Manager: integration/swiftpm.md
-  - Testing & Evaluation:
-      - testing.md
-  - Architecture: architecture.md
-  - Contributing: contributing.md
+  - Reference:
+      - Configuration: configuration.md
+      - Tuning Parameters: tuning.md
+      - Pass Order: pass-order.md
+      - Runtime Library: runtime.md
+      - Game Protection: game-protection.md
+      - Testing & Evaluation: testing.md
+      - Architecture: architecture.md
+      - Contributing: contributing.md

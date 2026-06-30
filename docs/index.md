@@ -38,29 +38,21 @@ Kagura addresses this at the IR level — before the compiler turns IR into mach
 
     Reference for every IR pass — flags, effects, code-size and runtime overhead.
 
-- :material-cog: **[Configuration](configuration.md)**
-
-    JSON policy DSL, strength profiles, tuning parameters, per-function annotations.
-
-- :material-shield-lock: **[Game Protection](game-protection.md)**
-
-    `Protected<T>` template for HP, currency, and other anti-cheat-sensitive values.
-
 - :material-toolbox: **[Integration](integration/index.md)**
 
     Xcode, Gradle/NDK, Unity, Unreal, CMake, Bazel, CocoaPods, SPM.
 
-- :material-test-tube: **[Testing & Evaluation](testing.md)**
+- :material-cog: **[Configuration](configuration.md)** · **[Tuning](tuning.md)** · **[Pass Order](pass-order.md)**
 
-    Differential testing, reproducible builds, angr / Ghidra / Frida resistance.
+    JSON policy DSL, strength profiles, CLI flags, and the deterministic pipeline.
 
-- :material-server: **[Runtime Library](runtime.md)**
+- :material-shield-lock: **[Game Protection](game-protection.md)** · **[Runtime Library](runtime.md)**
 
-    Symbols required by each pass, anti-tamper API, callable checks.
+    `Protected<T>` for HP/currency, plus runtime anti-tamper API.
 
-- :material-format-list-numbered: **[Pass Order](pass-order.md)**
+- :material-test-tube: **[Testing](testing.md)** · **[Architecture](architecture.md)** · **[Contributing](contributing.md)**
 
-    The deterministic pipeline the plugin registers with `OptimizerLast`.
+    Differential / reproducible tests, source layout, contributor workflow.
 
 </div>
 
