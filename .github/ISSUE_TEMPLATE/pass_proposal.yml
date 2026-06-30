@@ -1,0 +1,71 @@
+name: New pass proposal
+description: Propose a new IR transformation (control flow, data, anti-analysis).
+title: "[Pass]: kagura-<name>"
+labels: ["enhancement", "new-pass"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for **IR-level passes** only. For runtime-library
+        features (anti-debug probes, integrity checks) use *Feature request*.
+
+  - type: input
+    id: name
+    attributes:
+      label: Proposed flag
+      placeholder: "-kagura-cse-break"
+    validations:
+      required: true
+
+  - type: textarea
+    id: threat
+    attributes:
+      label: Threat model
+      description: Which attacker capability does this defeat? Cite tools/papers if any.
+      placeholder: |
+        Defeats decompiler CSE re-folding (Ghidra "Auto Analysis → Recover CSE").
+        Reference: …
+    validations:
+      required: true
+
+  - type: textarea
+    id: transformation
+    attributes:
+      label: IR transformation
+      description: Show a before/after IR snippet.
+      placeholder: |
+        ```llvm
+        ; Before
+        %t = add i32 %a, %b
+        %x = mul i32 %t, 2
+        %y = sub i32 %t, 3
+
+        ; After (CSE-broken)
+        %t1 = add i32 %a, %b
+        %x = mul i32 %t1, 2
+        %t2 = add i32 %a, %b
+        %y = sub i32 %t2, 3
+        ```
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: overhead
+    attributes:
+      label: Estimated overhead
+      description: Code size + runtime + compile time estimates.
+      placeholder: "+5–10% code size, <1% runtime, +negligible compile time."
+
+  - type: textarea
+    id: interactions
+    attributes:
+      label: Pass-order interactions
+      description: |
+        Does it need to run before/after other kagura passes? Does it interact
+        with `kagura-sub`, `kagura-fla`, etc.?
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional notes

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/ykus4/kagura/discussions
+    about: Ask questions, share use cases, and propose ideas in Discussions.
+  - name: Documentation
+    url: https://ykus4.github.io/kagura
+    about: Check the docs site first — passes reference, configuration, integration.

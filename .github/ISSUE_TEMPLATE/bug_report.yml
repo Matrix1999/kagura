@@ -1,0 +1,95 @@
+name: Bug report
+description: Report a crash, miscompile, or unexpected obfuscation behavior.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please fill in everything you can — the more
+        reproducible the report, the faster we can fix it.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One-line description of the problem.
+      placeholder: "kagura-fla produces wrong output for functions with early return"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: |
+        Minimal command line + source. If the input is sensitive, attach a reduced
+        IR / C snippet that still triggers the bug.
+      placeholder: |
+        ```c
+        // input.c
+        int f(int x) { ... }
+        ```
+        ```
+        clang -fpass-plugin=KaguraObfuscator.dylib -mllvm -kagura-fla -O1 input.c -o input
+        ./input
+        ```
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs. actual behavior
+      placeholder: |
+        Expected: prints "42"
+        Actual:   segfaults / prints "0" / compile error: ...
+    validations:
+      required: true
+
+  - type: input
+    id: kagura-version
+    attributes:
+      label: Kagura version / commit
+      placeholder: "v0.1.2 or commit sha"
+    validations:
+      required: true
+
+  - type: input
+    id: llvm-version
+    attributes:
+      label: LLVM version
+      placeholder: "21.1.5"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS arm64
+        - macOS x86_64
+        - Linux x86_64
+        - Linux arm64
+        - Windows (Clang-CL)
+        - iOS / iPadOS
+        - Android (NDK)
+        - WebAssembly
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: passes
+    attributes:
+      label: Active passes / config
+      description: List the `-kagura-*` flags or paste the JSON policy.
+      placeholder: "kagura-fla, kagura-bcf, kagura-sub"
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: stack traces, screenshots, related issues, anything else.

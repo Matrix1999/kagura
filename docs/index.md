@@ -6,6 +6,21 @@ Built on the **New Pass Manager** (LLVM 17+). Loaded as a pass plugin via `-fpas
 
 **Supported platforms:** iOS · Android · macOS · Windows (MSVC/Clang-CL) · Linux · WebAssembly
 
+!!! tip "New here?"
+    Start with the [**Quick Start**](getting-started/quick-start.md) — five
+    minutes from install to your first obfuscated binary.
+
+!!! abstract "Citing Kagura"
+    If you build research or production work on Kagura, please cite the
+    paper — see [Citation](#citation). The DOI is
+    [10.5281/zenodo.20361447](https://doi.org/10.5281/zenodo.20361447).
+
+!!! note "Community"
+    Questions, ideas, and use-case sharing live in
+    [**GitHub Discussions**](https://github.com/ykus4/kagura/discussions).
+    Bug reports and feature requests go in
+    [**Issues**](https://github.com/ykus4/kagura/issues) — templates provided.
+
 ---
 
 ## Why Kagura?

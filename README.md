@@ -13,6 +13,9 @@
   <img src="https://img.shields.io/badge/C%2B%2B-17-orange?style=flat-square" alt="C++17">
   <img src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Wasm-green?style=flat-square" alt="Platforms">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square" alt="MIT License">
+  <a href="https://github.com/ykus4/kagura/discussions">
+    <img src="https://img.shields.io/github/discussions/ykus4/kagura?style=flat-square&label=discussions" alt="Discussions">
+  </a>
   <a href="https://doi.org/10.5281/zenodo.20361447">
     <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.20361447.svg" alt="DOI">
   </a>
@@ -79,6 +82,12 @@ If you use Kagura in your research or build on it, please cite the [paper](https
   url       = {https://doi.org/10.5281/zenodo.20361447}
 }
 ```
+
+## Community
+
+- 💬 **[Discussions](https://github.com/ykus4/kagura/discussions)** — questions, ideas, share your use case
+- 🐞 **[Issues](https://github.com/ykus4/kagura/issues)** — bugs and feature requests (templates provided)
+- 📚 **[Documentation](https://ykus4.github.io/kagura)** — passes, configuration, integration, testing
 
 ## License
 
