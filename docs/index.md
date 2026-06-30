@@ -57,6 +57,14 @@ Kagura addresses this at the IR level — before the compiler turns IR into mach
 
     Xcode, Gradle/NDK, Unity, Unreal, CMake, Bazel, CocoaPods, SPM.
 
+- :material-book-open-variant: **[Cookbook](cookbook/index.md)**
+
+    Banking, mobile game, SDK vendor, DRM — recipe-style guides with policy + verification.
+
+- :material-shield-search: **[Security Model](security-model.md)**
+
+    What Kagura protects, what it doesn't, and assumptions you can't violate.
+
 - :material-cog: **[Configuration](configuration.md)**
 
     JSON policy DSL, strength profiles, CLI tuning parameters, deterministic pass order.
