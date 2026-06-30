@@ -30,7 +30,7 @@ Kagura addresses this at the IR level — before the compiler turns IR into mach
 
 <div class="grid cards" markdown>
 
-- :material-rocket-launch: **[Getting Started](getting-started/quick-start.md)**
+- :material-rocket-launch: **[Getting Started](getting-started/index.md)**
 
     Install, build, and run your first obfuscated binary in under five minutes.
 
@@ -42,17 +42,17 @@ Kagura addresses this at the IR level — before the compiler turns IR into mach
 
     Xcode, Gradle/NDK, Unity, Unreal, CMake, Bazel, CocoaPods, SPM.
 
-- :material-cog: **[Configuration](configuration.md)** · **[Tuning](tuning.md)** · **[Pass Order](pass-order.md)**
+- :material-cog: **[Configuration](configuration.md)**
 
-    JSON policy DSL, strength profiles, CLI flags, and the deterministic pipeline.
+    JSON policy DSL, strength profiles, CLI tuning parameters, deterministic pass order.
 
-- :material-shield-lock: **[Game Protection](game-protection.md)** · **[Runtime Library](runtime.md)**
+- :material-shield-lock: **[Runtime](runtime.md)**
 
-    `Protected<T>` for HP/currency, plus runtime anti-tamper API.
+    Anti-tamper API and `Protected<T>` for HP / currency / game-state values.
 
-- :material-test-tube: **[Testing](testing.md)** · **[Architecture](architecture.md)** · **[Contributing](contributing.md)**
+- :material-test-tube: **[Project](testing.md)**
 
-    Differential / reproducible tests, source layout, contributor workflow.
+    Testing & evaluation, architecture, contributor workflow.
 
 </div>
 

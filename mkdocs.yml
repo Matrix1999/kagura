@@ -21,11 +21,12 @@ theme:
         icon: material/brightness-4
         name: Switch to light mode
   features:
-    - navigation.tabs
-    - navigation.sections
     - navigation.indexes
     - navigation.top
     - navigation.footer
+    - navigation.instant
+    - navigation.tracking
+    - toc.follow
     - search.highlight
     - search.suggest
     - content.code.copy
@@ -83,12 +84,14 @@ nav:
       - Bazel: integration/bazel.md
       - CocoaPods: integration/cocoapods.md
       - Swift Package Manager: integration/swiftpm.md
-  - Reference:
-      - Configuration: configuration.md
+  - Configuration:
+      - Overview: configuration.md
       - Tuning Parameters: tuning.md
       - Pass Order: pass-order.md
+  - Runtime:
       - Runtime Library: runtime.md
       - Game Protection: game-protection.md
+  - Project:
       - Testing & Evaluation: testing.md
       - Architecture: architecture.md
       - Contributing: contributing.md
