@@ -117,7 +117,7 @@ class AMyCharacter : public ACharacter
 
 ## Pass reference
 
-See the main [README](../../README.md#features) for the full pass list and options.
+See the [Passes reference](https://ykus4.github.io/kagura/passes/) for the full pass list and options.
 
 ## Build verification
 

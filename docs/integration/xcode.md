@@ -1,0 +1,1 @@
+--8<-- "integration/xcode/README.md"

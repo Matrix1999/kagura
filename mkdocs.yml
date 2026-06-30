@@ -23,6 +23,7 @@ theme:
   features:
     - navigation.tabs
     - navigation.sections
+    - navigation.indexes
     - navigation.top
     - navigation.footer
     - search.highlight
@@ -32,14 +33,23 @@ theme:
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - md_in_html
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      base_path:
+        - .
+        - docs
+      check_paths: true
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - tables
   - toc:
       permalink: true
@@ -49,3 +59,37 @@ plugins:
 
 nav:
   - Home: index.md
+  - Getting Started:
+      - getting-started/index.md
+      - Quick Start: getting-started/quick-start.md
+      - Build from Source: getting-started/build-from-source.md
+      - Requirements: getting-started/requirements.md
+  - Passes:
+      - passes/index.md
+      - Control Flow: passes/control-flow.md
+      - Data Obfuscation: passes/data.md
+      - Anti-Analysis: passes/anti-analysis.md
+      - Platform-Specific: passes/platform.md
+      - Infrastructure: passes/infrastructure.md
+      - Before / After Examples: passes/before-after.md
+      - Performance & Size Impact: passes/performance.md
+  - Configuration:
+      - configuration.md
+      - Pass Order: pass-order.md
+      - Tuning Parameters: tuning.md
+  - Game Protection: game-protection.md
+  - Runtime Library: runtime.md
+  - Integration:
+      - integration/index.md
+      - Xcode: integration/xcode.md
+      - Android NDK: integration/android.md
+      - Unity (IL2CPP): integration/unity.md
+      - Unreal Engine 5: integration/unreal.md
+      - CMake Toolchain: integration/cmake.md
+      - Bazel: integration/bazel.md
+      - CocoaPods: integration/cocoapods.md
+      - Swift Package Manager: integration/swiftpm.md
+  - Testing & Evaluation:
+      - testing.md
+  - Architecture: architecture.md
+  - Contributing: contributing.md

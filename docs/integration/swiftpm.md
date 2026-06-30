@@ -1,0 +1,1 @@
+--8<-- "integration/swiftpm/README.md"
