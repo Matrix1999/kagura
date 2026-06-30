@@ -49,6 +49,7 @@ if(NOT WIN32)
     ios/testflight_detect.c
     ios/swift_protection.c
     ios/objc_name_remap.c
+    ios/device_attest.c
 
     # ---- Game / anti-cheat ---------------------------------------------------
     game/il2cpp_protection.c
@@ -67,6 +68,7 @@ if(WIN32)
     windows/integrity.c
     windows/tamper_response.c
     windows/device_key.c
+    windows/etw_detection.c
   )
   target_link_libraries(kagura_runtime PRIVATE
     ws2_32      # WinSock2  (anti_debug: Frida port check)
