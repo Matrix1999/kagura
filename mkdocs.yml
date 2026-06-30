@@ -7,6 +7,7 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
+  language: en
   palette:
     - scheme: default
       primary: indigo
@@ -24,7 +25,6 @@ theme:
     - navigation.indexes
     - navigation.top
     - navigation.footer
-    - navigation.instant
     - navigation.tracking
     - toc.follow
     - search.highlight
@@ -57,6 +57,56 @@ markdown_extensions:
 
 plugins:
   - search
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: ja
+          name: 日本語
+          build: true
+          nav_translations:
+            Home: ホーム
+            Getting Started: はじめに
+            Quick Start: クイックスタート
+            Build from Source: ソースからビルド
+            Requirements: 動作要件
+            Passes: パス
+            Control Flow: 制御フロー
+            Data Obfuscation: データ難読化
+            Anti-Analysis: アンチ解析
+            Platform-Specific: プラットフォーム固有
+            Infrastructure: インフラ
+            Before / After Examples: Before/After 例
+            Performance & Size Impact: パフォーマンス・サイズ影響
+            Integration: 統合
+            Xcode: Xcode
+            Android NDK: Android NDK
+            Unity (IL2CPP): Unity (IL2CPP)
+            Unreal Engine 5: Unreal Engine 5
+            CMake Toolchain: CMake ツールチェイン
+            Bazel: Bazel
+            CocoaPods: CocoaPods
+            Swift Package Manager: Swift Package Manager
+            Cookbook: クックブック
+            Banking / FinTech: 銀行・FinTech
+            Mobile game / anti-cheat: モバイルゲーム・アンチチート
+            SDK / library vendor: SDK/ライブラリベンダー
+            DRM / license enforcement: DRM/ライセンス
+            Security Model: セキュリティモデル
+            Configuration: 設定
+            Overview: 概要
+            Tuning Parameters: チューニングパラメータ
+            Pass Order: パス順序
+            Runtime: ランタイム
+            Runtime Library: ランタイムライブラリ
+            Game Protection: ゲーム保護
+            Project: プロジェクト
+            Testing & Evaluation: テスト・評価
+            Architecture: アーキテクチャ
+            Contributing: コントリビュート
 
 nav:
   - Home: index.md
