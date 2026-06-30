@@ -158,6 +158,10 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(StringEncryptionAESPass());
                     return true;
                   }
+                  if (Name == "kagura-string-split") {
+                    MPM.addPass(StringSplitPass());
+                    return true;
+                  }
                   if (Name == "kagura-wstr") {
                     MPM.addPass(WideStringEncryptionPass());
                     return true;
@@ -251,6 +255,8 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     MPM.addPass(StringEncryptionAESPass());
                   if (opt::WSTR)
                     MPM.addPass(WideStringEncryptionPass());
+                  if (opt::STRSplit)
+                    MPM.addPass(StringSplitPass());
                   if (opt::Tamper)
                     MPM.addPass(AntiTamperPass());
                   if (opt::ObjC)

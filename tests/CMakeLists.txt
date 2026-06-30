@@ -72,6 +72,9 @@ kagura_add_pass_test(test_wstr
 kagura_add_pass_test(test_str_aes
   "kagura-str-aes"
   string_test.c)
+kagura_add_pass_test(test_string_split
+  "kagura-string-split"
+  string_test.c)
 kagura_add_pass_test(test_global_enc
   "kagura-genc"
   arithmetic_test.c)

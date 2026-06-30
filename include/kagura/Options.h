@@ -19,6 +19,7 @@ extern llvm::cl::opt<bool> SUB;
 extern llvm::cl::opt<bool> CSEBreak;
 extern llvm::cl::opt<bool> STR;
 extern llvm::cl::opt<bool> STRAES;
+extern llvm::cl::opt<bool> STRSplit;
 extern llvm::cl::opt<bool> AntiDebug;
 extern llvm::cl::opt<bool> ObjC;
 extern llvm::cl::opt<bool> JNI;

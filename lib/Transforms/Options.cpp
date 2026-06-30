@@ -28,6 +28,9 @@ cl::opt<bool> STR("kagura-str",
 cl::opt<bool> STRAES("kagura-str-aes",
                      cl::desc("[Kagura] AES-128-CTR string encryption"),
                      cl::init(false));
+cl::opt<bool> STRSplit("kagura-string-split",
+                       cl::desc("[Kagura] Split string literals across multiple globals"),
+                       cl::init(false));
 cl::opt<bool> AntiDebug("kagura-anti-debug",
                         cl::desc("[Kagura] Anti-debug / Anti-Frida"),
                         cl::init(false));

@@ -38,6 +38,7 @@ set(KAGURA_SOURCES
   Data/EncryptedLookupTable.cpp
   Data/StringEncryption.cpp
   Data/StringEncryptionAES.cpp
+  Data/StringSplit.cpp
   Data/WideStringEncryption.cpp
   Data/MemoryValueObfuscation.cpp
   Data/ConstantObfuscation.cpp

@@ -12,6 +12,7 @@ CFG-mutating passes change the IR.
   3. kagura-pac              → pointer auth
   4. kagura-str[-aes]        → encrypt narrow strings
   5. kagura-wstr             → encrypt wide strings / CFString
+  5a. kagura-string-split    → fragment long string literals (after str/str-aes)
   6. kagura-tamper           → integrity hash (before CFG changes)
   7. kagura-objc             → ObjC selector/class obfuscation
   8. kagura-jni              → JNI dynamic registration
