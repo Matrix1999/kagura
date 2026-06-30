@@ -1,0 +1,70 @@
+//===-- PassRegistry.def - Single source of truth for Kagura passes -------===//
+//
+// X-macro table. Each row enumerates exactly one Kagura pass. Multiple
+// X-macros are defined depending on which file includes this header:
+//
+//   KAGURA_FN_PASS(FlagName, CliName, OptName, Construct)
+//       Function-level pass (FunctionPassManager).
+//
+//   KAGURA_MOD_PASS(FlagName, CliName, OptName, Construct)
+//       Module-level pass (ModulePassManager).
+//
+// FlagName  — symbol of the cl::opt<bool> in kagura::opt (e.g. FLA)
+// CliName   — "-kagura-..." command-line name (e.g. "kagura-fla")
+// OptName   — short option description for cl::desc (e.g. "CFG flattening")
+// Construct — expression that produces the pass instance
+//             (e.g. ControlFlowFlatteningPass() or
+//              BogusControlFlowPass(opt::BCFProb, opt::BCFIter))
+//
+// Adding a new pass = add ONE row here + write the .cpp + declare the
+// `Pass` struct in include/kagura/Passes.h.
+//
+// Order within each section matches Plugin.cpp's OptimizerLast pipeline
+// order, so the auto-registered pipeline stays deterministic.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef KAGURA_FN_PASS
+#define KAGURA_FN_PASS(Flag, Cli, Desc, Ctor)
+#endif
+
+#ifndef KAGURA_MOD_PASS
+#define KAGURA_MOD_PASS(Flag, Cli, Desc, Ctor)
+#endif
+
+// ---- Module-level passes (run on the whole Module) ----
+KAGURA_MOD_PASS(CI,        "kagura-ci",            "Call indirection",                              CallIndirectionPass())
+KAGURA_MOD_PASS(PAC,       "kagura-pac",           "Pointer authentication (ARM64)",                PointerAuthPass())
+KAGURA_MOD_PASS(STR,       "kagura-str",           "String encryption",                              StringEncryptionPass())
+KAGURA_MOD_PASS(STRAES,    "kagura-str-aes",       "AES-128-CTR string encryption",                  StringEncryptionAESPass())
+KAGURA_MOD_PASS(WSTR,      "kagura-wstr",          "Wide/UTF-16/CFString encryption",                WideStringEncryptionPass())
+KAGURA_MOD_PASS(STRSplit,  "kagura-string-split",  "Split string literals across multiple globals",  StringSplitPass())
+KAGURA_MOD_PASS(Tamper,    "kagura-tamper",        "Anti-tamper: inject runtime integrity checks",   AntiTamperPass())
+KAGURA_MOD_PASS(ObjC,      "kagura-objc",          "ObjC obfuscation (iOS)",                          ObjCObfuscationPass())
+KAGURA_MOD_PASS(JNI,       "kagura-jni",           "JNI dynamic registration (Android)",             JNIObfuscationPass())
+KAGURA_MOD_PASS(AntiDebug, "kagura-anti-debug",    "Anti-debug / Anti-Frida",                         AntiDebugPass())
+KAGURA_MOD_PASS(FSplit,    "kagura-fsplit",        "Function splitting / CFG fragmentation",         FunctionSplitPass())
+KAGURA_MOD_PASS(GENC,      "kagura-genc",          "Global variable encryption",                      GlobalEncryptionPass())
+KAGURA_MOD_PASS(Honey,     "kagura-honey",         "Honey value / fake symbol injection",            HoneyValuePass())
+KAGURA_MOD_PASS(SV,        "kagura-sv",            "Symbol visibility obfuscation",                  SymbolVisibilityPass())
+
+// ---- Function-level passes (run via createModuleToFunctionPassAdaptor) ----
+KAGURA_FN_PASS(FLA,       "kagura-fla",        "CFG flattening",                                  ControlFlowFlatteningPass())
+KAGURA_FN_PASS(BCF,       "kagura-bcf",        "Bogus control flow",                              BogusControlFlowPass(opt::BCFProb, opt::BCFIter))
+KAGURA_FN_PASS(SUB,       "kagura-sub",        "Instruction substitution",                        SubstitutionPass(opt::SUBIter))
+KAGURA_FN_PASS(CSEBreak,  "kagura-cse-break",  "Common-subexpression breaker",                    CSEBreakPass())
+KAGURA_FN_PASS(CO,        "kagura-co",         "Constant obfuscation (MBA)",                      ConstantObfuscationPass())
+KAGURA_FN_PASS(VM,        "kagura-vm",         "VM-based function virtualization",                VMObfuscationPass())
+KAGURA_FN_PASS(IBR,       "kagura-ibr",        "Indirect branching",                              IndirectBranchPass())
+KAGURA_FN_PASS(LT,        "kagura-lt",         "Loop transformation",                             LoopTransformPass())
+KAGURA_FN_PASS(BBR,       "kagura-bbr",        "Basic block reordering",                          BasicBlockReorderingPass())
+KAGURA_FN_PASS(DCI,       "kagura-dci",        "Dead code insertion",                             DeadCodeInsertionPass())
+KAGURA_FN_PASS(BBS,       "kagura-bbs",        "Basic block splitting",                           BasicBlockSplittingPass())
+KAGURA_FN_PASS(MVO,       "kagura-mvo",        "In-memory value XOR obfuscation",                 MemoryValueObfuscationPass())
+KAGURA_FN_PASS(PE,        "kagura-pe",         "Pointer encryption (address obfuscation)",        PointerEncryptionPass())
+KAGURA_FN_PASS(Telemetry, "kagura-telemetry",  "Inject telemetry event probes",                   TelemetryPass())
+KAGURA_FN_PASS(BBCheck,   "kagura-bbcheck",    "Basic block opcode checksum guards",              BasicBlockChecksumPass())
+KAGURA_FN_PASS(ELT,       "kagura-elt",        "Encrypted lookup table (switch encoding)",        EncryptedLookupTablePass())
+
+#undef KAGURA_FN_PASS
+#undef KAGURA_MOD_PASS
