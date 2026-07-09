@@ -12,14 +12,25 @@ add_llvm_executable(kagura-opt
   kagura-opt.cpp
 )
 
-llvm_map_components_to_libnames(KAGURA_OPT_LLVM_LIBS
-  Core
-  Support
-  IRReader
-  BitWriter
-  BitReader
-  Passes
-)
+# Link LLVM exactly once.  When LLVM is built with LLVM_LINK_LLVM_DYLIB=ON
+# (e.g. Homebrew), add_llvm_executable already links libLLVM.dylib; also adding
+# the static component archives (libLLVMSupport.a, ...) links a *second* copy of
+# the cl::opt command-line registry into this binary.  The kagura plugin, loaded
+# at runtime, registers its -kagura-* options into the dylib's registry, so with
+# a duplicate static registry cl::ParseCommandLineOptions() here would never see
+# them.  Link the shared libLLVM in dylib mode, static components otherwise.
+if(LLVM_LINK_LLVM_DYLIB)
+  set(KAGURA_OPT_LLVM_LIBS LLVM)
+else()
+  llvm_map_components_to_libnames(KAGURA_OPT_LLVM_LIBS
+    Core
+    Support
+    IRReader
+    BitWriter
+    BitReader
+    Passes
+  )
+endif()
 
 target_link_libraries(kagura-opt PRIVATE
   ${KAGURA_OPT_LLVM_LIBS}
