@@ -32,6 +32,19 @@
 #define KAGURA_MOD_PASS(Flag, Cli, Desc, Ctor)
 #endif
 
+//   KAGURA_INFRA_PASS(CliName, Construct)
+//       Infrastructure / non-pipeline module pass. Parseable by name
+//       (opt -passes=kagura-...) but NOT auto-injected from an enable flag:
+//       each is wired into Plugin.cpp's OptimizerLast pipeline by hand because
+//       it has a bespoke trigger (a string option, "config file provided",
+//       fixed ordering relative to the obfuscation passes, etc.) that the
+//       uniform bool-flag table above cannot express. This table is the single
+//       source of truth for *which* infra pass names exist and how to build
+//       them; only the injection ordering stays hand-written.
+#ifndef KAGURA_INFRA_PASS
+#define KAGURA_INFRA_PASS(Cli, Ctor)
+#endif
+
 // ---- Module-level passes (run on the whole Module) ----
 KAGURA_MOD_PASS(CI,        "kagura-ci",            "Call indirection",                              CallIndirectionPass())
 KAGURA_MOD_PASS(PAC,       "kagura-pac",           "Pointer authentication (ARM64)",                PointerAuthPass())
@@ -66,5 +79,14 @@ KAGURA_FN_PASS(Telemetry, "kagura-telemetry",  "Inject telemetry event probes", 
 KAGURA_FN_PASS(BBCheck,   "kagura-bbcheck",    "Basic block opcode checksum guards",              BasicBlockChecksumPass())
 KAGURA_FN_PASS(ELT,       "kagura-elt",        "Encrypted lookup table (switch encoding)",        EncryptedLookupTablePass())
 
+// ---- Infrastructure passes (parseable by name, hand-injected in Plugin.cpp) ----
+KAGURA_INFRA_PASS("kagura-autoselect",    AutoSelectPass())
+KAGURA_INFRA_PASS("kagura-config",        ConfigLoaderPass())
+KAGURA_INFRA_PASS("kagura-dwarf-control", DWARFControlPass())
+KAGURA_INFRA_PASS("kagura-symmap",        SymbolMapPass())
+KAGURA_INFRA_PASS("kagura-vtp",           VTableProtectionPass())
+KAGURA_INFRA_PASS("kagura-audit",         AuditLogPass())
+
 #undef KAGURA_FN_PASS
 #undef KAGURA_MOD_PASS
+#undef KAGURA_INFRA_PASS

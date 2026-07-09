@@ -64,33 +64,16 @@ llvm::PassPluginLibraryInfo getKaguraPluginInfo() {
                     return true;                                               \
                   }
 #include "PassRegistry.def"
-                  // Module-level passes outside the auto-pipeline table —
-                  // these have ordering or conditional quirks and are
-                  // injected explicitly in the OptimizerLast block below.
-                  if (Name == "kagura-autoselect") {
-                    MPM.addPass(AutoSelectPass());
-                    return true;
+                  // Infrastructure passes outside the auto-pipeline table —
+                  // these have ordering or conditional quirks and are injected
+                  // explicitly in the OptimizerLast block below, but are still
+                  // parseable by name from the shared registry table.
+#define KAGURA_INFRA_PASS(Cli, Ctor)                                           \
+                  if (Name == Cli) {                                           \
+                    MPM.addPass(Ctor);                                         \
+                    return true;                                               \
                   }
-                  if (Name == "kagura-config") {
-                    MPM.addPass(ConfigLoaderPass());
-                    return true;
-                  }
-                  if (Name == "kagura-dwarf-control") {
-                    MPM.addPass(DWARFControlPass());
-                    return true;
-                  }
-                  if (Name == "kagura-symmap") {
-                    MPM.addPass(SymbolMapPass());
-                    return true;
-                  }
-                  if (Name == "kagura-vtp") {
-                    MPM.addPass(VTableProtectionPass());
-                    return true;
-                  }
-                  if (Name == "kagura-audit") {
-                    MPM.addPass(AuditLogPass());
-                    return true;
-                  }
+#include "PassRegistry.def"
                   return false;
                 });
 
