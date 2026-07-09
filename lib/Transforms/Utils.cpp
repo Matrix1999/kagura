@@ -305,6 +305,14 @@ Function *getOrDeclare(Module &M, StringRef Name, FunctionType *FTy) {
   return Function::Create(FTy, Function::ExternalLinkage, Name, M);
 }
 
+Function *createCtorFunction(Module &M, const Twine &Name) {
+  LLVMContext &Ctx = M.getContext();
+  auto *FTy = FunctionType::get(Type::getVoidTy(Ctx), /*isVarArg=*/false);
+  auto *F = Function::Create(FTy, Function::InternalLinkage, Name, M);
+  BasicBlock::Create(Ctx, "entry", F);
+  return F;
+}
+
 // ---- String global collection ----
 
 std::vector<GlobalVariable *> collectStringGlobals(Module &M,

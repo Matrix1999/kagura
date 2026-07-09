@@ -271,14 +271,11 @@ static void buildCFStringDecryptCtor(
     return;
 
   LLVMContext &Ctx = M.getContext();
-  auto *VoidTy = Type::getVoidTy(Ctx);
-  auto *CtorFTy = FunctionType::get(VoidTy, false);
-  auto *Ctor    = Function::Create(CtorFTy, Function::InternalLinkage,
-                                   "kagura_cfstr_decrypt_ctor", M);
+  auto *Ctor = createCtorFunction(M, "kagura_cfstr_decrypt_ctor");
   Ctor->addFnAttr(Attribute::NoInline);
   Ctor->addFnAttr(Attribute::NoUnwind);
 
-  auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+  auto *Entry = &Ctor->getEntryBlock();
   IRBuilder<> B(Entry);
   for (auto &[GV, DecFn] : CFDecryptors)
     B.CreateCall(DecFn);
@@ -302,15 +299,11 @@ static void buildRuntimeStringDecryptCtor(
     int Priority) {
   if (Stubs.empty())
     return;
-  LLVMContext &Ctx = M.getContext();
-  auto *VoidTy  = Type::getVoidTy(Ctx);
-  auto *CtorFTy = FunctionType::get(VoidTy, false);
-  auto *Ctor    = Function::Create(CtorFTy, Function::InternalLinkage,
-                                   CtorName, M);
+  auto *Ctor = createCtorFunction(M, CtorName);
   Ctor->addFnAttr(Attribute::NoInline);
   Ctor->addFnAttr(Attribute::NoUnwind);
 
-  auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+  auto *Entry = &Ctor->getEntryBlock();
   IRBuilder<> B(Entry);
   for (auto *Stub : Stubs)
     B.CreateCall(Stub);

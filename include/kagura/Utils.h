@@ -58,6 +58,14 @@ std::vector<llvm::BasicBlock *> getBlocks(llvm::Function &F);
 llvm::Function *getOrDeclare(llvm::Module &M, llvm::StringRef Name,
                              llvm::FunctionType *FTy);
 
+/// Create an InternalLinkage `void()` function named `Name` in `M` with a
+/// single empty "entry" basic block — the shape every kagura module
+/// constructor shares. The caller adds any function attributes, emits the body
+/// and its terminator, and (for module ctors) registers it via
+/// llvm::appendToGlobalCtors(). Retrieve the entry block with
+/// `&F->getEntryBlock()`.
+llvm::Function *createCtorFunction(llvm::Module &M, const llvm::Twine &Name);
+
 // ---- Exception-handling safety ----
 
 /// Returns true if F contains any invoke or landingpad instructions.
