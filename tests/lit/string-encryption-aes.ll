@@ -3,12 +3,12 @@
 ; StringEncryptionAESPass encrypts string literals with AES-128-CTR.
 ; After the pass:
 ;   - The plaintext string content must not appear.
-;   - An AES-encrypted blob global (kagura_aes_enc_) must be emitted.
-;   - A runtime decryption call (kagura_aes_decrypt_str) must be injected.
+;   - An AES-encrypted blob global (kagura_aesenc_) must be emitted.
+;   - A per-string runtime decryption stub (kagura_aesdec_) must be injected.
 
 ; CHECK-NOT: c"supersecret\00"
-; CHECK: @kagura_aes_enc_
-; CHECK: kagura_aes_decrypt_str
+; CHECK: @kagura_aesenc_
+; CHECK: kagura_aesdec_
 
 @secret = private unnamed_addr constant [12 x i8] c"supersecret\00"
 

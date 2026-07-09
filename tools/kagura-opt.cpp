@@ -36,9 +36,11 @@
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/PassInstrumentation.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/StandardInstrumentations.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/InitLLVM.h"
@@ -81,33 +83,55 @@ static cl::opt<std::string> PluginPath(
 
 // ---- Plugin path auto-detection ---------------------------------------------
 
-static std::string findPlugin(const char *Argv0) {
-  if (!PluginPath.empty())
-    return PluginPath;
+static std::string getExplicitPluginPath(int argc, char **argv) {
+  StringRef Prefix("-load-kagura=");
+  for (int I = 1; I < argc; ++I) {
+    StringRef Arg(argv[I]);
+    if (Arg.starts_with(Prefix))
+      return Arg.drop_front(Prefix.size()).str();
+    if (Arg == "-load-kagura" && I + 1 < argc)
+      return std::string(argv[I + 1]);
+  }
+  return "";
+}
 
-  // Try <exe_dir>/../lib/libKaguraObfuscator.{dylib,so}
-  SmallString<256> ExeDir(sys::path::parent_path(
-      sys::fs::getMainExecutable(Argv0, nullptr)));
-  sys::path::append(ExeDir, "..", "lib");
-
-  for (const char *Ext : {"libKaguraObfuscator.dylib",
-                           "libKaguraObfuscator.so",
-                           "KaguraObfuscator.dll"}) {
-    SmallString<256> Candidate(ExeDir);
-    sys::path::append(Candidate, Ext);
+// Return the first existing "<Dir>/<name>" for every known plugin filename,
+// or "" if none of them exist in Dir.
+static std::string findPluginInDir(StringRef Dir) {
+  static const char *const Names[] = {
+      "KaguraObfuscator.dylib", "libKaguraObfuscator.dylib",
+      "KaguraObfuscator.so",    "libKaguraObfuscator.so",
+      "KaguraObfuscator.dll",
+  };
+  for (const char *Name : Names) {
+    SmallString<256> Candidate(Dir);
+    sys::path::append(Candidate, Name);
     if (sys::fs::exists(Candidate))
       return std::string(Candidate);
   }
+  return "";
+}
 
-  // Fallback: look next to the executable
-  SmallString<256> ExePath(sys::path::parent_path(
+static std::string findPlugin(const char *Argv0, StringRef ExplicitPath) {
+  if (!ExplicitPath.empty())
+    return ExplicitPath.str();
+
+  SmallString<256> ExeDir(sys::path::parent_path(
       sys::fs::getMainExecutable(Argv0, nullptr)));
-  for (const char *Ext : {"libKaguraObfuscator.dylib",
-                           "libKaguraObfuscator.so"}) {
-    SmallString<256> Candidate(ExePath);
-    sys::path::append(Candidate, Ext);
-    if (sys::fs::exists(Candidate))
-      return std::string(Candidate);
+
+  // Search, in priority order: <exe_dir>/../lib, <exe_dir>/../lib/Transforms
+  // (where CMake's add_llvm_pass_plugin drops the plugin in normal build
+  // trees), and finally next to the executable itself.
+  SmallString<256> LibDir(ExeDir);
+  sys::path::append(LibDir, "..", "lib");
+
+  SmallString<256> TransformDir(LibDir);
+  sys::path::append(TransformDir, "Transforms");
+
+  for (StringRef Dir : {StringRef(LibDir), StringRef(TransformDir),
+                        StringRef(ExeDir)}) {
+    if (std::string Found = findPluginInDir(Dir); !Found.empty())
+      return Found;
   }
   return "";
 }
@@ -116,11 +140,11 @@ static std::string findPlugin(const char *Argv0) {
 
 int main(int argc, char **argv) {
   InitLLVM X(argc, argv);
-  cl::ParseCommandLineOptions(argc, argv,
-                               "kagura-opt -- apply kagura obfuscation passes\n");
 
-  // Load the kagura plugin (registers all -kagura-* passes and cl::opts)
-  std::string Plugin = findPlugin(argv[0]);
+  // Load the kagura plugin before parsing command-line options.  The plugin
+  // owns the -kagura-* cl::opts, so parsing first would reject those flags as
+  // unknown.
+  std::string Plugin = findPlugin(argv[0], getExplicitPluginPath(argc, argv));
   if (Plugin.empty()) {
     WithColor::error() << "Could not find libKaguraObfuscator plugin.\n"
                        << "Use -load-kagura=<path> to specify it explicitly.\n";
@@ -133,6 +157,9 @@ int main(int argc, char **argv) {
                        << toString(PluginOrErr.takeError()) << '\n';
     return 1;
   }
+
+  cl::ParseCommandLineOptions(argc, argv,
+                               "kagura-opt -- apply kagura obfuscation passes\n");
 
   // Load the input module
   LLVMContext Ctx;
@@ -155,14 +182,23 @@ int main(int argc, char **argv) {
   default:  OL = OptimizationLevel::O2; break;
   }
 
-  // Construct the pass pipeline with the kagura plugin registered.
-  PassBuilder PB;
-  PluginOrErr->registerPassBuilderCallbacks(PB);
-
   LoopAnalysisManager     LAM;
   FunctionAnalysisManager FAM;
   CGSCCAnalysisManager    CGAM;
   ModuleAnalysisManager   MAM;
+
+  PassInstrumentationCallbacks PIC;
+  StandardInstrumentations SI(Ctx, /*DebugLogging=*/false);
+  SI.registerCallbacks(PIC, &MAM);
+  LAM.registerPass([&] { return PassInstrumentationAnalysis(&PIC); });
+  FAM.registerPass([&] { return PassInstrumentationAnalysis(&PIC); });
+  CGAM.registerPass([&] { return PassInstrumentationAnalysis(&PIC); });
+  MAM.registerPass([&] { return PassInstrumentationAnalysis(&PIC); });
+
+  // Construct the pass pipeline with the kagura plugin registered.
+  PassBuilder PB(nullptr, PipelineTuningOptions(), std::nullopt, &PIC);
+  PluginOrErr->registerPassBuilderCallbacks(PB);
+
   PB.registerModuleAnalyses(MAM);
   PB.registerCGSCCAnalyses(CGAM);
   PB.registerFunctionAnalyses(FAM);
