@@ -14,9 +14,6 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Local.h"
 
-#include <chrono>
-#include <random>
-
 using namespace llvm;
 
 namespace kagura {
@@ -124,15 +121,19 @@ bool shouldObfuscate(Function &F, StringRef PassAttr, bool GlobalFlag) {
 // Note: the -kagura-seed option is declared in Plugin.cpp to avoid
 // duplicate registration. Access via getModulePRNG() which reads it.
 
+// Fixed default seed used when neither -kagura-seed nor -kagura-build-id is
+// given. Chosen so the tool is reproducible by default (same IR in -> same
+// binary out), which is what CI and supply-chain verification want. Callers
+// who need a unique key per build opt in with -kagura-build-id=<git-sha> or an
+// explicit -kagura-seed; both feed through getModulePRNG() below.
+static constexpr uint64_t kDefaultSeed = 0x6b6167757261ULL; // "kagura"
+
 PRNG::PRNG(uint64_t Seed) {
-  if (Seed == 0) {
-    // Mix time-based and std::random_device entropy
-    std::random_device RD;
-    auto T = std::chrono::steady_clock::now().time_since_epoch().count();
-    State = static_cast<uint64_t>(RD()) ^ static_cast<uint64_t>(T);
-  } else {
-    State = Seed;
-  }
+  // A zero seed is treated as "use the deterministic default" rather than
+  // reaching for wall-clock / std::random_device entropy: obfuscation keys are
+  // embedded in (and recoverable from) the output binary regardless, so a
+  // random default buys no real secrecy while destroying reproducibility.
+  State = Seed ? Seed : kDefaultSeed;
 }
 
 uint64_t PRNG::next() {
