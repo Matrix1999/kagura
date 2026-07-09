@@ -102,7 +102,6 @@ static bool obfuscateMSVCTypeName(GlobalVariable *GV, Module &M, PRNG &RNG) {
     LLVMContext &Ctx = M.getContext();
     auto *Int8Ty  = Type::getInt8Ty(Ctx);
     auto *Int64Ty = Type::getInt64Ty(Ctx);
-    auto *VoidTy  = Type::getVoidTy(Ctx);
     auto *PtrTy   = PointerType::getUnqual(Ctx);
 
     // Encrypt the name bytes (preserve NUL terminator)
@@ -122,13 +121,11 @@ static bool obfuscateMSVCTypeName(GlobalVariable *GV, Module &M, PRNG &RNG) {
 
     // Build a constructor to decrypt in-place
     // The name field is at a fixed offset = sizeof(ptr) * 2
-    auto *CtorFTy = FunctionType::get(VoidTy, false);
-    auto *Ctor = Function::Create(CtorFTy, Function::InternalLinkage,
-                                  GV->getName() + ".msvc_rtti_decrypt", M);
+    auto *Ctor = createCtorFunction(M, GV->getName() + ".msvc_rtti_decrypt");
     Ctor->addFnAttr(Attribute::NoInline);
     Ctor->addFnAttr(Attribute::NoUnwind);
 
-    auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+    auto *Entry = &Ctor->getEntryBlock();
     auto *Loop  = BasicBlock::Create(Ctx, "loop",  Ctor);
     auto *Exit  = BasicBlock::Create(Ctx, "exit",  Ctor);
 
@@ -184,18 +181,15 @@ static bool obfuscateRTTIName(GlobalVariable *GV, Module &M, PRNG &RNG) {
     GV->setConstant(false); // must be writable for in-place decryption
 
     // Build a constructor that XOR-decrypts the name in-place
-    auto *VoidTy = Type::getVoidTy(Ctx);
     auto *I8PtrTy = PointerType::getUnqual(Ctx);
     auto *I8Ty  = Type::getInt8Ty(Ctx);
     auto *I64Ty = Type::getInt64Ty(Ctx);
 
-    auto *CtorFTy = FunctionType::get(VoidTy, false);
-    auto *Ctor = Function::Create(CtorFTy, Function::InternalLinkage,
-                                  GV->getName() + ".rtti_decrypt", M);
+    auto *Ctor = createCtorFunction(M, GV->getName() + ".rtti_decrypt");
     Ctor->addFnAttr(Attribute::NoInline);
     Ctor->addFnAttr(Attribute::NoUnwind);
 
-    auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+    auto *Entry = &Ctor->getEntryBlock();
     auto *Loop  = BasicBlock::Create(Ctx, "loop",  Ctor);
     auto *Exit  = BasicBlock::Create(Ctx, "exit",  Ctor);
 

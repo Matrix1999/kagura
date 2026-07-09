@@ -135,13 +135,11 @@ static Function *buildPacKeyConstructor(Module &M, GlobalVariable *PacKey) {
       M.getOrInsertFunction("kagura_random_u64", RngFTy).getCallee());
 
   // void kagura_init_pac_key(void)
-  auto *CtorFTy = FunctionType::get(Type::getVoidTy(Ctx), false);
-  auto *Ctor    = Function::Create(CtorFTy, Function::InternalLinkage,
-                                   "kagura_init_pac_key", M);
+  auto *Ctor = createCtorFunction(M, "kagura_init_pac_key");
   Ctor->addFnAttr(Attribute::NoInline);
   Ctor->addFnAttr(Attribute::NoUnwind);
 
-  auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+  auto *Entry = &Ctor->getEntryBlock();
   IRBuilder<> B(Entry);
 
   // kagura_pac_key = kagura_random_u64()
@@ -326,13 +324,11 @@ static GlobalVariable *hwPACTagGlobal(GlobalVariable *GV, Module &M,
   Tagged->setSection(GV->getSection());
 
   // Build a constructor that signs the pointer and stores it.
-  auto *CtorFTy = FunctionType::get(Type::getVoidTy(Ctx), false);
-  auto *Ctor = Function::Create(CtorFTy, Function::InternalLinkage,
-                                GV->getName() + ".hwpac.init", M);
+  auto *Ctor = createCtorFunction(M, GV->getName() + ".hwpac.init");
   Ctor->addFnAttr(Attribute::NoInline);
   Ctor->addFnAttr(Attribute::NoUnwind);
 
-  auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+  auto *Entry = &Ctor->getEntryBlock();
   IRBuilder<> B(Entry);
 
   Constant *OrigFn = GV->getInitializer();

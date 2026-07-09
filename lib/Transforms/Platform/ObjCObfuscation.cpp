@@ -187,13 +187,11 @@ PreservedAnalyses ObjCObfuscationPass::run(Module &M,
     FunctionCallee RemapFn =
         M.getOrInsertFunction("kagura_objc_register_remap", RemapFTy);
 
-    auto *CtorFTy = FunctionType::get(VoidTy, false);
-    auto *Ctor = Function::Create(CtorFTy, Function::InternalLinkage,
-                                  "kagura_objc_remap_ctor", M);
+    auto *Ctor = createCtorFunction(M, "kagura_objc_remap_ctor");
     Ctor->addFnAttr(Attribute::NoInline);
     Ctor->addFnAttr(Attribute::NoUnwind);
 
-    auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+    auto *Entry = &Ctor->getEntryBlock();
     IRBuilder<> B(Entry);
 
     for (auto &[Orig, Obf] : NameMap) {

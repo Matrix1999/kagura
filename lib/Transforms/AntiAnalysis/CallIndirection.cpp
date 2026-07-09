@@ -148,13 +148,11 @@ static Function *buildInitConstructor(Module &M, GlobalVariable *ThunkTable,
   auto *Int64Ty = Type::getInt64Ty(Ctx);
 
   // void kagura_init_thunk_table(void)
-  auto *FTy  = FunctionType::get(Type::getVoidTy(Ctx), false);
-  auto *Ctor = Function::Create(FTy, Function::InternalLinkage,
-                                "kagura_init_thunk_table", M);
+  auto *Ctor = createCtorFunction(M, "kagura_init_thunk_table");
   Ctor->addFnAttr(Attribute::NoInline);
   Ctor->addFnAttr(Attribute::NoUnwind);
 
-  auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+  auto *Entry = &Ctor->getEntryBlock();
   IRBuilder<> B(Entry);
 
   Function *DlsymFn        = getOrDeclareDlsym(M);

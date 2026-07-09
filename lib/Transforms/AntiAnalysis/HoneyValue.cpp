@@ -154,18 +154,15 @@ static void buildHoneyAnchorCtor(
     const SmallVectorImpl<GlobalVariable *> &HoneyGVs,
     const SmallVectorImpl<Function *> &FakeFns) {
   LLVMContext &Ctx = M.getContext();
-  auto *VoidTy     = Type::getVoidTy(Ctx);
   auto *Int32Ty    = Type::getInt32Ty(Ctx);
   auto *Int8Ty     = Type::getInt8Ty(Ctx);
   auto *PtrTy      = PointerType::getUnqual(Ctx);
 
-  auto *FTy = FunctionType::get(VoidTy, false);
-  auto *Ctor = Function::Create(FTy, Function::InternalLinkage,
-                                "kagura_honey_ctor", M);
+  auto *Ctor = createCtorFunction(M, "kagura_honey_ctor");
   Ctor->addFnAttr(Attribute::NoInline);
   Ctor->addFnAttr(Attribute::NoUnwind);
 
-  auto *Entry = BasicBlock::Create(Ctx, "entry", Ctor);
+  auto *Entry = &Ctor->getEntryBlock();
   IRBuilder<> B(Entry);
 
   // Volatile load from each honey global to prevent elimination.
