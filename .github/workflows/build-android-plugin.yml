@@ -124,11 +124,21 @@ jobs:
             -Wl,--gc-sections \
             -o dist/android-arm64/KaguraObfuscator.so \
             $OBJS -latomic -lm
+          # Strip debug info (11MB -> ~2MB). --strip-debug keeps the dynamic
+          # symbol table intact: the exported llvmGetPassPluginInfo entry point
+          # and all undefined LLVM symbols must survive for the plugin to load.
+          "$NDKBIN/llvm-strip" --strip-debug dist/android-arm64/KaguraObfuscator.so
           echo "Built arm64 plugin:"
           file dist/android-arm64/KaguraObfuscator.so
+          ls -la dist/android-arm64/KaguraObfuscator.so
           file dist/android-arm64/KaguraObfuscator.so | grep -qi "aarch64" \
             && echo "OK: aarch64 ELF shared object" \
             || (echo "ERROR: not aarch64" && exit 1)
+          # sanity: plugin entry point still exported after strip
+          "$NDKBIN/llvm-nm" -D dist/android-arm64/KaguraObfuscator.so \
+            | grep -q llvmGetPassPluginInfo \
+            && echo "OK: llvmGetPassPluginInfo exported" \
+            || (echo "ERROR: plugin entry point missing" && exit 1)
 
       - uses: actions/upload-artifact@v4
         with:
