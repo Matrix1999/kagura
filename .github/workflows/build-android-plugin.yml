@@ -101,17 +101,34 @@ jobs:
             -DKAGURA_BITCODE_TOOLS=OFF \
             -DKAGURA_PCH=OFF
 
-      - name: Build plugin (arm64)
-        run: cmake --build build-android --target KaguraObfuscator
+      - name: Compile objects (arm64)
+        # The final link fails because CMake links the host x86_64 libLLVM into
+        # an aarch64 module. We only need the compiled .o files here; the link
+        # is done manually in the next step with LLVM symbols left undefined.
+        run: cmake --build build-android --target KaguraObfuscator || true
 
-      - name: Locate artifact
+      - name: Link plugin without LLVM libs (undefined-symbol module)
+        # A pass plugin loaded via -fpass-plugin resolves LLVM symbols from the
+        # host clang process at dlopen time, so it must NOT link any LLVM lib.
+        # We relink the object files into an aarch64 shared object with
+        # --allow-shlib-undefined so LLVM symbols stay unresolved until load.
         run: |
-          SO=$(find build-android -name "KaguraObfuscator.so" | head -1)
-          echo "Built arm64 plugin: $SO"
-          file "$SO"
-          file "$SO" | grep -qi "aarch64" && echo "OK: aarch64 ELF" || echo "WARN: not aarch64"
+          NDKBIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          OBJS=$(find build-android -name "*.o" | sort)
+          echo "Object files:"; echo "$OBJS"
           mkdir -p dist/android-arm64
-          cp "$SO" dist/android-arm64/
+          "$NDKBIN/clang++" \
+            --target=aarch64-linux-android26 \
+            -shared -fPIC \
+            -Wl,--allow-shlib-undefined \
+            -Wl,--gc-sections \
+            -o dist/android-arm64/KaguraObfuscator.so \
+            $OBJS -latomic -lm
+          echo "Built arm64 plugin:"
+          file dist/android-arm64/KaguraObfuscator.so
+          file dist/android-arm64/KaguraObfuscator.so | grep -qi "aarch64" \
+            && echo "OK: aarch64 ELF shared object" \
+            || (echo "ERROR: not aarch64" && exit 1)
 
       - uses: actions/upload-artifact@v4
         with:
