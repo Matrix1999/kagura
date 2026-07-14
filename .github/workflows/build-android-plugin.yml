@@ -114,7 +114,7 @@ jobs:
         # --allow-shlib-undefined so LLVM symbols stay unresolved until load.
         run: |
           NDKBIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          OBJS=$(find build-android -name "*.o" | sort)
+          OBJS=$(find build-android/lib/Transforms/CMakeFiles/KaguraObfuscator.dir -name "*.o" | sort)
           echo "Object files:"; echo "$OBJS"
           mkdir -p dist/android-arm64
           "$NDKBIN/clang++" \
