@@ -1,0 +1,123 @@
+name: Build Kagura Plugin (host + Android arm64)
+
+# Builds the Kagura LLVM pass plugin two ways:
+#   1. host  — x86_64 Linux plugin (the maintainer-supported path; always works).
+#              Runs on a build machine / CI, obfuscating target-agnostic IR.
+#   2. arm64 — aarch64-linux-android plugin, cross-compiled with the Android NDK
+#              so it can be dlopen'd by an ON-DEVICE clang (Dex2c-Mega use case).
+#              This is experimental: it only loads on-device if the phone's clang
+#              was built with loadable-plugin support and exports LLVM symbols.
+#
+# Both artifacts are uploaded. Download from the run's "Artifacts" section.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-android-plugin.yml"
+
+env:
+  LLVM_VERSION: "21"          # match Dex2c-Mega's on-device clang-21
+  NDK_VERSION: "r27c"
+  NDK_URL: "https://dl.google.com/android/repository/android-ndk-r27c-linux.zip"
+
+jobs:
+  host-plugin:
+    name: Host plugin (x86_64 Linux, LLVM ${{ env.LLVM_VERSION }})
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install host LLVM ${{ env.LLVM_VERSION }}
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo add-apt-repository -y \
+            "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main"
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            llvm-${LLVM_VERSION}-dev clang-${LLVM_VERSION} ninja-build cmake unzip
+          echo "LLVM_PREFIX=/usr/lib/llvm-${LLVM_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Configure
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_DIR="$LLVM_PREFIX/lib/cmake/llvm" \
+            -DCMAKE_C_COMPILER="/usr/bin/clang-${LLVM_VERSION}" \
+            -DCMAKE_CXX_COMPILER="/usr/bin/clang++-${LLVM_VERSION}" \
+            -DKAGURA_BUILD_TESTS=OFF \
+            -DKAGURA_BITCODE_TOOLS=OFF
+
+      - name: Build plugin
+        run: cmake --build build
+
+      - name: Locate artifact
+        run: |
+          SO=$(find build -name "KaguraObfuscator.so" | head -1)
+          echo "Built host plugin: $SO"
+          file "$SO"
+          mkdir -p dist/host
+          cp "$SO" dist/host/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KaguraObfuscator-host-linux-x86_64
+          path: dist/host/KaguraObfuscator.so
+          if-no-files-found: error
+
+  android-arm64-plugin:
+    name: Android arm64 plugin (experimental cross-compile)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install host LLVM ${{ env.LLVM_VERSION }} (headers + cmake)
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo add-apt-repository -y \
+            "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main"
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            llvm-${LLVM_VERSION}-dev clang-${LLVM_VERSION} ninja-build cmake unzip
+          echo "LLVM_PREFIX=/usr/lib/llvm-${LLVM_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Download Android NDK ${{ env.NDK_VERSION }}
+        run: |
+          wget -q -O ndk.zip "$NDK_URL"
+          unzip -q ndk.zip -d "$HOME/ndk"
+          NDK_DIR=$(ls -d "$HOME/ndk"/android-ndk-*)
+          echo "ANDROID_NDK_HOME=$NDK_DIR" >> "$GITHUB_ENV"
+
+      - name: Configure (cross-compile plugin for aarch64-linux-android)
+        run: |
+          cmake -B build-android -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-26 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_DIR="$LLVM_PREFIX/lib/cmake/llvm" \
+            -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH \
+            -DLLVM_ENABLE_PLUGINS=ON \
+            -DKAGURA_BUILD_TESTS=OFF \
+            -DKAGURA_BITCODE_TOOLS=OFF \
+            -DKAGURA_PCH=OFF
+
+      - name: Build plugin (arm64)
+        run: cmake --build build-android --target KaguraObfuscator
+
+      - name: Locate artifact
+        run: |
+          SO=$(find build-android -name "KaguraObfuscator.so" | head -1)
+          echo "Built arm64 plugin: $SO"
+          file "$SO"
+          # sanity: confirm it is an aarch64 shared object
+          file "$SO" | grep -qi "aarch64" && echo "OK: aarch64 ELF" || echo "WARN: not aarch64"
+          mkdir -p dist/android-arm64
+          cp "$SO" dist/android-arm64/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KaguraObfuscator-android-arm64
+          path: dist/android-arm64/KaguraObfuscator.so
+          if-no-files-found: error
